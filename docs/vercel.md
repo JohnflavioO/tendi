@@ -46,3 +46,16 @@ Após a API estar publicada e validada, configure por ambiente:
 - `NEXT_PUBLIC_APP_NAME=Tendi`
 
 O webhook da Meta deverá apontar diretamente para a API de backend, não para a Vercel.
+
+
+## Verificação contínua
+
+O workflow `.github/workflows/quality.yml` executa em Pull Requests para `main`:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- Build de `@tendi/web` sem variáveis públicas do Supabase.
+- Build de `@tendi/web` com valores públicos de teste do Supabase.
+
+O repositório ainda não contém `pnpm-lock.yaml`; por isso, enquanto o lockfile não for versionado, o workflow instala com `pnpm install --no-frozen-lockfile`. A instalação não deve ser considerada reproduzível até a inclusão e validação do lockfile.

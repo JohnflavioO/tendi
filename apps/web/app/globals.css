@@ -2,10 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; --tendi-indigo: #2F316B; --tendi-teal: #004751; --tendi-magenta: #CB0A9F; --tendi-surface: #F7F8FC; }
+:root { color-scheme: light; --tendi-indigo: #2F316B; --tendi-teal: #004751; --tendi-magenta: #CB0A9F; --tendi-surface: #F7F8FC; --tendi-border: #E2E8F0; --tendi-muted: #64748B; }
 * { box-sizing: border-box; }
-html, body { min-height: 100%; }
+html, body { min-height: 100%; scroll-behavior: smooth; }
 body { margin: 0; background: var(--tendi-surface); color: #17211f; font-family: Arial, Helvetica, sans-serif; }
 button, input { font: inherit; }
 button { cursor: pointer; }
 ::selection { background: #c9eee3; }
+:focus-visible { outline: 2px solid var(--tendi-magenta); outline-offset: 2px; }
+.skip-link { position: fixed; left: 1rem; top: 1rem; z-index: 100; transform: translateY(-160%); border-radius: .75rem; background: white; padding: .75rem 1rem; color: var(--tendi-indigo); box-shadow: 0 4px 20px rgb(0 0 0 / .12); }
+.skip-link:focus { transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
