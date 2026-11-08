@@ -54,7 +54,7 @@ export default function PlansPage() {
 
   return <main className="min-h-screen bg-[#F6F7FB] text-slate-800">
     <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-      <div className="flex items-center gap-3"><span className="rounded-xl bg-[#2F316B] p-2.5 text-white"><Building2 size={20}/></span><div><p className="text-lg font-bold text-[#2F316B]">Tendi <span className="text-sm font-medium text-[#CB0A9F]">Console</span></p><p className="text-xs text-slate-500">Planos e recursos</p></div></div>
+      <div className="flex items-center gap-3"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain"/><div className="border-l border-slate-200 pl-3"><p className="text-xs font-semibold text-[#2F316B]">Console</p><p className="text-xs text-slate-500">Planos e recursos</p></div></div>
       <a href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-[#004751]"><ArrowLeft size={16}/> Voltar ao painel</a>
     </div></header>
     <div className="mx-auto max-w-6xl px-6 py-9">

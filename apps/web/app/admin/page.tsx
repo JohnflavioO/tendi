@@ -127,7 +127,7 @@ export default function AdminPage() {
 
   return <main className="min-h-screen bg-[#F6F7FB] text-slate-800">
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
-      <div className="flex h-[76px] items-center gap-3 border-b border-slate-100 px-6"><span className="rounded-xl bg-[#2F316B] p-2.5 text-white"><Building2 size={20}/></span><div><p className="text-lg font-bold text-[#2F316B]">Tendi <span className="text-sm font-medium text-[#CB0A9F]">Console</span></p><p className="text-[11px] text-slate-400">Administração da plataforma</p></div></div>
+      <div className="flex h-[76px] items-center gap-3 border-b border-slate-100 px-6"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain"/><span className="border-l border-slate-200 pl-3 text-xs font-medium text-slate-500">Console</span></div>
       <div className="px-4 pt-6"><p className="px-3 text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Plataforma</p>
         <a href="#overview" className="mt-2 flex items-center gap-3 rounded-xl bg-[#F0F1FA] px-3 py-3 text-sm font-semibold text-[#2F316B]"><LayoutDashboard size={18}/> Visão geral</a>
         <a href="#companies" className="mt-1 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"><Building2 size={18}/> Empresas <span className="ml-auto text-xs text-slate-400">{metrics.companies}</span></a>
