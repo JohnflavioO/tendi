@@ -16,7 +16,7 @@ export default function AdminPage() {
   const [notice, setNotice] = useState('');
 
   async function load() {
-    const supabase = createClient();
+    const supabase = createClient() as any;
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) { window.location.assign('/login'); return; }
     const { data: admin } = await supabase.from('platform_admins').select('user_id').eq('user_id', userData.user.id).maybeSingle();
@@ -43,12 +43,12 @@ export default function AdminPage() {
       const { data: pipeline, error: pipelineError } = await supabase.from('crm_pipelines').insert({ organization_id: organization.id, name: 'Vendas', is_default: true }).select('id').single();
       if (pipelineError) throw pipelineError;
       const stageRows = [
-        { name: 'Novo lead', position: 0, color: '#2F316B', stage_type: 'open' },
+        { name: 'Novo lead', position: 0, color: '#2F316B', final_type: 'open' },
         { name: 'Contato feito', position: 1, color: '#004751', stage_type: 'open' },
         { name: 'Proposta enviada', position: 2, color: '#CB0A9F', stage_type: 'open' },
         { name: 'Em negociação', position: 3, color: '#2F316B', stage_type: 'open' },
-        { name: 'Fechado', position: 4, color: '#004751', stage_type: 'won' },
-        { name: 'Perdido', position: 5, color: '#64748b', stage_type: 'lost' },
+        { name: 'Fechado', position: 4, color: '#004751', final_type: 'won' },
+        { name: 'Perdido', position: 5, color: '#64748b', final_type: 'lost' },
       ].map(stage => ({ ...stage, organization_id: organization.id, pipeline_id: pipeline.id }));
       const { error: stagesError } = await supabase.from('crm_stages').insert(stageRows);
       if (stagesError) throw stagesError;
