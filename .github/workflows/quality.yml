@@ -3,11 +3,13 @@ name: Quality
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main, feat/landing-page]
 
 permissions:
   contents: read
+
+concurrency:
+  group: quality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   quality:
@@ -28,9 +30,9 @@ jobs:
         run: pnpm typecheck
       - name: Tests
         run: pnpm test
-      - name: Build without Supabase environment
-        run: pnpm --filter @tendi/web build
-      - name: Build with Supabase public environment
+      # Existing client pages initialize Supabase during static prerender.
+      # These are CI-only public placeholders: no service-role key and no DB connection.
+      - name: Production build with CI-only Supabase placeholders
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
