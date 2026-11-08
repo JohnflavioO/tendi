@@ -7,6 +7,7 @@ export const siteContent = {
   secondaryCta: 'Conhecer os planos',
   loginLabel: 'Entrar',
   footerDescription: 'Atendimento, relacionamento e operação comercial em um só lugar.',
+  legalDraft: 'Este documento é uma versão preliminar e precisa de revisão jurídica antes da publicação definitiva.',
 } as const;
 
 export const navigation = [
