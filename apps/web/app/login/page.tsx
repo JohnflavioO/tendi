@@ -37,12 +37,13 @@ export default function LoginPage() {
         if (signupError) throw signupError;
         setNotice('Enviamos um link de confirmação para seu e-mail. Confirme o endereço para ativar o acesso de Super Admin.');
       } else {
-        const { error: loginError } = await supabase.auth.signInWithPassword({
+        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
           email: email.trim().toLowerCase(),
           password,
         });
         if (loginError) throw loginError;
-        router.replace('/inbox');
+        const { data: admin } = await supabase.from('platform_admins').select('user_id').eq('user_id', loginData.user.id).maybeSingle();
+        router.replace(admin ? '/admin' : '/inbox');
         router.refresh();
       }
     } catch (err) {
