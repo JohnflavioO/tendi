@@ -1,32 +1,48 @@
 # Deploy do frontend na Vercel — Tendi
 
-## Conectar o repositório
+## Monorepo e configuração
 
-1. Importe `JohnflavioO/tendi` no painel da Vercel.
-2. Configure **Root Directory** como `apps/web`.
-3. Framework preset: **Next.js**.
-4. Configure o comando de instalação como `pnpm install --frozen-lockfile` (a Vercel pode instalar pela raiz do monorepo; mantenha o lockfile na raiz).
-5. Build command: `pnpm --filter @tendi/web build`.
-6. A branch `main` é a produção; branches e PRs geram Preview Deployments.
+- Repositório: `JohnFlavioO/tendi`
+- Root Directory: `apps/web`
+- Framework: Next.js
+- Node.js: 22.x
+- Package manager: pnpm 10.17.1 (executado explicitamente via npx no build da Vercel)
+- Workspace e lockfile: ficam na raiz do monorepo.
 
-> Observação: o Root Directory pode precisar de **Include source files outside of the Root Directory** habilitado, pois o workspace e `packages/shared` ficam na raiz do monorepo.
+A configuração de instalação e build no projeto Vercel é:
+
+```bash
+# Install Command (executado a partir de apps/web)
+cd ../.. && rm -rf node_modules/.pnpm && npx --yes pnpm@10.17.1 install --no-frozen-lockfile
+
+# Build Command
+cd ../.. && npx --yes pnpm@10.17.1 --filter @tendi/web build
+```
+
+O cache antigo `node_modules/.pnpm` é removido durante a instalação para evitar reutilizar metadados incompatíveis. O uso explícito do pnpm evita depender da versão global pré-instalada no ambiente de build.
+
+Habilite **Include source files outside of the Root Directory**, pois `packages/shared` e os manifests do workspace estão na raiz.
+
+A branch `main` é a produção. Pull requests devem ser validados em Preview antes do merge.
 
 ## Variáveis de ambiente
 
 | Variável | Preview | Production | Descrição |
 |---|---|---|---|
-| `NEXT_PUBLIC_DATA_MODE` | `mock` | `mock` | Fonte de dados. Use `api` somente após a Etapa B. |
-| `NEXT_PUBLIC_API_URL` | vazio ou URL de ambiente de teste | vazio até a Etapa B | URL base da API quando DATA_MODE=api. |
+| `NEXT_PUBLIC_DATA_MODE` | `mock` | `mock` | Fonte de dados enquanto a integração real não estiver validada. |
+| `NEXT_PUBLIC_API_URL` | vazio | vazio | URL base da API quando a etapa de backend estiver pronta. |
 | `NEXT_PUBLIC_APP_NAME` | `Tendi` | `Tendi` | Nome exibido no frontend. |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Tendi | URL do projeto Tendi | Endpoint público do Supabase. |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Chave publishable | Chave publishable | Chave pública; nunca usar service role no navegador. |
 
-Não cadastre segredos no frontend. Tokens, segredos Meta e credenciais de serviços ficam exclusivamente no backend.
+Não cadastre segredos no frontend. Service role, tokens Meta e credenciais de serviços ficam exclusivamente no backend.
 
-## Troca para API (futura Etapa B)
+## Troca para API (futura etapa)
 
-Após a API estar publicada e validada na VPS, configure em Preview e Production conforme o ambiente:
+Após a API estar publicada e validada, configure por ambiente:
 
 - `NEXT_PUBLIC_DATA_MODE=api`
 - `NEXT_PUBLIC_API_URL=https://api.[DOMINIO]`
 - `NEXT_PUBLIC_APP_NAME=Tendi`
 
-Faça redeploy. O webhook da Meta deverá apontar diretamente para a API na VPS, nunca para a Vercel.
+O webhook da Meta deverá apontar diretamente para a API de backend, não para a Vercel.
