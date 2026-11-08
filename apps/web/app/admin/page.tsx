@@ -90,8 +90,8 @@ export default function AdminPage() {
       </div>
 
       {createdOrganization && <div role="status" className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-        <div className="flex items-start gap-3"><CheckCircle2 className="mt-0.5 shrink-0 text-emerald-600" size={21}/><div><p className="font-semibold text-emerald-900">{createdOrganization.name} foi criada.</p><p className="mt-1 text-sm text-emerald-800">A equipe de atendimento e o pipeline comercial já estão prontos. O próximo passo é entrar no ambiente da empresa.</p></div></div>
-        <a href={inboxUrl(createdOrganization.id)} className="inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-3 text-sm font-semibold text-white hover:bg-[#003b43]">Acessar empresa <ArrowRight size={16}/></a>
+        <div className="flex items-start gap-3"><CheckCircle2 className="mt-0.5 shrink-0 text-emerald-600" size={21}/><div><p className="font-semibold text-emerald-900">{createdOrganization.name} foi criada.</p><p className="mt-1 text-sm text-emerald-800">A estrutura inicial está pronta. Agora, convide o administrador que vai operar esta empresa.</p></div></div>
+        <a href={`/admin/organizations/${createdOrganization.id}/setup`} className="inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-3 text-sm font-semibold text-white hover:bg-[#003b43]">Configurar empresa <ArrowRight size={16}/></a>
         <button onClick={() => setCreatedOrganization(null)} aria-label="Fechar aviso" className="rounded-lg p-1 text-emerald-700"><X size={16}/></button>
       </div>}
 
@@ -100,7 +100,7 @@ export default function AdminPage() {
           <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5"><div><h2 className="font-bold text-[#2F316B]">Empresas clientes</h2><p className="mt-1 text-xs text-slate-500">Cada empresa possui seu próprio ambiente.</p></div><span className="rounded-full bg-[#edf0fb] px-3 py-1 text-xs font-semibold text-[#2F316B]">{customerOrganizations.length}</span></div>
           {customerOrganizations.length ? <div className="divide-y divide-slate-100">{customerOrganizations.map(org => <article key={org.id} className="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
             <div className="flex min-w-0 items-center gap-3"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f1f2fa] text-[#2F316B]"><Building2 size={20}/></span><div className="min-w-0"><p className="truncate font-semibold text-slate-800">{org.name}</p><p className="mt-1 text-xs text-slate-400">{org.slug} · Plano {org.plan_code}</p></div></div>
-            <div className="flex items-center gap-3"><span className={org.status === 'active' ? 'rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700' : 'rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600'}>{org.status === 'active' ? 'Ativa' : org.status}</span><a href={inboxUrl(org.id)} className="inline-flex items-center gap-2 rounded-lg border border-[#004751]/20 px-3 py-2 text-xs font-semibold text-[#004751] hover:bg-[#eff8f7]">Abrir ambiente <ExternalLink size={14}/></a></div>
+            <div className="flex items-center gap-3"><span className={org.status === 'active' ? 'rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700' : 'rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600'}>{org.status === 'active' ? 'Ativa' : org.status}</span><a href={`/admin/organizations/${org.id}/setup`} className="inline-flex items-center gap-2 rounded-lg border border-[#004751]/20 px-3 py-2 text-xs font-semibold text-[#004751] hover:bg-[#eff8f7]">Configurar <ExternalLink size={14}/></a></div>
           </article>)}</div> : <div className="px-6 py-14 text-center"><Building2 className="mx-auto text-slate-300" size={34}/><p className="mt-3 font-semibold text-slate-700">Nenhuma empresa cliente ainda</p><p className="mt-1 text-sm text-slate-500">Use o formulário ao lado para cadastrar a primeira.</p></div>}
         </section>
 
@@ -113,7 +113,7 @@ export default function AdminPage() {
             {error && <p role="alert" className="mt-3 break-words text-sm text-red-600">{error}</p>}
             <button disabled={saving || name.trim().length < 2} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#004751] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#003b43] disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="animate-spin" size={17}/> : <Plus size={17}/>} {saving ? 'Criando empresa...' : 'Criar empresa'}</button>
           </form>
-          <div className="mt-5 flex items-start gap-2 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-400"><Users size={15} className="mt-0.5 shrink-0"/> Depois de criar, você poderá abrir o ambiente e seguir com os próximos cadastros.</div>
+          <div className="mt-5 flex items-start gap-2 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-400"><Users size={15} className="mt-0.5 shrink-0"/> Após criar, convide o administrador responsável pela operação.</div>
         </aside>
       </div>
 
