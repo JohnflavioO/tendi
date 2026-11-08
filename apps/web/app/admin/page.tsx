@@ -34,7 +34,7 @@ export default function AdminPage() {
     event.preventDefault();
     setSaving(true); setError(''); setNotice('');
     try {
-      const supabase = createClient();
+      const supabase = createClient() as any;
       const slug = name.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       const { data: organization, error: orgError } = await supabase.from('organizations').insert({ name: name.trim(), slug, status: 'active', plan_code: 'starter' }).select('id').single();
       if (orgError) throw orgError;
@@ -44,9 +44,9 @@ export default function AdminPage() {
       if (pipelineError) throw pipelineError;
       const stageRows = [
         { name: 'Novo lead', position: 0, color: '#2F316B', final_type: 'open' },
-        { name: 'Contato feito', position: 1, color: '#004751', stage_type: 'open' },
-        { name: 'Proposta enviada', position: 2, color: '#CB0A9F', stage_type: 'open' },
-        { name: 'Em negociação', position: 3, color: '#2F316B', stage_type: 'open' },
+        { name: 'Contato feito', position: 1, color: '#004751', final_type: 'open' },
+        { name: 'Proposta enviada', position: 2, color: '#CB0A9F', final_type: 'open' },
+        { name: 'Em negociação', position: 3, color: '#2F316B', final_type: 'open' },
         { name: 'Fechado', position: 4, color: '#004751', final_type: 'won' },
         { name: 'Perdido', position: 5, color: '#64748b', final_type: 'lost' },
       ].map(stage => ({ ...stage, organization_id: organization.id, pipeline_id: pipeline.id }));
