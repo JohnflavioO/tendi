@@ -15,7 +15,7 @@ const time = (value?: string | null) => value ? new Date(value).toLocaleTimeStri
 const initials = (value?: string | null) => (value || 'C').split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase();
 
 export default function InboxPage() {
-  const supabase = createClient();
+  const supabase = createClient() as any;
   const [userId, setUserId] = useState('');
   const [organizations, setOrganizations] = useState<Org[]>([]);
   const [organizationId, setOrganizationId] = useState('');
