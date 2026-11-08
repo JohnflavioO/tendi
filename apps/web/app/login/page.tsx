@@ -1,53 +1,34 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Loader2, MessageCircle, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('john.flavio@gmail.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('John Flavio');
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
-    setNotice('');
     setLoading(true);
     try {
       const supabase = createClient();
-      if (mode === 'signup') {
-        if (email.trim().toLowerCase() !== 'john.flavio@gmail.com') {
-          throw new Error('O cadastro inicial está restrito ao e-mail autorizado do Super Admin.');
-        }
-        const { error: signupError } = await supabase.auth.signUp({
-          email: email.trim().toLowerCase(),
-          password,
-          options: {
-            data: { full_name: fullName.trim() },
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
-        if (signupError) throw signupError;
-        setNotice('Enviamos um link de confirmação para seu e-mail. Confirme o endereço para ativar o acesso de Super Admin.');
-      } else {
-        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password,
-        });
-        if (loginError) throw loginError;
-        const { data: admin } = await supabase.from('platform_admins').select('user_id').eq('user_id', loginData.user.id).maybeSingle();
-        router.replace(admin ? '/admin' : '/inbox');
-        router.refresh();
-      }
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (loginError) throw loginError;
+      const { data: admin } = await supabase.from('platform_admins').select('user_id').eq('user_id', data.user.id).maybeSingle();
+      router.replace(admin ? '/admin' : '/inbox');
+      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível concluir a operação.');
+      setError(err instanceof Error ? err.message : 'Não foi possível entrar. Confira seus dados.');
     } finally {
       setLoading(false);
     }
@@ -74,30 +55,26 @@ export default function LoginPage() {
         <form onSubmit={submit} className="w-full max-w-md">
           <div className="mb-10 flex items-center gap-3 text-2xl font-bold text-[#2F316B] lg:hidden"><MessageCircle />Tendi</div>
           <p className="text-sm font-semibold uppercase tracking-wider text-[#004751]">Bem-vindo ao Tendi</p>
-          <h2 className="mt-3 text-3xl font-semibold text-slate-900">{mode === 'signin' ? 'Acesse sua conta' : 'Ative seu acesso'}</h2>
-          <p className="mt-2 text-sm text-slate-500">{mode === 'signin' ? 'Entre para continuar seus atendimentos.' : 'Crie o primeiro acesso administrativo da plataforma.'}</p>
+          <h2 className="mt-3 text-3xl font-semibold text-slate-900">Acesse sua conta</h2>
+          <p className="mt-2 text-sm text-slate-500">Entre para continuar seus atendimentos ou administrar a plataforma.</p>
 
-          {mode === 'signup' && <>
-            <label className="mt-7 block text-sm font-medium text-slate-700">Nome completo</label>
-            <input required value={fullName} onChange={e => setFullName(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#004751] focus:ring-2 focus:ring-[#004751]/10" />
-          </>}
-
-          <label className="mt-7 block text-sm font-medium text-slate-700">E-mail</label>
-          <input required type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#004751] focus:ring-2 focus:ring-[#004751]/10" />
+          <label className="mt-8 block text-sm font-medium text-slate-700">E-mail</label>
+          <input required type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#004751] focus:ring-2 focus:ring-[#004751]/10" placeholder="voce@empresa.com"/>
           <label className="mt-5 block text-sm font-medium text-slate-700">Senha</label>
-          <input required minLength={8} type="password" autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} value={password} onChange={e => setPassword(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#004751] focus:ring-2 focus:ring-[#004751]/10" />
+          <input required type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#004751] focus:ring-2 focus:ring-[#004751]/10" placeholder="Sua senha"/>
 
           {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          {notice && <p role="status" className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p>}
 
           <button disabled={loading} className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-[#004751] px-4 py-3 font-semibold text-white transition hover:bg-[#003943] disabled:opacity-60">
-            {loading ? <Loader2 className="animate-spin" size={18} /> : <>{mode === 'signin' ? 'Entrar' : 'Criar acesso Super Admin'} <ArrowRight size={18} /></>}
+            {loading ? <Loader2 className="animate-spin" size={18} /> : <>Entrar <ArrowRight size={18} /></>}
           </button>
-          <button type="button" onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setNotice(''); }} className="mt-5 w-full text-sm font-semibold text-[#2F316B] hover:underline">
-            {mode === 'signin' ? 'Primeiro acesso do Super Admin? Criar conta' : 'Já possui acesso? Entrar'}
-          </button>
+
+          <div className="mt-7 rounded-xl bg-[#F6F7FB] p-4 text-center">
+            <p className="text-sm font-semibold text-[#25275B]">Ainda não tem uma conta?</p>
+            <Link href="/register" className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-[#004751] hover:underline">Comece seu teste gratuito de 14 dias <ArrowRight size={15}/></Link>
+            <p className="mt-1 text-xs text-slate-400">Sem cartão de crédito e sem cobrança no cadastro.</p>
+          </div>
           <div className="mt-8 flex items-center gap-2 text-xs text-slate-400"><ShieldCheck size={15} /> Autenticação protegida pelo Supabase Auth</div>
-          <p className="mt-3 text-center text-[11px] text-slate-400">O cadastro inicial é restrito ao e-mail previamente autorizado.</p>
         </form>
       </section>
     </main>

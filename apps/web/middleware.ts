@@ -20,13 +20,14 @@ export async function middleware(request: NextRequest) {
 
   const { data } = await supabase.auth.getUser();
   const isLogin = request.nextUrl.pathname.startsWith('/login');
+  const isRegister = request.nextUrl.pathname === '/register';
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth');
-  if (!data.user && !isLogin && !isAuthRoute) {
+  if (!data.user && !isLogin && !isRegister && !isAuthRoute) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = '/login';
     return NextResponse.redirect(redirect);
   }
-  if (data.user && isLogin) {
+  if (data.user && (isLogin || isRegister)) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = '/inbox';
     return NextResponse.redirect(redirect);
