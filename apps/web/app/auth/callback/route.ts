@@ -7,7 +7,13 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL('/inbox', origin));
+    if (!error) {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        const { data: admin } = await supabase.from('platform_admins').select('user_id').eq('user_id', userData.user.id).maybeSingle();
+        return NextResponse.redirect(new URL(admin ? '/admin' : '/inbox', origin));
+      }
+    }
   }
-  return NextResponse.redirect(new URL('/login?auth=callback_error', origin));
+  return NextResponse.redirect(new URL('/login', origin));
 }
