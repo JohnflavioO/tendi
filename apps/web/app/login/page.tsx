@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, Loader2, MessageCircle, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -14,7 +14,6 @@ export default function LoginPage() {
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,7 +88,6 @@ export default function LoginPage() {
 
           {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           {notice && <p role="status" className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p>}
-          {searchParams.get('auth') === 'callback_error' && <p className="mt-4 text-sm text-red-600">Não foi possível confirmar o acesso. Solicite um novo link de confirmação.</p>}
 
           <button disabled={loading} className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-[#004751] px-4 py-3 font-semibold text-white transition hover:bg-[#003943] disabled:opacity-60">
             {loading ? <Loader2 className="animate-spin" size={18} /> : <>{mode === 'signin' ? 'Entrar' : 'Criar acesso Super Admin'} <ArrowRight size={18} /></>}
