@@ -9,7 +9,7 @@ export class MockRealtime implements RealtimeClient {
 }
 
 export class SocketRealtime implements RealtimeClient {
-  connect(_onEvent: (event: RealtimeEvent) => void) {
+  connect(_onEvent: (event: RealtimeEvent) => void): () => void {
     // Socket.IO é carregado somente quando a API estiver disponível, nunca nas rotas da Vercel.
     throw new Error('SocketRealtime será habilitado na integração com a API.');
   }
