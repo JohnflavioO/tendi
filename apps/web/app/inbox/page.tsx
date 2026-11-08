@@ -40,9 +40,9 @@ export default function InboxPage() {
     setOrganizations(list);
     const requestedId = new URLSearchParams(window.location.search).get('organization');
     const requestedOrganization = requestedId && list.some(org => org.id === requestedId) ? requestedId : '';
-    if (!organizationId && (requestedOrganization || list[0])) setOrganizationId(requestedOrganization || list[0].id);
+    setOrganizationId(current => current || requestedOrganization || list[0]?.id || '');
     setLoading(false);
-  }, [supabase, organizationId]);
+  }, [supabase]);
 
   const loadInbox = useCallback(async () => {
     if (!organizationId) { setConversations([]); setMessages([]); return; }
@@ -55,7 +55,7 @@ export default function InboxPage() {
     if (conversationError) throw conversationError;
     const rows = (data ?? []) as unknown as Conversation[];
     setConversations(rows);
-    if (!selectedId || !rows.some(row => row.id === selectedId)) setSelectedId(rows[0]?.id ?? '');
+    setSelectedId(current => current && rows.some(row => row.id === current) ? current : (rows[0]?.id ?? ''));
     const ids = rows.map(row => row.id);
     if (!ids.length) { setMessages([]); return; }
     const { data: messageRows, error: messageError } = await supabase
@@ -65,7 +65,7 @@ export default function InboxPage() {
       .order('created_at', { ascending: true });
     if (messageError) throw messageError;
     setMessages((messageRows ?? []) as Message[]);
-  }, [organizationId, selectedId, supabase]);
+  }, [organizationId, supabase]);
 
   useEffect(() => { void loadOrganizations().catch(err => { setError(err.message); setLoading(false); }); }, [loadOrganizations]);
   useEffect(() => { if (organizationId) void loadInbox().catch(err => setError(err.message)); }, [organizationId, loadInbox]);
@@ -122,14 +122,14 @@ export default function InboxPage() {
 
   return <main className="flex min-h-screen bg-[#F7F8FC] text-slate-800">
     <aside className="hidden w-[236px] shrink-0 flex-col border-r border-slate-200 bg-white p-5 lg:flex">
-      <div className="mb-8 flex items-center gap-3 px-2"><span className="rounded-xl bg-[#edf0fb] p-2.5 text-[#2F316B]"><MessageCircle/></span><span className="text-xl font-bold text-[#2F316B]">Tendi</span></div>
+      <div className="mb-8 flex items-center px-2"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain"/></div>
       <label className="mb-6 block"><span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Workspace</span><div className="relative"><select value={organizationId} onChange={e=>setOrganizationId(e.target.value)} className="w-full appearance-none rounded-xl border border-slate-200 bg-white p-3 pr-8 text-sm font-semibold outline-none focus:border-[#004751]">{organizations.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-3.5 text-slate-400" size={16}/></div></label>
       <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Workspace</p><nav className="space-y-1">{nav.map(([label,Icon,url])=><a key={label} href={url} className={label==='Inbox'?'flex items-center gap-3 rounded-xl bg-[#edf0fb] px-3 py-3 text-sm font-semibold text-[#2F316B]':'flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-600 hover:bg-slate-50'}><Icon size={18}/>{label}{label==='Inbox'&&<span className="ml-auto rounded-full bg-[#CB0A9F] px-2 py-0.5 text-xs text-white">{conversations.length}</span>}</a>)}</nav>
       <div className="mt-auto space-y-3"><a href="/admin" className="flex items-center gap-2 px-3 text-xs font-semibold text-[#2F316B]"><ShieldCheckIcon/> Console Super Admin</a><form action="/auth/signout" method="post"><button className="w-full rounded-xl border border-slate-200 px-3 py-2 text-left text-xs text-slate-500">Sair da conta</button></form></div>
     </aside>
 
     <section className="w-full shrink-0 border-r border-slate-200 bg-white md:w-[320px]">
-      <header className="flex h-[76px] items-center justify-between border-b border-slate-100 px-5"><div><p className="text-lg font-semibold text-[#2F316B]">Inbox</p><p className="text-xs text-slate-400">{conversations.length} conversas · dados do banco</p></div><button onClick={()=>void loadInbox()} className="rounded-lg border border-slate-200 p-2 text-slate-500" title="Atualizar"><RefreshCw size={17}/></button></header>
+      <header className="flex h-[76px] items-center justify-between border-b border-slate-100 px-5"><div><p className="text-lg font-semibold text-[#2F316B]">Atendimento</p><p className="text-xs text-slate-400">{conversations.length} conversas · {conversations.filter(item=>item.unread_count>0).length} não lidas</p></div><button onClick={()=>void loadInbox()} className="rounded-lg border border-slate-200 p-2 text-slate-500" title="Atualizar"><RefreshCw size={17}/></button></header>
       <div className="p-4"><div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2.5"><Search size={16} className="text-slate-400"/><input placeholder="Buscar contato..." value={search} onChange={e=>setSearch(e.target.value)} className="w-full bg-transparent text-sm outline-none"/></div><div className="mt-4 flex gap-1 overflow-x-auto">{['Todas','Não lidas','open','pending','closed'].map(value=><button key={value} onClick={()=>setFilter(value)} className={filter===value?'whitespace-nowrap rounded-full bg-[#edf0fb] px-3 py-1.5 text-xs font-semibold text-[#2F316B]':'whitespace-nowrap rounded-full bg-slate-50 px-3 py-1.5 text-xs text-slate-500'}>{value==='open'?'Abertas':value==='pending'?'Pendentes':value==='closed'?'Encerradas':value}</button>)}</div></div>
       <div className="divide-y divide-slate-100">{filtered.map(item=><button key={item.id} onClick={()=>setSelectedId(item.id)} className={selectedId===item.id?'flex w-full gap-3 border-l-[3px] border-[#CB0A9F] bg-[#f8f7fc] px-4 py-4 text-left':'flex w-full gap-3 px-4 py-4 text-left hover:bg-slate-50'}><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#edf0fb] text-sm font-semibold text-[#2F316B]">{initials(item.contacts?.full_name)}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between"><b className="truncate text-sm">{item.contacts?.full_name ?? 'Contato'}</b><span className="text-[10px] text-slate-400">{time(item.last_message_at)}</span></div><p className="mt-1 truncate text-xs text-slate-500">{item.channel}</p><div className="mt-2 flex items-center gap-2"><span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{item.status}</span>{item.unread_count>0&&<span className="ml-auto rounded-full bg-[#CB0A9F] px-1.5 py-0.5 text-[10px] text-white">{item.unread_count}</span>}</div></div></button>)}</div>
       {!filtered.length&&<div className="p-8 text-center"><MessageCircle className="mx-auto text-slate-300" size={28}/><p className="mt-3 text-sm font-semibold text-slate-600">Nenhuma conversa encontrada</p><p className="mt-1 text-xs text-slate-400">As conversas reais desta empresa aparecerão aqui.</p></div>}
