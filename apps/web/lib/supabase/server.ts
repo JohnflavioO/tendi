@@ -1,3 +1,4 @@
+import type { Database } from '@/lib/database.types';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
@@ -7,7 +8,7 @@ export async function createClient() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) throw new Error('Configuração do Supabase ausente.');
 
-  return createServerClient(url, key, {
+  return createServerClient<Database>(url, key, {
     cookies: {
       getAll() { return cookieStore.getAll(); },
       setAll(cookiesToSet) {
