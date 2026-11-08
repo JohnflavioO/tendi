@@ -8,7 +8,7 @@ export function MarketingFooter() {
     <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-12 md:grid-cols-[1.5fr_1fr_1fr_1fr] md:px-6">
       <div>
         <Link href="/" aria-label="Tendi, início" className="inline-flex items-center">
-          <Image src="/brand/tendi-logo-dark.png" alt="Tendi" width={400} height={153} className="h-10 w-auto" />
+          <Image src="/brand/tendi-logo-dark.png" alt="Tendi" width={400} height={153} unoptimized className="block h-10 w-auto object-contain" />
         </Link>
         <p className="mt-4 max-w-xs text-sm leading-6 text-white/70">{siteContent.footerDescription}</p>
       </div>

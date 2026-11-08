@@ -37,7 +37,7 @@ export function MarketingHeader() {
     <header className={`fixed inset-x-0 top-0 z-50 h-14 border-b transition-all duration-200 md:h-16 ${scrolled ? 'border-slate-200 bg-white/90 shadow-sm backdrop-blur-xl' : 'border-transparent bg-transparent'}`}>
       <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between px-5 md:px-6">
         <Link href="/" aria-label="Tendi, início" className="inline-flex items-center">
-          <Image src="/brand/tendi-logo-light.png" alt="Tendi" width={400} height={153} priority className="h-9 w-auto md:h-10" />
+          <Image src="/brand/tendi-logo-light.png" alt="Tendi" width={400} height={153} priority unoptimized className="block h-9 w-auto object-contain md:h-10" />
         </Link>
         <nav aria-label="Navegação principal" className="hidden items-center gap-8 md:flex">
           {navigation.map(item => <a key={item.href} href={item.href} className="text-sm font-medium text-slate-600 transition hover:text-[#004751]">{item.label}</a>)}
