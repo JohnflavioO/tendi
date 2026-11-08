@@ -38,7 +38,9 @@ export default function InboxPage() {
     if (orgError) throw orgError;
     const list = (data ?? []) as Org[];
     setOrganizations(list);
-    if (!organizationId && list[0]) setOrganizationId(list[0].id);
+    const requestedId = new URLSearchParams(window.location.search).get('organization');
+    const requestedOrganization = requestedId && list.some(org => org.id === requestedId) ? requestedId : '';
+    if (!organizationId && (requestedOrganization || list[0])) setOrganizationId(requestedOrganization || list[0].id);
     setLoading(false);
   }, [supabase, organizationId]);
 
