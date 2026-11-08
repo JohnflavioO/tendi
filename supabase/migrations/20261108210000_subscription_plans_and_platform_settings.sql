@@ -1,5 +1,5 @@
 -- Etapa 2: catálogo inicial de planos e configurações da plataforma.
--- Esta migration deve ser aplicada pelo fluxo versionado do projeto; não executar diretamente no Supabase nesta etapa.
+-- Migration versionada da Etapa 2: catálogo de planos e configurações globais.
 
 create table if not exists public.subscription_plans (
   id uuid primary key default gen_random_uuid(),
@@ -69,3 +69,7 @@ with check (private.is_platform_super_admin());
 insert into public.platform_settings (key, value, description)
 values ('trial_days', '14'::jsonb, 'Duração padrão do período de teste gratuito em dias.')
 on conflict (key) do nothing;
+
+-- Privilégios de API: RLS continua sendo a camada que restringe quais linhas cada usuário pode acessar.
+grant select, insert, update, delete on public.subscription_plans to authenticated;
+grant select, insert, update, delete on public.platform_settings to authenticated;
