@@ -35,12 +35,9 @@ export function WorkspaceShell({ children, title, description, actions }: {
     async function load() {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) { window.location.assign('/login'); return; }
-      const { data: membership } = await supabase.from('organization_memberships')
-        .select('organization_id,organizations(id,name)')
-        .eq('user_id', auth.user.id).eq('status', 'active').limit(1).maybeSingle();
+      const { data: orgs } = await supabase.from('organizations').select('id,name').order('name').limit(1);
       if (!active) return;
-      const org = Array.isArray(membership?.organizations) ? membership.organizations[0] : membership?.organizations;
-      if (org) setOrganization(org);
+      if (orgs?.[0]) setOrganization(orgs[0]);
       setLoading(false);
     }
     void load();
