@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bot, MessageCircle, Instagram, Facebook, Globe2, CheckCircle2, AlertCircle, Loader2, Smartphone, ShieldCheck, ArrowRight, RefreshCw, Clock3 } from 'lucide-react';
+import { Bot, MessageCircle, Instagram, Facebook, Globe2, Loader2, Smartphone, ShieldCheck, ArrowRight, Clock3 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { WorkspaceShell } from '@/components/workspace-shell';
 
