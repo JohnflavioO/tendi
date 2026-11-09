@@ -7,7 +7,7 @@ type Context = { params: { action: string } };
 type Connection = { id: string; organization_id: string; provider_account_id: string | null; settings: Record<string, unknown> | null; status: string; display_name: string };
 
 async function workspaceContext(request: Request) {
-  const supabase = await createClient();
+  const supabase = (await createClient()) as any;
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) return { response: NextResponse.json({ error: 'Faça login para continuar.' }, { status: 401 }) };
   const organizationId = new URL(request.url).searchParams.get('organizationId');
