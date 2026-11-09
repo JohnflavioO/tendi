@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   ArrowRight, ArrowUpRight, Bot, Check, CheckCircle2, CircleHelp,
-  Headset, MessageSquareText, Users, Workflow, ReceiptText, Building2,
+  MessageSquareText, Users, Workflow, ReceiptText, Building2,
   Clock3, MessagesSquare, ChartNoAxesCombined, Sparkles, ShieldCheck,
 } from 'lucide-react';
 import { siteContent, features, steps, faqs } from '@/content/marketing/site';
