@@ -1,0 +1,88 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import {
+  Inbox, KanbanSquare, Users, Bot, ChartNoAxesCombined, Settings, ChevronDown,
+  MoreHorizontal, UserRound, RefreshCw, CircleHelp, LogOut, Building2, Menu, X,
+} from 'lucide-react';
+
+const navigation = [
+  { label: 'Inbox', href: '/inbox', icon: Inbox },
+  { label: 'CRM', href: '/crm', icon: KanbanSquare },
+  { label: 'Contatos', href: '/contatos', icon: Users },
+  { label: 'Chatbots', href: '/chatbots', icon: Bot },
+  { label: 'Relatórios', href: '/relatorios', icon: ChartNoAxesCombined },
+  { label: 'Configurações', href: '/configuracoes', icon: Settings },
+];
+
+export function WorkspaceShell({ children, title, description, actions }: {
+  children: React.ReactNode;
+  title: string;
+  description: string;
+  actions?: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const supabase = createClient() as any;
+  const [organization, setOrganization] = useState<{id:string;name:string}|null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) { window.location.assign('/login'); return; }
+      const { data: membership } = await supabase.from('organization_memberships')
+        .select('organization_id,organizations(id,name)')
+        .eq('user_id', auth.user.id).eq('status', 'active').limit(1).maybeSingle();
+      if (!active) return;
+      const org = Array.isArray(membership?.organizations) ? membership.organizations[0] : membership?.organizations;
+      if (org) setOrganization(org);
+      setLoading(false);
+    }
+    void load();
+    return () => { active = false; };
+  }, [supabase]);
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    window.location.assign('/login');
+  }
+
+  const sidebar = <aside className="flex h-full w-[238px] shrink-0 flex-col border-r border-slate-200 bg-white px-4 py-5">
+    <a href="/inbox" className="mb-8 flex items-center px-2"><img src="/brand/Logo%20Tendi.png" alt="Tendi" className="h-9 w-auto object-contain"/></a>
+    <div className="mb-6 rounded-xl border border-slate-200 bg-[#FAFBFD] p-3">
+      <span className="mb-2 block text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</span>
+      <div className="flex items-center gap-2 text-sm font-semibold text-[#2F316B]"><Building2 size={16}/><span className="truncate">{organization?.name ?? 'Carregando...'}</span><ChevronDown size={14} className="ml-auto text-slate-400"/></div>
+    </div>
+    <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</p>
+    <nav className="space-y-1">{navigation.map(({label,href,icon:Icon})=>{
+      const active = pathname === href || (href !== '/inbox' && pathname.startsWith(href + '/'));
+      return <a key={href} href={href} onClick={()=>setMobileOpen(false)} className={active ? 'flex items-center gap-3 rounded-xl bg-[#F0F0FA] px-3 py-3 text-sm font-semibold text-[#2F316B]' : 'flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-[#2F316B]'}><Icon size={18}/>{label}</a>;
+    })}</nav>
+    <div className="mt-auto space-y-2">
+      <a href="/admin" className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-[#2F316B] hover:bg-slate-50"><span className="flex size-5 items-center justify-center rounded-full bg-[#CB0A9F] text-[10px] text-white">S</span>Console Super Admin</a>
+      <button onClick={signOut} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs text-slate-500 hover:bg-slate-50">Sair da conta</button>
+    </div>
+  </aside>;
+
+  if (loading) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]">Carregando workspace...</main>;
+  if (!organization) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><Building2 className="mx-auto text-[#CB0A9F]" size={30}/><h1 className="mt-3 font-bold text-[#2F316B]">Workspace não encontrado</h1><p className="mt-2 text-sm text-slate-500">Sua conta não possui uma empresa ativa vinculada.</p></div></main>;
+
+  return <main className="flex min-h-screen bg-[#F5F6FB] text-slate-800">
+    <div className="hidden lg:flex">{sidebar}</div>
+    {mobileOpen && <div className="fixed inset-0 z-40 flex lg:hidden"><button aria-label="Fechar menu" className="absolute inset-0 bg-slate-950/30" onClick={()=>setMobileOpen(false)}/><div className="relative z-10">{sidebar}<button onClick={()=>setMobileOpen(false)} className="absolute right-3 top-3 rounded-lg p-2 text-slate-500"><X size={18}/></button></div></div>}
+    <section className="flex min-w-0 flex-1 flex-col">
+      <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-slate-200/80 bg-white/95 px-5 backdrop-blur md:px-8">
+        <div className="flex min-w-0 items-center gap-3"><button onClick={()=>setMobileOpen(true)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Abrir menu"><Menu size={19}/></button><div className="min-w-0"><p className="truncate text-lg font-bold tracking-tight text-[#25275B]">{title}</p><p className="hidden truncate text-xs text-slate-400 sm:block">{description}</p></div></div>
+        <div className="relative flex items-center gap-2">{actions}<button onClick={()=>setMenuOpen(!menuOpen)} aria-label="Abrir menu de opções" aria-expanded={menuOpen} className={menuOpen?'rounded-xl bg-[#F0F0FA] p-2.5 text-[#2F316B]':'rounded-xl p-2.5 text-slate-400 transition hover:bg-slate-100 hover:text-[#2F316B]'}><MoreHorizontal size={20}/></button>
+          {menuOpen&&<><button aria-label="Fechar menu" className="fixed inset-0 z-20 cursor-default" onClick={()=>setMenuOpen(false)}/><div className="absolute right-0 top-12 z-30 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10"><div className="border-b border-slate-100 px-3 py-2"><p className="text-xs font-semibold text-[#2F316B]">{organization.name}</p><p className="text-[10px] text-slate-400">Opções do workspace</p></div><a href="/configuracoes" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><UserRound size={15}/>Perfil e configurações</a><button onClick={()=>window.location.reload()} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50"><RefreshCw size={15}/>Atualizar página</button><a href="mailto:suporte@tendi.app" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><CircleHelp size={15}/>Ajuda e suporte</a><button onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-rose-600 hover:bg-rose-50"><LogOut size={15}/>Sair da conta</button></div></>}
+        </div>
+      </header>
+      <div className="mx-auto w-full max-w-[1600px] flex-1 p-5 md:p-8">{children}</div>
+    </section>
+  </main>;
+}
