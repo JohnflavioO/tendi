@@ -9,7 +9,10 @@ body { margin: 0; background: var(--tendi-surface); color: #17211f; font-family:
 button, input { font: inherit; }
 button { cursor: pointer; }
 ::selection { background: #c9eee3; }
-:focus-visible { outline: 2px solid var(--tendi-magenta); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--tendi-teal); outline-offset: 2px; }
+.tendi-filter-scroll { scrollbar-width: none; }
+.tendi-filter-scroll::-webkit-scrollbar { display: none; }
+.tendi-filter-wrap::after { content: ''; pointer-events: none; position: absolute; inset-block: 0; right: 0; width: 16px; background: linear-gradient(90deg, transparent, white); }
 .skip-link { position: fixed; left: 1rem; top: 1rem; z-index: 100; transform: translateY(-160%); border-radius: .75rem; background: white; padding: .75rem 1rem; color: var(--tendi-indigo); box-shadow: 0 4px 20px rgb(0 0 0 / .12); }
 .skip-link:focus { transform: translateY(0); }
 @media (prefers-reduced-motion: reduce) {
