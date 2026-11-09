@@ -13,6 +13,7 @@ const PREVIOUS_WORKSPACE_COOKIE = 'tendi_previous_workspace';
 const COOKIE_AGE = 60 * 60 * 24 * 365;
 
 type WorkspaceRole = 'owner' | 'admin' | 'manager' | 'agent';
+type WorkspaceMembership = Pick<Database['public']['Tables']['organization_memberships']['Row'], 'organization_id' | 'role'>;
 
 function setWorkspaceCookie(id: string) {
   cookies().set(WORKSPACE_COOKIE, id, {
@@ -39,7 +40,7 @@ async function getIdentity() {
     supabase,
     user: auth.user,
     isSuperAdmin: Boolean(admin),
-    memberships: memberships ?? [],
+    memberships: (memberships ?? []) as WorkspaceMembership[],
     profile,
   };
 }
