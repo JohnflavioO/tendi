@@ -35,9 +35,11 @@ export function WorkspaceShell({ children, title, description, actions }: {
     async function load() {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) { window.location.assign('/login'); return; }
-      const { data: orgs } = await supabase.from('organizations').select('id,name').order('name').limit(1);
+      const { data: orgs } = await supabase.from('organizations').select('id,name').order('name');
       if (!active) return;
-      if (orgs?.[0]) setOrganization(orgs[0]);
+      const requestedId = new URLSearchParams(window.location.search).get('organization');
+      const selected = orgs?.find((item: {id:string}) => item.id === requestedId) ?? orgs?.[0];
+      if (selected) setOrganization(selected);
       setLoading(false);
     }
     void load();
