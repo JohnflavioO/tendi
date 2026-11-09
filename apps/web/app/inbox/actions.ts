@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { sendInboxMessageSchema, switchWorkspaceSchema } from '@tendi/shared';
 import { createClient } from '@/lib/supabase/server';
+import type { Database } from '@/lib/database.types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const WORKSPACE_COOKIE = 'tendi_workspace';
 const PREVIOUS_WORKSPACE_COOKIE = 'tendi_previous_workspace';
@@ -179,7 +181,7 @@ export async function loadInbox() {
     .from('channel_connections').select('id,channel,status')
     .eq('organization_id', organization.id).eq('channel', 'whatsapp');
 
-  const membership = identityRole(await supabase, organization.id);
+  const membership = await identityRole(supabase, organization.id);
   return {
     organizationId: organization.id,
     conversations: rows,
@@ -189,7 +191,7 @@ export async function loadInbox() {
   };
 }
 
-async function identityRole(supabase: Awaited<ReturnType<typeof createClient>>, organizationId: string) {
+async function identityRole(supabase: SupabaseClient<Database>, organizationId: string) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return null;
   const { data } = await supabase.from('organization_memberships')
