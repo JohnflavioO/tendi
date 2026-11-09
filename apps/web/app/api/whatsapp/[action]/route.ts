@@ -13,14 +13,25 @@ async function workspaceContext(request: Request) {
   const organizationId = new URL(request.url).searchParams.get('organizationId');
   if (!organizationId) return { response: NextResponse.json({ error: 'Workspace não informado.' }, { status: 400 }) };
 
-  const { data: membership, error } = await supabase
-    .from('organization_memberships')
-    .select('organization_id')
-    .eq('organization_id', organizationId)
+  // Super Admins can manage workspace connections globally; regular users
+  // must still have an active membership in the requested organization.
+  const { data: platformAdmin, error: adminError } = await supabase
+    .from('platform_admins')
+    .select('user_id')
     .eq('user_id', auth.user.id)
-    .eq('status', 'active')
     .maybeSingle();
-  if (error || !membership) return { response: NextResponse.json({ error: 'Você não tem acesso a este workspace.' }, { status: 403 }) };
+  if (adminError) return { response: NextResponse.json({ error: 'Não foi possível validar as permissões administrativas.' }, { status: 500 }) };
+
+  if (!platformAdmin) {
+    const { data: membership, error } = await supabase
+      .from('organization_memberships')
+      .select('organization_id')
+      .eq('organization_id', organizationId)
+      .eq('user_id', auth.user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+    if (error || !membership) return { response: NextResponse.json({ error: 'Você não tem acesso a este workspace.' }, { status: 403 }) };
+  }
 
   const { data: connection, error: connectionError } = await supabase
     .from('channel_connections')
