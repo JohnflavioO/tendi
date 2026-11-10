@@ -6,7 +6,9 @@ import {
   getDapiApiKey,
   dapiRequest,
   normalizeDapiStatus,
-  type DapiSession,
+  unwrapDapiResource,
+  extractDapiConnectionStatus,
+
 } from '@/lib/dapi';
 
 type Context = { params: { action: string } };
@@ -253,11 +255,12 @@ export async function GET(request: Request, { params }: Context) {
     }
 
     if (params.action === 'qr') {
-      const qr = await dapiRequest<Record<string, unknown>>(
+      const qrResponse = await dapiRequest<Record<string, unknown>>(
         `/sessions/${encodeURIComponent(connection.provider_account_id)}/qr`,
       );
+      const qr = unwrapDapiResource(qrResponse);
       return NextResponse.json({
-        status: normalizeDapiStatus(qr.status),
+        status: normalizeDapiStatus(extractDapiConnectionStatus(qrResponse)),
         qrCode: qr.qrCode ?? null,
         qrCodeImage: qr.qrCodeImage ?? null,
         qrCodeUpdatedAt: qr.qrCodeUpdatedAt ?? null,
@@ -265,24 +268,50 @@ export async function GET(request: Request, { params }: Context) {
     }
 
     if (params.action === 'status') {
-      const session = await dapiRequest<DapiSession>(
+      const sessionResponse = await dapiRequest<Record<string, unknown>>(
         `/sessions/${encodeURIComponent(connection.provider_account_id)}`,
       );
-      const status = normalizeDapiStatus(session.status);
+      const session = unwrapDapiResource(sessionResponse);
+      const rawStatus = extractDapiConnectionStatus(sessionResponse);
+      if (!rawStatus) {
+        console.error('[D-API session status missing]', {
+          sessionId: connection.provider_account_id,
+          responseKeys: Object.keys(session),
+        });
+        return NextResponse.json(
+          { error: 'A D-API respondeu, mas não retornou o campo de status da sessão.' },
+          { status: 502 },
+        );
+      }
+
+      const status = normalizeDapiStatus(rawStatus);
       const displayName =
         typeof session.phone === 'string'
           ? session.phone
           : typeof session.phoneNumber === 'string'
             ? session.phoneNumber
-            : connection.display_name;
+            : typeof session.displayName === 'string'
+              ? session.displayName
+              : connection.display_name;
 
-      await supabase
+      const { error: persistError } = await supabase
         .from('channel_connections')
         .update({ status, display_name: displayName, updated_at: new Date().toISOString() })
         .eq('id', connection.id)
         .eq('organization_id', organizationId);
 
-      return NextResponse.json({ status, displayName });
+      if (persistError) {
+        console.error('[D-API status persistence failed]', {
+          sessionId: connection.provider_account_id,
+          message: persistError.message,
+        });
+        return NextResponse.json(
+          { error: 'A D-API informou o status, mas o Tendi não conseguiu salvá-lo.' },
+          { status: 500 },
+        );
+      }
+
+      return NextResponse.json({ status, providerStatus: rawStatus, displayName });
     }
 
     return NextResponse.json({ error: 'Ação não encontrada.' }, { status: 404 });
