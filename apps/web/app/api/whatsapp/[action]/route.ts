@@ -255,25 +255,28 @@ export async function GET(request: Request, { params }: Context) {
     }
 
     if (params.action === 'qr') {
-      // Follow the integration prompt exactly: this endpoint's response is
-      // authoritative for both the current QR and the connection status.
-      const qr = await dapiRequest<Record<string, unknown>>(
+      // D-API may return the resource directly or wrapped in data/session/result.
+      // Unwrap before reading QR fields, while preserving the provider's status.
+      const qrResponse = await dapiRequest<Record<string, unknown>>(
         `/sessions/${encodeURIComponent(connection.provider_account_id)}/qr`,
         {},
         { allowNotFound: true },
       );
 
-      if (qr.__dapiNotFound === true) {
+      if (qrResponse.__dapiNotFound === true) {
         return NextResponse.json({
           status: 'pending',
           qrCode: null,
           qrCodeImage: null,
           qrCodeUpdatedAt: null,
           waiting: true,
+          diagnostic: { providerResponse: 'qr_not_available_yet' },
         });
       }
 
-      const rawStatus = typeof qr.status === 'string' ? qr.status : 'connecting';
+      const qr = unwrapDapiResource(qrResponse);
+      const rawStatus = extractDapiConnectionStatus(qrResponse) ??
+        (typeof qr.status === 'string' ? qr.status : 'connecting');
       const status = normalizeDapiStatus(rawStatus);
       const qrCode = typeof qr.qrCode === 'string' ? qr.qrCode : null;
       const qrCodeImage = typeof qr.qrCodeImage === 'string' ? qr.qrCodeImage : null;
@@ -298,7 +301,19 @@ export async function GET(request: Request, { params }: Context) {
         }
       }
 
-      return NextResponse.json({ status, qrCode, qrCodeImage, qrCodeUpdatedAt, waiting: false });
+      return NextResponse.json({
+        status,
+        qrCode,
+        qrCodeImage,
+        qrCodeUpdatedAt,
+        waiting: !qrCode && !qrCodeImage && status === 'pending',
+        diagnostic: {
+          providerStatus: rawStatus,
+          qrCodePresent: Boolean(qrCode),
+          qrCodeImagePresent: Boolean(qrCodeImage),
+          responseWrapped: qr !== qrResponse,
+        },
+      });
     }
 
     if (params.action === 'status') {
