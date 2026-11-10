@@ -4,7 +4,9 @@ import {
   MessageSquareText, Users, Workflow, ReceiptText, Building2,
   Clock3, MessagesSquare, ChartNoAxesCombined, Sparkles, ShieldCheck,
 } from 'lucide-react';
-import { siteContent, features, steps, faqs } from '@/content/marketing/site';
+import { siteContent, features, steps, getFaqs } from '@/content/marketing/site';
+import { getTrialDays } from '@/lib/trial-days';
+import { trialDaysLabel } from '@/lib/trial';
 import { plans, comparison } from '@/content/marketing/plans';
 import { ProductPreview } from '@/components/marketing/product-preview';
 
@@ -71,7 +73,12 @@ function ConversationIllustration() {
   );
 }
 
-export default function MarketingHome() {
+// O prazo do teste vem do banco; revalida a página para refletir mudanças feitas no console admin.
+export const revalidate = 300;
+
+export default async function MarketingHome() {
+  const trialLabel = trialDaysLabel(await getTrialDays());
+  const faqs = getFaqs(trialLabel);
   return (
     <>
       <section className="relative isolate overflow-hidden bg-gradient-to-br from-[#F7F8FC] via-[#F7F8FC] to-[#FCEAF7]">
@@ -87,7 +94,7 @@ export default function MarketingHome() {
               <a href="#como-funciona" className="inline-flex h-12 items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-[#2F316B] transition hover:border-[#004751]">Veja como funciona<ArrowUpRight size={16} /></a>
             </div>
             <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
-              <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />14 dias para testar</span>
+              <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />{trialLabel} para testar</span>
               <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />Sem cartão no cadastro</span>
               <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />IA nos dois planos</span>
             </div>
@@ -128,7 +135,7 @@ export default function MarketingHome() {
               </article>;
             })}
           </div>
-          <div className="mt-9 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#F7F8FC] p-6"><p className="font-semibold text-[#25275B]">Veja como o Tendi pode se encaixar na sua operação.</p><Link href="/register" className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#004751] px-5 text-sm font-bold text-white transition hover:bg-[#003943]">Experimentar por 14 dias<ArrowRight size={16} /></Link></div>
+          <div className="mt-9 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#F7F8FC] p-6"><p className="font-semibold text-[#25275B]">Veja como o Tendi pode se encaixar na sua operação.</p><Link href="/register" className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#004751] px-5 text-sm font-bold text-white transition hover:bg-[#003943]">Experimentar por {trialLabel}<ArrowRight size={16} /></Link></div>
         </div>
       </section>
 
@@ -154,13 +161,13 @@ export default function MarketingHome() {
 
       <section id="planos" className="scroll-mt-24 bg-[#F7F8FC] py-20 md:py-24">
         <div className="mx-auto max-w-[1200px] px-5 md:px-6">
-          <div className="mx-auto max-w-2xl text-center"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Planos Tendi</p><h2 className="mt-4 text-3xl font-bold text-[#25275B] md:text-4xl">O espaço certo para sua equipe crescer.</h2><p className="mt-4 text-base leading-7 text-slate-600">Comece com 14 dias de teste gratuito, sem cartão no cadastro. Escolha a estrutura que acompanha o momento da sua operação.</p></div>
+          <div className="mx-auto max-w-2xl text-center"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Planos Tendi</p><h2 className="mt-4 text-3xl font-bold text-[#25275B] md:text-4xl">O espaço certo para sua equipe crescer.</h2><p className="mt-4 text-base leading-7 text-slate-600">Comece com {trialLabel} de teste gratuito, sem cartão no cadastro. Escolha a estrutura que acompanha o momento da sua operação.</p></div>
           <div className="mx-auto mt-12 grid max-w-4xl items-stretch gap-5 md:grid-cols-2">
             {plans.map((plan) => <article key={plan.code} className={`relative flex flex-col overflow-hidden rounded-3xl bg-white ${plan.featured ? 'border-2 border-[#004751] shadow-xl shadow-[#004751]/10' : 'border border-slate-200 shadow-sm'}`}>
               {plan.featured && <div className="bg-[#004751] px-6 py-2 text-center text-xs font-bold uppercase tracking-wider text-white">Para uma operação em expansão</div>}
               <div className="flex flex-1 flex-col p-7 md:p-8">
                 <p className="text-xs font-bold uppercase tracking-[.16em] text-[#CB0A9F]">{plan.label}</p><h3 className="mt-3 text-2xl font-extrabold text-[#25275B]">{plan.name}</h3><p className="mt-3 min-h-12 text-sm leading-6 text-slate-600">{plan.description}</p>
-                <div className="mt-6 rounded-2xl bg-[#F7F8FC] p-5"><p className="text-lg font-extrabold text-[#25275B]">14 dias para experimentar</p><p className="mt-1 text-xs text-slate-500">Sem cartão no cadastro e sem cobrança durante o teste.</p></div>
+                <div className="mt-6 rounded-2xl bg-[#F7F8FC] p-5"><p className="text-lg font-extrabold text-[#25275B]">{trialLabel} para experimentar</p><p className="mt-1 text-xs text-slate-500">Sem cartão no cadastro e sem cobrança durante o teste.</p></div>
                 <div className="mt-6 space-y-3"><p className="text-xs font-bold uppercase tracking-wider text-slate-400">O que está incluído</p>{plan.features.map((feature) => <div key={feature} className="flex items-start gap-3 text-sm text-slate-700"><Check size={17} className="mt-0.5 shrink-0 text-emerald-600" />{feature}</div>)}</div>
                 <Link href={plan.href} className={`mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold transition ${plan.featured ? 'bg-[#004751] text-white hover:bg-[#003943]' : 'border border-[#004751] text-[#004751] hover:bg-[#004751]/5'}`}>{plan.cta}<ArrowRight size={16} /></Link>
               </div>
@@ -177,7 +184,7 @@ export default function MarketingHome() {
 
       <section className="relative isolate overflow-hidden bg-[#2F316B] py-16 text-white md:py-20">
         <div className="pointer-events-none absolute -right-24 -top-32 -z-10 size-96 rounded-full bg-[#CB0A9F]/20 blur-3xl" />
-        <div className="mx-auto flex max-w-[1200px] flex-col items-start justify-between gap-8 px-5 md:flex-row md:items-center md:px-6"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#F4A8DF]">Seu próximo passo</p><h2 className="mt-4 max-w-2xl text-3xl font-bold md:text-4xl">Menos informação espalhada. Mais clareza para sua equipe avançar.</h2><p className="mt-4 text-sm text-white/70">Experimente o Tendi por 14 dias, sem cadastrar cartão.</p></div><Link href="/register" className="inline-flex h-12 shrink-0 items-center gap-2 rounded-xl bg-white px-6 text-sm font-bold text-[#2F316B] transition hover:-translate-y-0.5 hover:bg-slate-100">Começar teste grátis<ArrowRight size={17} /></Link></div>
+        <div className="mx-auto flex max-w-[1200px] flex-col items-start justify-between gap-8 px-5 md:flex-row md:items-center md:px-6"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#F4A8DF]">Seu próximo passo</p><h2 className="mt-4 max-w-2xl text-3xl font-bold md:text-4xl">Menos informação espalhada. Mais clareza para sua equipe avançar.</h2><p className="mt-4 text-sm text-white/70">Experimente o Tendi por {trialLabel}, sem cadastrar cartão.</p></div><Link href="/register" className="inline-flex h-12 shrink-0 items-center gap-2 rounded-xl bg-white px-6 text-sm font-bold text-[#2F316B] transition hover:-translate-y-0.5 hover:bg-slate-100">Começar teste grátis<ArrowRight size={17} /></Link></div>
       </section>
     </>
   );

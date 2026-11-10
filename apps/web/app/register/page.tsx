@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Bot, Building2, Check, Clock3, Loader2, MessageCircle, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useTrialDays } from '@/lib/use-trial-days';
+import { trialDaysLabel } from '@/lib/trial';
 
 type Plan = {
   code: string;
@@ -18,6 +20,7 @@ type Plan = {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const trialLabel = trialDaysLabel(useTrialDays());
   const [plans, setPlans] = useState<Plan[]>([]);
   const [planCode, setPlanCode] = useState('tendi_start');
   const [fullName, setFullName] = useState('');
@@ -82,7 +85,7 @@ export default function RegisterPage() {
         return;
       }
 
-      setNotice('Conta criada. Enviamos um link de confirmação para seu e-mail. Após confirmar, seu workspace será criado automaticamente e o teste de 14 dias começará.');
+      setNotice(`Conta criada. Enviamos um link de confirmação para seu e-mail. Após confirmar, seu workspace será criado automaticamente e o teste de ${trialLabel} começará.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível concluir o cadastro.');
     } finally {
@@ -106,9 +109,9 @@ export default function RegisterPage() {
         <section className="flex flex-col justify-center">
           <p className="text-xs font-bold uppercase tracking-[.18em] text-[#CB0A9F]">Comece gratuitamente</p>
           <h1 className="mt-3 max-w-lg text-4xl font-bold leading-tight text-[#25275B] sm:text-5xl">Seu atendimento organizado começa aqui.</h1>
-          <p className="mt-5 max-w-lg text-base leading-7 text-slate-500">Crie seu ambiente, escolha o plano e experimente o Tendi por 14 dias. Sem cartão de crédito e sem cobrança automática.</p>
+          <p className="mt-5 max-w-lg text-base leading-7 text-slate-500">Crie seu ambiente, escolha o plano e experimente o Tendi por {trialLabel}. Sem cartão de crédito e sem cobrança automática.</p>
           <div className="mt-8 space-y-4">
-            <div className="flex items-center gap-3 text-sm text-slate-600"><span className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Clock3 size={18}/></span>14 dias de teste gratuito</div>
+            <div className="flex items-center gap-3 text-sm text-slate-600"><span className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Clock3 size={18}/></span>{trialLabel} de teste gratuito</div>
             <div className="flex items-center gap-3 text-sm text-slate-600"><span className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Bot size={18}/></span>Inteligência artificial incluída nos dois planos</div>
             <div className="flex items-center gap-3 text-sm text-slate-600"><span className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Users size={18}/></span>Comece com sua equipe e amplie quando precisar</div>
           </div>
