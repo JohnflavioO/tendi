@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, Bot, Building2, Check, Clock3, Loader2, MessageCircle, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useTrialDays } from '@/lib/use-trial-days';
+import { rememberPendingSignupEmail } from '@/lib/pending-signup';
 import { trialDaysLabel } from '@/lib/trial';
 
 type Plan = {
@@ -30,7 +31,6 @@ export default function RegisterPage() {
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     async function loadPlans() {
@@ -52,7 +52,6 @@ export default function RegisterPage() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
-    setNotice('');
     setSubmitting(true);
     try {
       if (fullName.trim().length < 3) throw new Error('Informe seu nome completo.');
@@ -85,7 +84,14 @@ export default function RegisterPage() {
         return;
       }
 
-      setNotice(`Conta criada. Enviamos um link de confirmação para seu e-mail. Após confirmar, seu workspace será criado automaticamente e o teste de ${trialLabel} começará.`);
+      // O Supabase não revela se o e-mail já existe: devolve um usuário sem identidades e não envia nada.
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        throw new Error('Este e-mail já possui cadastro. Entre com sua senha ou use outro e-mail.');
+      }
+
+      // Sem sessão, falta confirmar o e-mail: leva para a tela própria de confirmação.
+      rememberPendingSignupEmail(email.trim().toLowerCase());
+      router.replace('/register/confirmar');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível concluir o cadastro.');
     } finally {
@@ -156,7 +162,6 @@ export default function RegisterPage() {
             </div>
 
             {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-            {notice && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-3 text-sm leading-6 text-emerald-800">{notice}</p>}
 
             <button disabled={submitting || loadingPlans || plans.length === 0} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#004751] px-4 py-3.5 font-semibold text-white transition hover:bg-[#003943] disabled:cursor-not-allowed disabled:opacity-60">
               {submitting ? <Loader2 className="animate-spin" size={18}/> : <>Criar conta e iniciar teste grátis <ArrowRight size={18}/></>}
