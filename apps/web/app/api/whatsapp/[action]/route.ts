@@ -161,7 +161,7 @@ export async function POST(request: Request, { params }: Context) {
         body: JSON.stringify(buildCreateSessionPayload(sessionId, webhookUrl)),
       });
 
-      await supabase
+      const { error: updateError } = await supabase
         .from('channel_connections')
         .update({
           status: 'pending',
@@ -176,6 +176,13 @@ export async function POST(request: Request, { params }: Context) {
         })
         .eq('id', persisted.connectionId)
         .eq('organization_id', organizationId);
+
+      if (updateError) {
+        return NextResponse.json(
+          { error: 'A sessão foi criada na D-API, mas não foi possível atualizar o workspace.' },
+          { status: 500 },
+        );
+      }
 
       return NextResponse.json({
         success: true,
