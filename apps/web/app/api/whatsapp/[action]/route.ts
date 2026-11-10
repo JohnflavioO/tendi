@@ -177,17 +177,35 @@ export async function POST(request: Request, { params }: Context) {
       );
       if ('response' in persisted) return persisted.response;
 
-      await dapiRequest('/sessions', {
-        method: 'POST',
-        body: JSON.stringify(buildCreateSessionPayload(sessionId, webhookUrl)),
-      }, {
-        onResponse: (httpStatus, payload) => {
-          const responseKeys = payload && typeof payload === 'object' && !Array.isArray(payload)
-            ? Object.keys(payload as Record<string, unknown>)
-            : [];
-          console.log('[D-API create session]', { httpStatus, responseKeys });
-        },
-      });
+      try {
+        await dapiRequest('/sessions', {
+          method: 'POST',
+          body: JSON.stringify(buildCreateSessionPayload(sessionId, webhookUrl)),
+        }, {
+          onResponse: (httpStatus, payload) => {
+            const root = payload && typeof payload === 'object' && !Array.isArray(payload)
+              ? payload as Record<string, unknown>
+              : {};
+            console.log('[D-API create session]', {
+              sessionId,
+              httpStatus,
+              responseKeys: Object.keys(root),
+              providerError: typeof root.error === 'string' ? root.error : undefined,
+              code: typeof root.code === 'string' || typeof root.code === 'number' ? root.code : undefined,
+            });
+          },
+        });
+      } catch (createError) {
+        console.error('[D-API create session failed]', {
+          sessionId,
+          errorName: createError instanceof Error ? createError.name : 'UnknownError',
+          message: createError instanceof Error ? createError.message : String(createError),
+          status: createError instanceof DapiError ? createError.status : undefined,
+          code: createError instanceof DapiError ? createError.code : undefined,
+          traceId: createError instanceof DapiError ? createError.traceId : undefined,
+        });
+        throw createError;
+      }
 
       const { error: updateError } = await supabase
         .from('channel_connections')
@@ -247,6 +265,13 @@ export async function POST(request: Request, { params }: Context) {
 
     return NextResponse.json({ error: 'Ação não encontrada.' }, { status: 404 });
   } catch (error) {
+    console.error('[D-API connect handler failed]', {
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+      message: error instanceof Error ? error.message : String(error),
+      status: error instanceof DapiError ? error.status : undefined,
+      code: error instanceof DapiError ? error.code : undefined,
+      traceId: error instanceof DapiError ? error.traceId : undefined,
+    });
     const message = error instanceof Error ? error.message : 'Falha ao comunicar com a D-API.';
     return NextResponse.json({ error: message }, { status: 502 });
   }
@@ -379,10 +404,35 @@ export async function GET(request: Request, { params }: Context) {
         if (!canRecreate) return waitingResponse();
 
         const webhookUrl = buildDapiWebhookUrl();
-        await dapiRequest('/sessions', {
-          method: 'POST',
-          body: JSON.stringify(buildCreateSessionPayload(sessionId, webhookUrl)),
-        });
+        try {
+          await dapiRequest('/sessions', {
+            method: 'POST',
+            body: JSON.stringify(buildCreateSessionPayload(sessionId, webhookUrl)),
+          }, {
+            onResponse: (httpStatus, payload) => {
+              const root = payload && typeof payload === 'object' && !Array.isArray(payload)
+                ? payload as Record<string, unknown>
+                : {};
+              console.log('[D-API recreate session]', {
+                sessionId,
+                httpStatus,
+                responseKeys: Object.keys(root),
+                providerError: typeof root.error === 'string' ? root.error : undefined,
+                code: typeof root.code === 'string' || typeof root.code === 'number' ? root.code : undefined,
+              });
+            },
+          });
+        } catch (recreateError) {
+          console.error('[D-API recreate session failed]', {
+            sessionId,
+            errorName: recreateError instanceof Error ? recreateError.name : 'UnknownError',
+            message: recreateError instanceof Error ? recreateError.message : String(recreateError),
+            status: recreateError instanceof DapiError ? recreateError.status : undefined,
+            code: recreateError instanceof DapiError ? recreateError.code : undefined,
+            traceId: recreateError instanceof DapiError ? recreateError.traceId : undefined,
+          });
+          throw recreateError;
+        }
         const now = new Date().toISOString();
         const { error: timestampError } = await supabase
           .from('channel_connections')
@@ -527,6 +577,13 @@ export async function GET(request: Request, { params }: Context) {
 
     return NextResponse.json({ error: 'Ação não encontrada.' }, { status: 404 });
   } catch (error) {
+    console.error('[D-API QR handler failed]', {
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+      message: error instanceof Error ? error.message : String(error),
+      status: error instanceof DapiError ? error.status : undefined,
+      code: error instanceof DapiError ? error.code : undefined,
+      traceId: error instanceof DapiError ? error.traceId : undefined,
+    });
     const message = error instanceof Error ? error.message : 'Falha ao consultar a D-API.';
     return NextResponse.json({ error: message }, { status: 502 });
   }
