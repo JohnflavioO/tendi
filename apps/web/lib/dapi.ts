@@ -70,7 +70,7 @@ export function buildCreateSessionPayload(sessionId: string, webhookUrl: string)
   };
 }
 
-export async function dapiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function dapiRequest<T>(path: string, init: RequestInit = {}, options: { allowNotFound?: boolean } = {}): Promise<T> {
   const response = await fetch(`${DAPI_BASE_URL}${path}`, {
     ...init,
     cache: 'no-store',
@@ -83,6 +83,9 @@ export async function dapiRequest<T>(path: string, init: RequestInit = {}): Prom
   });
 
   const payload = await response.json().catch(() => ({}));
+  if (options.allowNotFound && response.status === 404) {
+    return { __dapiNotFound: true, statusCode: 404, ...(payload && typeof payload === 'object' ? payload : {}) } as T;
+  }
   if (!response.ok || payload?.success === false) {
     const message =
       typeof payload?.error === 'string'
