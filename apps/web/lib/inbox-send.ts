@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { MAX_CAPTION_LENGTH, buildDapiMediaRequest, validateAttachment } from './inbox-attachments';
 
 /**
  * Envio de resposta do Inbox pelo WhatsApp (D-API, Fase 4).
@@ -12,15 +13,20 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * mensagem como enviada. A leitura com o cliente do usuário já prova que ele tem acesso.
  *
  * Identificação de quem enviou: payload.sender = { type: 'human' | 'ai' | 'phone', name }.
+ *
+ * Anexos: o arquivo já está no Storage (enviado pelo navegador). Aqui validamos o caminho,
+ * geramos um link temporário assinado (`signUrl`) e pedimos à D-API que envie a mídia.
  */
 
 type Db = SupabaseClient<any, any, any>;
 type Json = Record<string, unknown>;
 
-export type SendInput = { userId: string; senderName?: string | null; conversationId: string; text: string };
+export type SendInput = { userId: string; senderName?: string | null; conversationId: string; text: string; attachment?: unknown };
 export type SendOutcome = { status: number; body: Json };
 /** Faz o POST na D-API (ex.: path "/messages/send/text") e devolve o JSON da resposta. */
-export type SendFn = (path: string, body: Json) => Promise<unknown>;
+export type SendFn = (path: string, body: Json, options?: { timeoutMs?: number }) => Promise<unknown>;
+/** Gera um link temporário para a D-API baixar o arquivo do Storage. Retorna null se o arquivo não existir. */
+export type SignFn = (path: string) => Promise<string | null>;
 
 export const MAX_TEXT_LENGTH = 4096;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -64,11 +70,14 @@ export function friendlySendError(message: string): string {
 
 const fail = (status: number, error: string): SendOutcome => ({ status, body: { success: false, error } });
 
-export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, writeDb: Db = db): Promise<SendOutcome> {
+export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, writeDb: Db = db, signUrl?: SignFn): Promise<SendOutcome> {
   const text = input.text.trim();
+  const hasAttachment = input.attachment !== undefined && input.attachment !== null;
   if (!UUID_RE.test(input.conversationId)) return fail(400, 'Conversa inválida.');
-  if (!text) return fail(400, 'Escreva uma mensagem antes de enviar.');
-  if (text.length > MAX_TEXT_LENGTH) return fail(400, `A mensagem passa do limite de ${MAX_TEXT_LENGTH} caracteres.`);
+  if (!hasAttachment && !text) return fail(400, 'Escreva uma mensagem antes de enviar.');
+  if (text.length > (hasAttachment ? MAX_CAPTION_LENGTH : MAX_TEXT_LENGTH)) {
+    return fail(400, `${hasAttachment ? 'A legenda' : 'A mensagem'} passa do limite de ${hasAttachment ? MAX_CAPTION_LENGTH : MAX_TEXT_LENGTH} caracteres.`);
+  }
 
   const conversationResult = await db
     .from('conversations')
@@ -101,18 +110,35 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
     return fail(409, 'O WhatsApp deste workspace não está conectado. Conecte o número em Chatbots.');
   }
 
+  // Anexo: valida o caminho (precisa estar na pasta desta empresa e conversa) e gera o link temporário.
+  let attachment: ReturnType<typeof validateAttachment> | null = null;
+  let mediaUrl: string | null = null;
+  if (hasAttachment) {
+    attachment = validateAttachment(input.attachment, conversation.organization_id, conversation.id);
+    if (!attachment.ok) return fail(400, attachment.error);
+    if (attachment.value.kind === 'audio' && text) return fail(400, 'Áudio não aceita legenda. Envie o texto em outra mensagem.');
+    if (!signUrl) return fail(500, 'Envio de anexos não está configurado no servidor.');
+    mediaUrl = await signUrl(attachment.value.path).catch(() => null);
+    if (!mediaUrl) return fail(400, 'O arquivo não foi encontrado no armazenamento. Anexe novamente.');
+  }
+  const media = attachment?.ok ? attachment.value : null;
+
   // 1) Registra a mensagem como "queued" para ela aparecer na hora no Inbox.
   const now = new Date().toISOString();
   const senderName = asString(input.senderName) ?? 'Atendente';
-  const basePayload = { source: 'inbox', sender: { type: 'human', name: senderName, user_id: input.userId } };
+  const basePayload = {
+    source: 'inbox',
+    sender: { type: 'human', name: senderName, user_id: input.userId },
+    ...(media ? { media: { path: media.path, mimetype: media.mimetype, filename: media.filename, size: media.size, voice: media.voice === true } } : {}),
+  };
   const inserted = await writeDb
     .from('messages')
     .insert({
       organization_id: conversation.organization_id,
       conversation_id: conversation.id,
       direction: 'outbound',
-      message_type: 'text',
-      body: text,
+      message_type: media ? media.kind : 'text',
+      body: text || null,
       delivery_status: 'queued',
       sender_id: input.userId,
       provider: 'd-api',
@@ -126,11 +152,11 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
 
   // 2) Envia pela D-API.
   try {
-    const response = await send('/messages/send/text', {
-      sessionId: connection.provider_account_id,
-      to: phone,
-      text,
-    });
+    const request = media && mediaUrl
+      ? buildDapiMediaRequest(media, { sessionId: connection.provider_account_id, to: phone, url: mediaUrl, caption: text || null })
+      : { path: '/messages/send/text', body: { sessionId: connection.provider_account_id, to: phone, text } };
+    // Mídia pode demorar mais que texto (a D-API baixa e reenvia o arquivo).
+    const response = await send(request.path, request.body, media ? { timeoutMs: 55_000 } : undefined);
     const providerMessageId = pickProviderMessageId(response);
     const sentPatch = {
       delivery_status: 'sent',
