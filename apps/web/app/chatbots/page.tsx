@@ -97,7 +97,7 @@ export default function ChatbotsPage(){
   return payload;
  }
  async function connect(){
-  setBusy(true);setError('');setNotice('');setQr(null);setQrTimedOut(false);qrStartedAt.current=Date.now();qrStartedAt.current=Date.now();
+  setBusy(true);setError('');setNotice('');setQr(null);setQrTimedOut(false);qrStartedAt.current=Date.now();
   try{
    if(!whatsapp?.provider_account_id){
     await requestApi('connect','POST');
@@ -106,6 +106,7 @@ export default function ChatbotsPage(){
    const payload=await requestApi('qr');
    if(payload.status==='connected'){
     setQrPolling(false);
+    qrStartedAt.current=null;
     setNotice('WhatsApp conectado com sucesso.');
     await load();
    }else{
