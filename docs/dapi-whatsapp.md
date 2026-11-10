@@ -1,31 +1,40 @@
-# D-API WhatsApp por QR Code
+# D-API WhatsApp — Fase 1
 
-## Configuração do servidor
+## Arquitetura identificada
 
-Cadastre `DAPI_API_KEY` como variável de ambiente/secret no projeto Vercel (Production, Preview e Development conforme necessário). A chave nunca é enviada ao navegador.
+O deploy atual usa Next.js 14 App Router na Vercel. As rotas em `apps/web/app/api` executam no servidor e fazem a ponte entre o navegador, Supabase e D-API.
 
-A integração usa a API REST em `https://api.d-api.cloud/api/v1` e cria sessões com `type: unofficial`, `provider: whatsmeow` e `connectionMode: qr`.
+O repositório descreve Fastify/API VPS como arquitetura futura, mas não há implementação ativa em `apps/api` nesta branch. A Fase 1 usa, portanto, as rotas server-side existentes do Next.js, sem introduzir um novo serviço.
 
-## Fluxo implementado
+## Variáveis de ambiente
 
-- O usuário autenticado solicita conexão dentro de um workspace.
-- A API valida a associação ativa em `organization_memberships`.
-- O servidor cria uma sessão D-API com identificador aleatório exclusivo.
-- O identificador é salvo em `channel_connections.provider_account_id`, vinculado ao `organization_id`.
-- QR Code, status e desconexão são consultados exclusivamente pelo servidor.
-- O usuário não pode consultar ou desconectar sessões de outro workspace.
+Configure no projeto Vercel, para Preview e Production:
 
-## Rotas internas
+- `DAPI_API_KEY`: chave de API da conta D-API (não usar Publishable Key).
+- `DAPI_WEBHOOK_SECRET`: segredo aleatório forte, usado no path do webhook.
 
-- `POST /api/whatsapp/connect?organizationId=...`
-- `GET /api/whatsapp/qr?organizationId=...`
-- `GET /api/whatsapp/status?organizationId=...`
-- `POST /api/whatsapp/disconnect?organizationId=...`
+Ambas são lidas somente no servidor. Não use prefixo `NEXT_PUBLIC_` e não exponha seus valores ao navegador.
 
-## Limites desta etapa
+## Contrato D-API
 
-A documentação pública consultada confirma criação de sessão, consulta de QR Code, leitura de dados da sessão e desconexão. Ela não especifica, nas páginas consultadas, o contrato completo dos eventos de webhook, autenticação do callback e payloads normalizados. Por isso, esta etapa não inventa um receptor de webhook nem marca mensagens como recebidas no Inbox. A ingestão de mensagens e a confirmação assíncrona de conexão devem ser concluídas após validar esses contratos com a D-API.
+- Base URL: `https://api.d-api.cloud/api/v1`.
+- Autenticação: `Authorization: <DAPI_API_KEY>`, sem prefixo `Bearer`.
+- Criação: `POST /sessions`.
+- `sessionId` é estável por workspace e salvo em `channel_connections.provider_account_id` antes da chamada externa.
+- O payload de criação segue a especificação fornecida: `connectionMode: "qr"`, `webhookUrl`, `webhookConfig` com `type: "single"` e os 18 eventos, além de `ignoreGroups`, `ignoreStatus` e `historySync`.
 
-## Banco de dados
+## Webhook de entrada
 
-A implementação reutiliza `channel_connections` e seus campos existentes (`organization_id`, `channel`, `provider_account_id`, `settings` e `status`). Nenhuma migration é necessária para este fluxo e nenhuma migration foi executada.
+A URL é derivada do domínio da requisição que iniciou a sessão:
+
+`https://<domínio-do-deploy>/api/webhooks/dapi/<DAPI_WEBHOOK_SECRET>`
+
+O endpoint da Fase 1 valida o segredo e responde HTTP 200 imediatamente para callbacks válidos. A validação e persistência dos eventos, idempotência, filas e atualização do estado da sessão pertencem à Fase 3.
+
+## Persistência e isolamento
+
+A implementação reutiliza `channel_connections` e valida a associação ativa do usuário em `organization_memberships`. Não foi criada tabela nova e nenhuma migration foi executada.
+
+## Limites desta fase
+
+A Fase 1 provisiona a sessão e configura o callback. Ela não implementa a leitura/polling do QR Code, processamento de eventos, recebimento no Inbox ou envio de mensagens. Esses itens permanecem nas Fases 2 a 5 e devem ser testados separadamente.
