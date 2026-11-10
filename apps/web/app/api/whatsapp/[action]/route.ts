@@ -280,8 +280,69 @@ export async function GET(request: Request, { params }: Context) {
         qrResponse = await fetchQr();
       } catch (error) {
         if (!(error instanceof DapiError) || error.status !== 404) throw error;
-        if (/qr code not available/i.test(error.message)) return waitingResponse();
-        if (!/session not found/i.test(error.message)) throw error;
+
+        let missingSessionError: DapiError | null = null;
+        if (/qr code not available/i.test(error.message)) {
+          // A missing QR does not mean the session is still waiting: once paired,
+          // D-API may stop returning a QR. Check the authoritative session status.
+          try {
+            const sessionResponse = await dapiRequest<Record<string, unknown>>(
+              `/sessions/${encodeURIComponent(sessionId)}`,
+            );
+            const session = unwrapDapiResource(sessionResponse);
+            const providerStatus = extractDapiConnectionStatus(sessionResponse);
+            if (providerStatus) {
+              const sessionStatus = normalizeDapiStatus(providerStatus);
+              if (sessionStatus !== 'pending') {
+                const displayName =
+                  typeof session.phone === 'string' ? session.phone :
+                  typeof session.phoneNumber === 'string' ? session.phoneNumber :
+                  typeof session.displayName === 'string' ? session.displayName :
+                  connection.display_name;
+                const { error: persistError } = await supabase
+                  .from('channel_connections')
+                  .update({
+                    status: sessionStatus,
+                    display_name: sessionStatus === 'connected' ? displayName : connection.display_name,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', connection.id)
+                  .eq('organization_id', organizationId);
+                if (persistError) {
+                  return NextResponse.json(
+                    { error: 'A D-API informou o status, mas o Tendi não conseguiu salvá-lo.' },
+                    { status: 500 },
+                  );
+                }
+                return NextResponse.json({
+                  status: sessionStatus,
+                  providerStatus,
+                  displayName,
+                  qrCode: null,
+                  qrCodeImage: null,
+                  waiting: false,
+                });
+              }
+            }
+            return waitingResponse();
+          } catch (sessionError) {
+            if (
+              sessionError instanceof DapiError &&
+              sessionError.status === 404 &&
+              /session not found/i.test(sessionError.message)
+            ) {
+              missingSessionError = sessionError;
+            } else {
+              throw sessionError;
+            }
+          }
+        } else if (/session not found/i.test(error.message)) {
+          missingSessionError = error;
+        } else {
+          throw error;
+        }
+
+        if (!missingSessionError) return waitingResponse();
 
         const updatedAt = connection.updated_at ? Date.parse(connection.updated_at) : NaN;
         const canRecreate = Number.isFinite(updatedAt) && Date.now() - updatedAt > 20_000;
