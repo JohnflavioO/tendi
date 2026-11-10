@@ -32,8 +32,17 @@ export default function ChatbotsPage(){
    .eq('status','active');
   if(membershipError)throw membershipError;
   const allowedIds=(memberships??[]).map((m:any)=>m.organization_id).filter(Boolean);
-  if(!allowedIds.length){setLoading(false);throw new Error('Sua conta não possui vínculo ativo com este workspace. Solicite ao administrador a revisão do seu acesso.');}
-  const {data:orgs,error:orgError}=await supabase.from('organizations').select('id,name').in('id',allowedIds).order('name');
+  const {data:platformAdmin,error:adminError}=await supabase
+   .from('platform_admins')
+   .select('user_id')
+   .eq('user_id',u.user.id)
+   .maybeSingle();
+  if(adminError)throw adminError;
+  const isPlatformAdmin=Boolean(platformAdmin);
+  if(!allowedIds.length&&!isPlatformAdmin){setLoading(false);throw new Error('Sua conta não possui vínculo ativo com este workspace. Solicite ao administrador a revisão do seu acesso.');}
+  let orgQuery=supabase.from('organizations').select('id,name');
+  if(!isPlatformAdmin)orgQuery=orgQuery.in('id',allowedIds);
+  const {data:orgs,error:orgError}=await orgQuery.order('name');
   if(orgError)throw orgError;
   const selected=orgs?.find((o:any)=>o.id===requested)??orgs?.[0];
   if(!selected){setLoading(false);throw new Error('Nenhum workspace autorizado foi encontrado para sua conta.');}
