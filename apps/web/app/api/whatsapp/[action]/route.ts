@@ -314,6 +314,8 @@ export async function GET(request: Request, { params }: Context) {
           responseWrapped: qr !== qrResponse,
           responseKeys: Object.keys(qrResponse),
           resourceKeys: Object.keys(qr),
+          providerError: typeof qr.error === 'string' ? qr.error : null,
+          providerCode: typeof qr.code === 'string' || typeof qr.code === 'number' ? String(qr.code) : null,
         },
       });
     }

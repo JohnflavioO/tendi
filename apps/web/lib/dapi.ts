@@ -57,6 +57,7 @@ export function buildCreateSessionPayload(sessionId: string, webhookUrl: string)
 
   return {
     sessionId,
+    type: 'unofficial',
     connectionMode: 'qr',
     webhookUrl,
     webhookConfig: {
