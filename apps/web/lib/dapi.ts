@@ -21,6 +21,20 @@ export const DAPI_EVENTS = [
   'connection.status',
 ] as const;
 
+export class DapiError extends Error {
+  status: number;
+  code?: string | number;
+  traceId?: string;
+
+  constructor(message: string, status: number, code?: string | number, traceId?: string) {
+    super(message);
+    this.name = 'DapiError';
+    this.status = status;
+    this.code = code;
+    this.traceId = traceId;
+  }
+}
+
 export type DapiSession = {
   sessionId?: string;
   status?: string;
@@ -45,9 +59,11 @@ export function getDapiWebhookSecret(): string {
   return secret;
 }
 
-export function buildDapiWebhookUrl(origin: string): string {
+export function buildDapiWebhookUrl(): string {
+  const baseUrl = process.env.DAPI_WEBHOOK_BASE_URL?.trim().replace(/\/$/, '');
+  if (!baseUrl) throw new Error('DAPI_WEBHOOK_BASE_URL não está configurada no servidor.');
   const secret = encodeURIComponent(getDapiWebhookSecret());
-  return `${origin.replace(/\/$/, '')}/api/webhooks/dapi/${secret}`;
+  return `${baseUrl}/api/webhooks/dapi/${secret}`;
 }
 
 export function buildCreateSessionPayload(sessionId: string, webhookUrl: string) {
@@ -57,7 +73,6 @@ export function buildCreateSessionPayload(sessionId: string, webhookUrl: string)
 
   return {
     sessionId,
-    type: 'unofficial',
     connectionMode: 'qr',
     webhookUrl,
     webhookConfig: {
@@ -71,7 +86,11 @@ export function buildCreateSessionPayload(sessionId: string, webhookUrl: string)
   };
 }
 
-export async function dapiRequest<T>(path: string, init: RequestInit = {}, options: { allowNotFound?: boolean } = {}): Promise<T> {
+export async function dapiRequest<T>(
+  path: string,
+  init: RequestInit = {},
+  options: { onResponse?: (status: number, payload: unknown) => void } = {},
+): Promise<T> {
   const response = await fetch(`${DAPI_BASE_URL}${path}`, {
     ...init,
     cache: 'no-store',
@@ -84,15 +103,15 @@ export async function dapiRequest<T>(path: string, init: RequestInit = {}, optio
   });
 
   const payload = await response.json().catch(() => ({}));
-  if (options.allowNotFound && response.status === 404) {
-    return { __dapiNotFound: true, statusCode: 404, ...(payload && typeof payload === 'object' ? payload : {}) } as T;
-  }
-  if (!response.ok || payload?.success === false) {
-    const message =
-      typeof payload?.error === 'string'
-        ? payload.error
-        : `A D-API não conseguiu concluir a operação (HTTP ${response.status}).`;
-    throw new Error(message);
+  options.onResponse?.(response.status, payload);
+  if (!response.ok || (payload as any)?.success === false) {
+    const body = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+    const message = typeof body.error === 'string'
+      ? body.error
+      : `A D-API não conseguiu concluir a operação (HTTP ${response.status}).`;
+    const code = typeof body.code === 'string' || typeof body.code === 'number' ? body.code : undefined;
+    const traceId = typeof body.traceId === 'string' ? body.traceId : undefined;
+    throw new DapiError(message, response.status, code, traceId);
   }
 
   return payload as T;
