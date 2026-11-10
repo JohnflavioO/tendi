@@ -25,13 +25,15 @@ export class DapiError extends Error {
   status: number;
   code?: string | number;
   traceId?: string;
+  details?: unknown;
 
-  constructor(message: string, status: number, code?: string | number, traceId?: string) {
+  constructor(message: string, status: number, code?: string | number, traceId?: string, details?: unknown) {
     super(message);
     this.name = 'DapiError';
     this.status = status;
     this.code = code;
     this.traceId = traceId;
+    this.details = details;
   }
 }
 
@@ -122,7 +124,7 @@ export async function dapiRequest<T>(
     const effectiveStatus = !response.ok ? response.status : (reportedStatus ?? 502);
     const code = typeof body.code === 'string' || typeof body.code === 'number' ? body.code : undefined;
     const traceId = typeof body.traceId === 'string' ? body.traceId : undefined;
-    throw new DapiError(message, effectiveStatus, code, traceId);
+    throw new DapiError(message, effectiveStatus, code, traceId, body.details);
   }
 
   return payload as T;
