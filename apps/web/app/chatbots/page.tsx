@@ -7,7 +7,7 @@ import { WorkspaceShell } from '@/components/workspace-shell';
 import { QRCodeSVG } from 'qrcode.react';
 
 type Connection={id:string;channel:string;display_name:string;status:string;phone_number_id:string|null;provider_account_id:string|null;updated_at:string};
-type QrPayload={status:string;qrCode?:string|null;qrCodeImage?:string|null;qrCodeUpdatedAt?:string|null;displayName?:string;diagnostic?:{providerStatus?:string;qrCodePresent?:boolean;qrCodeImagePresent?:boolean;responseWrapped?:boolean;responseKeys?:string[];resourceKeys?:string[]}};
+type QrPayload={status:string;qrCode?:string|null;qrCodeImage?:string|null;qrCodeUpdatedAt?:string|null;displayName?:string;diagnostic?:{providerStatus?:string;qrCodePresent?:boolean;qrCodeImagePresent?:boolean;responseWrapped?:boolean;responseKeys?:string[];resourceKeys?:string[];providerError?:string|null;providerCode?:string|null}};
 const channels=[{id:'instagram',name:'Instagram',detail:'Mensagens diretas do Instagram',icon:Instagram},{id:'messenger',name:'Messenger',detail:'Conversas da página do Facebook',icon:Facebook},{id:'webchat',name:'Webchat',detail:'Widget de atendimento para seu site',icon:Globe2}];
 const statusLabel=(status:string)=>status==='connected'?'Conectado':status==='error'?'Atenção necessária':status==='pending'?'Aguardando leitura do QR Code':status==='disconnected'?'Desconectado':status;
 
