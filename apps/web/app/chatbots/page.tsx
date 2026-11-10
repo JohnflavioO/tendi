@@ -99,10 +99,12 @@ export default function ChatbotsPage(){
  async function connect(){
   setBusy(true);setError('');setNotice('');setQr(null);setQrTimedOut(false);qrStartedAt.current=Date.now();
   try{
-   if(!whatsapp?.provider_account_id){
-    await requestApi('connect','POST');
-    await load();
-   }
+   // Always ask the backend to create/restart the same stable D-API session.
+   // The provider may have lost a session while its ID remains stored locally.
+   // D-API explicitly supports POST /sessions as an idempotent create/restart
+   // operation for the same sessionId, so do not skip it when the ID exists.
+   await requestApi('connect','POST');
+   await load();
    const payload=await requestApi('qr');
    if(payload.status==='connected'){
     setQrPolling(false);
