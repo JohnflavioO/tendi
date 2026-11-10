@@ -312,6 +312,8 @@ export async function GET(request: Request, { params }: Context) {
           qrCodePresent: Boolean(qrCode),
           qrCodeImagePresent: Boolean(qrCodeImage),
           responseWrapped: qr !== qrResponse,
+          responseKeys: Object.keys(qrResponse),
+          resourceKeys: Object.keys(qr),
         },
       });
     }
