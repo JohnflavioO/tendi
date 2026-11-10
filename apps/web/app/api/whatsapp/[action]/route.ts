@@ -8,7 +8,7 @@ import {
   normalizeDapiStatus,
   unwrapDapiResource,
   extractDapiConnectionStatus,
-
+  DapiError,
 } from '@/lib/dapi';
 
 type Context = { params: { action: string } };
@@ -19,6 +19,7 @@ type Connection = {
   settings: Record<string, unknown> | null;
   status: string;
   display_name: string;
+  updated_at: string | null;
 };
 
 async function workspaceContext(request: Request) {
@@ -70,7 +71,7 @@ async function workspaceContext(request: Request) {
 
   const { data: connection, error: connectionError } = await supabase
     .from('channel_connections')
-    .select('id,organization_id,provider_account_id,settings,status,display_name')
+    .select('id,organization_id,provider_account_id,settings,status,display_name,updated_at')
     .eq('organization_id', organizationId)
     .eq('channel', 'whatsapp')
     .maybeSingle();
@@ -161,7 +162,7 @@ export async function POST(request: Request, { params }: Context) {
     if (params.action === 'connect') {
       // Fail before touching workspace data when a required server secret is missing.
       getDapiApiKey();
-      const webhookUrl = buildDapiWebhookUrl(new URL(request.url).origin);
+      const webhookUrl = buildDapiWebhookUrl();
       const storedSessionId = connection?.provider_account_id;
       const sessionId = storedSessionId && /^[a-z0-9-]+$/.test(storedSessionId)
         ? storedSessionId
@@ -179,6 +180,13 @@ export async function POST(request: Request, { params }: Context) {
       await dapiRequest('/sessions', {
         method: 'POST',
         body: JSON.stringify(buildCreateSessionPayload(sessionId, webhookUrl)),
+      }, {
+        onResponse: (httpStatus, payload) => {
+          const responseKeys = payload && typeof payload === 'object' && !Array.isArray(payload)
+            ? Object.keys(payload as Record<string, unknown>)
+            : [];
+          console.log('[D-API create session]', { httpStatus, responseKeys });
+        },
       });
 
       const { error: updateError } = await supabase
@@ -255,23 +263,68 @@ export async function GET(request: Request, { params }: Context) {
     }
 
     if (params.action === 'qr') {
-      // D-API may return the resource directly or wrapped in data/session/result.
-      // Unwrap before reading QR fields, while preserving the provider's status.
-      const qrResponse = await dapiRequest<Record<string, unknown>>(
-        `/sessions/${encodeURIComponent(connection.provider_account_id)}/qr`,
-        {},
-        { allowNotFound: true },
-      );
+      const sessionId = connection.provider_account_id;
+      const qrPath = `/sessions/${encodeURIComponent(sessionId)}/qr`;
+      const waitingResponse = () => NextResponse.json({
+        status: 'pending',
+        waiting: true,
+        qrCode: null,
+        qrCodeImage: null,
+        qrCodeUpdatedAt: null,
+      });
 
-      if (qrResponse.__dapiNotFound === true) {
-        return NextResponse.json({
-          status: 'pending',
-          qrCode: null,
-          qrCodeImage: null,
-          qrCodeUpdatedAt: null,
-          waiting: true,
-          diagnostic: { providerResponse: 'qr_not_available_yet' },
+      const fetchQr = () => dapiRequest<Record<string, unknown>>(qrPath);
+      let qrResponse: Record<string, unknown>;
+
+      try {
+        qrResponse = await fetchQr();
+      } catch (error) {
+        if (!(error instanceof DapiError) || error.status !== 404) throw error;
+        if (/qr code not available/i.test(error.message)) return waitingResponse();
+        if (!/session not found/i.test(error.message)) throw error;
+
+        const updatedAt = connection.updated_at ? Date.parse(connection.updated_at) : NaN;
+        const canRecreate = Number.isFinite(updatedAt) && Date.now() - updatedAt > 20_000;
+        if (!canRecreate) return waitingResponse();
+
+        const webhookUrl = buildDapiWebhookUrl();
+        await dapiRequest('/sessions', {
+          method: 'POST',
+          body: JSON.stringify(buildCreateSessionPayload(sessionId, webhookUrl)),
         });
+        const now = new Date().toISOString();
+        const { error: timestampError } = await supabase
+          .from('channel_connections')
+          .update({ updated_at: now, status: 'pending' })
+          .eq('id', connection.id)
+          .eq('organization_id', organizationId);
+        if (timestampError) {
+          return NextResponse.json(
+            { error: 'A sessão foi recriada na D-API, mas não foi possível atualizar o controle local.' },
+            { status: 500 },
+          );
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        try {
+          qrResponse = await fetchQr();
+        } catch (retryError) {
+          if (retryError instanceof DapiError && retryError.status === 404) {
+            if (/qr code not available/i.test(retryError.message)) return waitingResponse();
+            if (/session not found/i.test(retryError.message)) {
+              console.error('[D-API session missing after recreation]', {
+                sessionId,
+                traceId: retryError.traceId,
+              });
+              return NextResponse.json({
+                status: 'error',
+                error: 'Sessão não encontrada na D-API mesmo após recriar',
+                diagnostic: { code: retryError.code, traceId: retryError.traceId },
+              });
+            }
+          }
+          throw retryError;
+        }
       }
 
       const qr = unwrapDapiResource(qrResponse);
@@ -307,16 +360,6 @@ export async function GET(request: Request, { params }: Context) {
         qrCodeImage,
         qrCodeUpdatedAt,
         waiting: !qrCode && !qrCodeImage && status === 'pending',
-        diagnostic: {
-          providerStatus: rawStatus,
-          qrCodePresent: Boolean(qrCode),
-          qrCodeImagePresent: Boolean(qrCodeImage),
-          responseWrapped: qr !== qrResponse,
-          responseKeys: Object.keys(qrResponse),
-          resourceKeys: Object.keys(qr),
-          providerError: typeof qr.error === 'string' ? qr.error : null,
-          providerCode: typeof qr.code === 'string' || typeof qr.code === 'number' ? String(qr.code) : null,
-        },
       });
     }
 
