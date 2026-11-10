@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import {
   buildCreateSessionPayload,
   buildDapiWebhookUrl,
+  getDapiApiKey,
   dapiRequest,
   normalizeDapiStatus,
   type DapiSession,
@@ -138,8 +139,13 @@ export async function POST(request: Request, { params }: Context) {
     const { supabase, organizationId, connection } = context;
 
     if (params.action === 'connect') {
+      // Fail before touching workspace data when a required server secret is missing.
+      getDapiApiKey();
       const webhookUrl = buildDapiWebhookUrl(new URL(request.url).origin);
-      const sessionId = connection?.provider_account_id || stableSessionId(organizationId);
+      const storedSessionId = connection?.provider_account_id;
+      const sessionId = storedSessionId && /^[a-z0-9-]+$/.test(storedSessionId)
+        ? storedSessionId
+        : stableSessionId(organizationId);
 
       // Persist the stable session identifier before provisioning it at D-API.
       const persisted = await persistSessionId(
