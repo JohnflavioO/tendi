@@ -193,6 +193,7 @@ export async function POST(request: Request, { params }: Context) {
       );
       if ('response' in persisted) return persisted.response;
 
+      let sessionAction: 'created' | 'reconnected' = 'created';
       try {
         await dapiRequest('/sessions', {
           method: 'POST',
@@ -208,20 +209,42 @@ export async function POST(request: Request, { params }: Context) {
               responseKeys: Object.keys(root),
               providerError: typeof root.error === 'string' ? root.error : undefined,
               code: typeof root.code === 'string' || typeof root.code === 'number' ? root.code : undefined,
+              details: safeDapiDetails(root.details),
             });
           },
         });
       } catch (createError) {
-        console.error('[D-API create session failed]', {
+        const providerDetails = createError instanceof DapiError
+          ? safeDapiDetails(createError.details) ?? ''
+          : '';
+        const duplicateSession = /duplicate key value violates unique constraint ["']?sessions_session_id_key/i
+          .test(providerDetails);
+
+        if (!duplicateSession) {
+          console.error('[D-API create session failed]', {
+            sessionId,
+            errorName: createError instanceof Error ? createError.name : 'UnknownError',
+            message: createError instanceof Error ? createError.message : String(createError),
+            status: createError instanceof DapiError ? createError.status : undefined,
+            code: createError instanceof DapiError ? createError.code : undefined,
+            traceId: createError instanceof DapiError ? createError.traceId : undefined,
+            details: providerDetails || undefined,
+          });
+          throw createError;
+        }
+
+        // The provider confirms this stable sessionId already exists. Its POST
+        // implementation attempts a duplicate INSERT, so use the documented
+        // existing-session reconnect endpoint instead of retrying POST /sessions.
+        console.warn('[D-API session already exists; reconnecting existing session]', {
           sessionId,
-          errorName: createError instanceof Error ? createError.name : 'UnknownError',
-          message: createError instanceof Error ? createError.message : String(createError),
-          status: createError instanceof DapiError ? createError.status : undefined,
-          code: createError instanceof DapiError ? createError.code : undefined,
-          traceId: createError instanceof DapiError ? createError.traceId : undefined,
-          details: createError instanceof DapiError ? safeDapiDetails(createError.details) : undefined,
+          details: providerDetails,
         });
-        throw createError;
+        await dapiRequest(
+          `/sessions/${encodeURIComponent(sessionId)}/connect`,
+          { method: 'GET' },
+        );
+        sessionAction = 'reconnected';
       }
 
       const { error: updateError } = await supabase
@@ -251,7 +274,10 @@ export async function POST(request: Request, { params }: Context) {
         success: true,
         sessionId,
         status: 'pending',
-        message: 'Sessão criada na D-API. A próxima etapa habilitará a leitura e atualização do QR Code.',
+        message: sessionAction === 'created'
+          ? 'Sessão criada na D-API. Aguardando QR Code.'
+          : 'Sessão existente reiniciada na D-API. Aguardando QR Code.',
+        sessionAction,
       });
     }
 
@@ -421,36 +447,34 @@ export async function GET(request: Request, { params }: Context) {
         const canRecreate = Number.isFinite(updatedAt) && Date.now() - updatedAt > 20_000;
         if (!canRecreate) return waitingResponse();
 
-        const webhookUrl = buildDapiWebhookUrl();
         try {
-          await dapiRequest('/sessions', {
-            method: 'POST',
-            body: JSON.stringify(buildCreateSessionPayload(sessionId, webhookUrl)),
-          }, {
-            onResponse: (httpStatus, payload) => {
-              const root = payload && typeof payload === 'object' && !Array.isArray(payload)
-                ? payload as Record<string, unknown>
-                : {};
-              console.log('[D-API recreate session]', {
-                sessionId,
-                httpStatus,
-                responseKeys: Object.keys(root),
-                providerError: typeof root.error === 'string' ? root.error : undefined,
-                code: typeof root.code === 'string' || typeof root.code === 'number' ? root.code : undefined,
-              });
-            },
-          });
-        } catch (recreateError) {
-          console.error('[D-API recreate session failed]', {
+          // Session row already exists at the provider, but its QR resource is
+          // missing. Restart the existing provider pod using the documented
+          // reconnect endpoint; do not POST /sessions and hit the unique key.
+          const reconnectResponse = await dapiRequest<Record<string, unknown>>(
+            `/sessions/${encodeURIComponent(sessionId)}/connect`,
+            { method: 'GET' },
+          );
+          console.log('[D-API existing session reconnect]', {
             sessionId,
-            errorName: recreateError instanceof Error ? recreateError.name : 'UnknownError',
-            message: recreateError instanceof Error ? recreateError.message : String(recreateError),
-            status: recreateError instanceof DapiError ? recreateError.status : undefined,
-            code: recreateError instanceof DapiError ? recreateError.code : undefined,
-            traceId: recreateError instanceof DapiError ? recreateError.traceId : undefined,
-            details: recreateError instanceof DapiError ? safeDapiDetails(recreateError.details) : undefined,
+            responseKeys: Object.keys(reconnectResponse),
+            provider: typeof reconnectResponse.provider === 'string'
+              ? reconnectResponse.provider
+              : undefined,
           });
-          throw recreateError;
+        } catch (reconnectError) {
+          console.error('[D-API existing session reconnect failed]', {
+            sessionId,
+            errorName: reconnectError instanceof Error ? reconnectError.name : 'UnknownError',
+            message: reconnectError instanceof Error ? reconnectError.message : String(reconnectError),
+            status: reconnectError instanceof DapiError ? reconnectError.status : undefined,
+            code: reconnectError instanceof DapiError ? reconnectError.code : undefined,
+            traceId: reconnectError instanceof DapiError ? reconnectError.traceId : undefined,
+            details: reconnectError instanceof DapiError
+              ? safeDapiDetails(reconnectError.details)
+              : undefined,
+          });
+          throw reconnectError;
         }
         const now = new Date().toISOString();
         const { error: timestampError } = await supabase
