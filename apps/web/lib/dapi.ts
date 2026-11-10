@@ -104,14 +104,25 @@ export async function dapiRequest<T>(
 
   const payload = await response.json().catch(() => ({}));
   options.onResponse?.(response.status, payload);
-  if (!response.ok || (payload as any)?.success === false) {
-    const body = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
-    const message = typeof body.error === 'string'
-      ? body.error
+  const body = payload && typeof payload === 'object' && !Array.isArray(payload)
+    ? payload as Record<string, unknown>
+    : {};
+  // D-API errors can arrive as an application-level { error, sessionId, code }
+  // envelope even when the HTTP transport itself responds 200. Never treat
+  // that envelope as a successful QR/session resource.
+  const hasApiError = typeof body.error === 'string' && body.error.trim().length > 0;
+  if (!response.ok || body.success === false || hasApiError) {
+    const message = hasApiError
+      ? (body.error as string).trim()
       : `A D-API não conseguiu concluir a operação (HTTP ${response.status}).`;
+    const reportedStatus = typeof body.statusCode === 'number' &&
+      Number.isInteger(body.statusCode) && body.statusCode >= 400 && body.statusCode <= 599
+      ? body.statusCode
+      : undefined;
+    const effectiveStatus = !response.ok ? response.status : (reportedStatus ?? 502);
     const code = typeof body.code === 'string' || typeof body.code === 'number' ? body.code : undefined;
     const traceId = typeof body.traceId === 'string' ? body.traceId : undefined;
-    throw new DapiError(message, response.status, code, traceId);
+    throw new DapiError(message, effectiveStatus, code, traceId);
   }
 
   return payload as T;
