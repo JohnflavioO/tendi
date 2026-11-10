@@ -392,8 +392,17 @@ export async function GET(request: Request, { params }: Context) {
       const rawStatus = extractDapiConnectionStatus(qrResponse) ??
         (typeof qr.status === 'string' ? qr.status : 'connecting');
       const status = normalizeDapiStatus(rawStatus);
-      const qrCode = typeof qr.qrCode === 'string' ? qr.qrCode : null;
-      const qrCodeImage = typeof qr.qrCodeImage === 'string' ? qr.qrCodeImage : null;
+      // The QR endpoint and connection.qrcode event may expose different field names.
+      // Accept both documented variants without changing the D-API request contract.
+      const pickString = (...keys: string[]): string | null => {
+        for (const key of keys) {
+          const value = qr[key] ?? qrResponse[key];
+          if (typeof value === 'string' && value.length > 0) return value;
+        }
+        return null;
+      };
+      const qrCode = pickString('qrCode', 'qr');
+      const qrCodeImage = pickString('qrCodeImage', 'qrImage');
       const qrCodeUpdatedAt = typeof qr.qrCodeUpdatedAt === 'string' ? qr.qrCodeUpdatedAt : null;
 
       if (status === 'connected' || status === 'disconnected' || status === 'error') {
@@ -421,6 +430,14 @@ export async function GET(request: Request, { params }: Context) {
         qrCodeImage,
         qrCodeUpdatedAt,
         waiting: !qrCode && !qrCodeImage && status === 'pending',
+        // Safe diagnostics: names and presence flags only, never QR contents or secrets.
+        diagnostic: {
+          providerStatus: rawStatus,
+          responseKeys: Object.keys(qrResponse),
+          resourceKeys: Object.keys(qr),
+          qrCodePresent: Boolean(qrCode),
+          qrCodeImagePresent: Boolean(qrCodeImage),
+        },
       });
     }
 
