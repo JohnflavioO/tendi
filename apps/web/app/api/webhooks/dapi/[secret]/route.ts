@@ -1,41 +1,97 @@
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'node:crypto';
+import { createClient } from '@supabase/supabase-js';
 import { getDapiWebhookSecret } from '@/lib/dapi';
+import { processDapiEvent } from '@/lib/dapi-webhook';
+
+export const dynamic = 'force-dynamic';
 
 type Context = { params: { secret: string } };
 
+class ConfigError extends Error {}
+
+const HANDLED_EVENTS = new Set(['messages.received', 'connection.status']);
+
+function secretMatches(provided: string, expected: string): boolean {
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function adminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) {
+    throw new ConfigError('NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não está configurada no servidor.');
+  }
+  // Chave de serviço: só no servidor. O webhook não tem sessão de usuário, então precisa dela para gravar.
+  return createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+}
+
+const ack = (extra: Record<string, unknown> = {}) =>
+  NextResponse.json({ success: true, ...extra }, { status: 200 });
+
 /**
- * Phase 1 webhook ingress.
- * Phase 3 will add event validation, persistence and asynchronous processing.
- * For now, acknowledge valid callbacks immediately so D-API does not retry
- * while the rest of the webhook pipeline is being implemented.
+ * Webhook da D-API.
+ * - 401 se o segredo da URL não bater (a D-API não assina os webhooks).
+ * - 200 para tudo o que for válido, inclusive eventos ignorados e sessões desconhecidas
+ *   (a D-API para de entregar se receber 404/410).
+ * - 5xx apenas em falha real de configuração/banco: a D-API repete a entrega e o processamento é idempotente.
  */
 export async function POST(request: Request, { params }: Context) {
   let expectedSecret: string;
-
   try {
     expectedSecret = getDapiWebhookSecret();
   } catch {
-    return NextResponse.json(
-      { success: false, error: 'Webhook não configurado.' },
-      { status: 503 },
-    );
+    return NextResponse.json({ success: false, error: 'Webhook não configurado.' }, { status: 503 });
   }
 
-  if (!params.secret || params.secret !== expectedSecret) {
-    return NextResponse.json(
-      { success: false, error: 'Não autorizado.' },
-      { status: 401 },
-    );
+  let decoded = params.secret ?? '';
+  try {
+    decoded = decodeURIComponent(decoded);
+  } catch {
+    // mantém o valor original
+  }
+  if (!params.secret || (!secretMatches(params.secret, expectedSecret) && !secretMatches(decoded, expectedSecret))) {
+    return NextResponse.json({ success: false, error: 'Não autorizado.' }, { status: 401 });
   }
 
-  const payload = await request.json().catch(() => null);
-  if (payload && typeof payload === 'object') {
-    console.info('[D-API webhook accepted]', {
-      event: typeof payload.event === 'string' ? payload.event : 'unknown',
-      sessionId: typeof payload.sessionId === 'string' ? payload.sessionId : undefined,
-      traceId: typeof payload.traceId === 'string' ? payload.traceId : undefined,
+  const body: unknown = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return ack({ ignored: 'invalid_body' });
+
+  const payload = body as Record<string, unknown>;
+  const event = typeof payload.event === 'string' ? payload.event : '';
+  const sessionId = typeof payload.sessionId === 'string' ? payload.sessionId : '';
+  const traceId = typeof payload.traceId === 'string' ? payload.traceId : null;
+  const data =
+    payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)
+      ? (payload.data as Record<string, unknown>)
+      : {};
+  if (!event || !sessionId) return ack({ ignored: 'missing_event_or_session' });
+  // Eventos que ainda não tratamos (presence, chats, contatos...) são só reconhecidos, sem tocar no banco.
+  if (!HANDLED_EVENTS.has(event)) return ack({ handled: false, reason: 'event_not_handled' });
+
+  try {
+    const result = await processDapiEvent(adminClient(), { event, sessionId, traceId, data });
+    console.info('[D-API webhook]', {
+      event,
+      sessionId,
+      traceId,
+      messageId: typeof data.id === 'string' ? data.id : undefined,
+      handled: result.handled,
+      reason: result.reason,
     });
+    return ack({ handled: result.handled, reason: result.reason });
+  } catch (error) {
+    console.error('[D-API webhook failed]', {
+      event,
+      sessionId,
+      traceId,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    if (error instanceof ConfigError) {
+      return NextResponse.json({ success: false, error: 'Servidor sem credenciais do banco.' }, { status: 503 });
+    }
+    return NextResponse.json({ success: false, error: 'Falha ao processar o evento.' }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true, received: true }, { status: 200 });
 }
