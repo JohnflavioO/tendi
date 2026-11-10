@@ -103,3 +103,26 @@ export function normalizeDapiStatus(
   if (['error', 'failed'].includes(value)) return 'error';
   return 'pending';
 }
+
+
+/** D-API endpoints may return the resource directly or inside a data/session envelope. */
+export function unwrapDapiResource(payload: unknown): Record<string, unknown> {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return {};
+  const root = payload as Record<string, unknown>;
+  const candidate = root.data ?? root.session ?? root.result;
+  if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+    return candidate as Record<string, unknown>;
+  }
+  return root;
+}
+
+export function extractDapiConnectionStatus(payload: unknown): string | undefined {
+  const root = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+  const resource = unwrapDapiResource(payload);
+  const connection = resource.connection && typeof resource.connection === 'object'
+    ? resource.connection as Record<string, unknown>
+    : {};
+  const value = resource.status ?? resource.connectionStatus ?? resource.state ??
+    connection.status ?? root.status;
+  return typeof value === 'string' ? value : undefined;
+}
