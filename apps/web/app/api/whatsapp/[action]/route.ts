@@ -255,16 +255,50 @@ export async function GET(request: Request, { params }: Context) {
     }
 
     if (params.action === 'qr') {
-      const qrResponse = await dapiRequest<Record<string, unknown>>(
+      // Follow the integration prompt exactly: this endpoint's response is
+      // authoritative for both the current QR and the connection status.
+      const qr = await dapiRequest<Record<string, unknown>>(
         `/sessions/${encodeURIComponent(connection.provider_account_id)}/qr`,
+        {},
+        { allowNotFound: true },
       );
-      const qr = unwrapDapiResource(qrResponse);
-      return NextResponse.json({
-        status: normalizeDapiStatus(extractDapiConnectionStatus(qrResponse)),
-        qrCode: qr.qrCode ?? null,
-        qrCodeImage: qr.qrCodeImage ?? null,
-        qrCodeUpdatedAt: qr.qrCodeUpdatedAt ?? null,
-      });
+
+      if (qr.__dapiNotFound === true) {
+        return NextResponse.json({
+          status: 'pending',
+          qrCode: null,
+          qrCodeImage: null,
+          qrCodeUpdatedAt: null,
+          waiting: true,
+        });
+      }
+
+      const rawStatus = typeof qr.status === 'string' ? qr.status : 'connecting';
+      const status = normalizeDapiStatus(rawStatus);
+      const qrCode = typeof qr.qrCode === 'string' ? qr.qrCode : null;
+      const qrCodeImage = typeof qr.qrCodeImage === 'string' ? qr.qrCodeImage : null;
+      const qrCodeUpdatedAt = typeof qr.qrCodeUpdatedAt === 'string' ? qr.qrCodeUpdatedAt : null;
+
+      if (status === 'connected' || status === 'disconnected' || status === 'error') {
+        const { error: persistError } = await supabase
+          .from('channel_connections')
+          .update({
+            status,
+            display_name: status === 'connected' ? 'WhatsApp conectado' : connection.display_name,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', connection.id)
+          .eq('organization_id', organizationId);
+
+        if (persistError) {
+          return NextResponse.json(
+            { error: 'A D-API retornou o status, mas não foi possível salvá-lo no Tendi.' },
+            { status: 500 },
+          );
+        }
+      }
+
+      return NextResponse.json({ status, qrCode, qrCodeImage, qrCodeUpdatedAt, waiting: false });
     }
 
     if (params.action === 'status') {
