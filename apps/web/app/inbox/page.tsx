@@ -11,6 +11,7 @@ import { MessageMedia } from '@/components/inbox/message-media';
 import { Composer } from '@/components/inbox/composer';
 import { ContactPanel } from '@/components/inbox/contact-panel';
 import { TrialNotice } from '@/components/trial-notice';
+import { provisionPendingWorkspace } from '@/lib/ensure-workspace';
 import { mergeMessages, previewText, statusLabel } from '@/lib/inbox-utils';
 
 type Org = { id: string; name: string };
@@ -71,7 +72,13 @@ export default function InboxPage() {
     setUserId(auth.user.id);
     const { data, error: orgError } = await supabase.from('organizations').select('id,name').order('name');
     if (orgError) throw orgError;
-    const list = (data ?? []) as Org[];
+    let list = (data ?? []) as Org[];
+    // Conta confirmada sem empresa: conclui a criação do workspace iniciada no cadastro.
+    if (!list.length && await provisionPendingWorkspace(supabase, auth.user)) {
+      const retry = await supabase.from('organizations').select('id,name').order('name');
+      if (retry.error) throw retry.error;
+      list = (retry.data ?? []) as Org[];
+    }
     setOrganizations(list);
     const requestedId = new URLSearchParams(window.location.search).get('organization');
     const requestedOrganization = requestedId && list.some(org => org.id === requestedId) ? requestedId : '';
@@ -167,7 +174,7 @@ export default function InboxPage() {
   const latestMessage = (conversationId: string) => { const rows = messages.filter(message => message.conversation_id === conversationId); return rows[rows.length - 1]; };
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]"><Loader2 className="animate-spin" /></main>;
-  if (!organizations.length) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] p-6"><div className="max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm"><Building2 className="mx-auto text-[#CB0A9F]" size={34}/><h1 className="mt-4 text-xl font-bold text-[#2F316B]">Nenhuma empresa vinculada</h1><p className="mt-2 text-sm leading-6 text-slate-500">Sua conta ainda não pertence a uma organização. Peça ao Super Admin para criar uma empresa e associar seu usuário.</p><form action="/auth/signout" method="post"><button className="mt-5 rounded-xl bg-[#004751] px-4 py-2.5 text-sm font-semibold text-white">Sair</button></form></div></main>;
+  if (!organizations.length) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] p-6"><div className="max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm"><Building2 className="mx-auto text-[#CB0A9F]" size={34}/><h1 className="mt-4 text-xl font-bold text-[#2F316B]">Nenhuma empresa vinculada</h1><p className="mt-2 text-sm leading-6 text-slate-500">Sua conta ainda não pertence a uma organização. Peça ao Super Admin para criar uma empresa e associar seu usuário.</p>{error&&<p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">Não foi possível criar seu workspace: {error}</p>}<form action="/auth/signout" method="post"><button className="mt-5 rounded-xl bg-[#004751] px-4 py-2.5 text-sm font-semibold text-white">Sair</button></form></div></main>;
 
   return <main className="flex h-screen min-h-[620px] overflow-hidden bg-[#F4F6FB] text-slate-800">
     <aside className="hidden w-[218px] shrink-0 flex-col border-r border-slate-200/80 bg-white px-3 py-5 lg:flex">

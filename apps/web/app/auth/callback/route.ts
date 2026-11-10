@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { provisionPendingWorkspace } from '@/lib/ensure-workspace';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -21,21 +22,17 @@ export async function GET(request: Request) {
 
         if (admin) return NextResponse.redirect(new URL('/admin', origin));
 
-        const organizationName = user.user_metadata?.organization_name;
-        const planCode = user.user_metadata?.plan_code;
-
-        if (typeof organizationName === 'string' && typeof planCode === 'string') {
-          const { error: provisionError } = await (supabase as any).rpc('provision_customer_workspace', {
-            p_organization_name: organizationName,
-            p_plan_code: planCode,
-          });
-
-          if (provisionError) {
-            console.error('Falha ao provisionar workspace após confirmação:', provisionError.message);
+        // Só cria o workspace para quem ainda não tem empresa; links de acesso
+        // usados por contas já provisionadas seguem direto para a Inbox.
+        const { data: organizations } = await supabase.from('organizations').select('id').limit(1);
+        if (organizations && organizations.length === 0) {
+          try {
+            const created = await provisionPendingWorkspace(supabase as any, user);
+            if (created) return NextResponse.redirect(new URL('/inbox?welcome=1', origin));
+          } catch (provisionError) {
+            console.error('Falha ao provisionar workspace após confirmação:', provisionError instanceof Error ? provisionError.message : provisionError);
             return NextResponse.redirect(new URL('/inbox?setup=failed', origin));
           }
-
-          return NextResponse.redirect(new URL('/inbox?welcome=1', origin));
         }
 
         return NextResponse.redirect(new URL('/inbox', origin));

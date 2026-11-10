@@ -7,6 +7,13 @@ export async function middleware(request: NextRequest) {
   // Webhooks de provedores (ex.: D-API) não têm sessão de usuário. A autenticação é o segredo
   // no caminho da URL, validado dentro da própria rota. Sem esta exceção eles caem em /login (307).
   if (request.nextUrl.pathname.startsWith('/api/webhooks/')) return NextResponse.next({ request });
+  // Link de confirmação que caiu na página inicial (ex.: redirect fora da lista permitida
+  // do Supabase): encaminha o código para o callback, que conclui o login e o cadastro.
+  if (request.nextUrl.pathname === '/' && request.nextUrl.searchParams.has('code')) {
+    const callback = request.nextUrl.clone();
+    callback.pathname = '/auth/callback';
+    return NextResponse.redirect(callback);
+  }
   if (isPublicMarketingPath(request.nextUrl.pathname)) return NextResponse.next({ request });
 
   let response = NextResponse.next({ request });
