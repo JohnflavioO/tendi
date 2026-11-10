@@ -501,7 +501,7 @@ export async function GET(request: Request, { params }: Context) {
       const rawStatus = extractDapiConnectionStatus(qrResponse) ??
         (typeof qr.status === 'string' ? qr.status : 'connecting');
       const status = normalizeDapiStatus(rawStatus);
-      // The QR endpoint and connection.qrcode event may expose different field names.
+            // The QR endpoint and connection.qrcode event may expose different field names.
       // Accept both documented variants without changing the D-API request contract.
       const pickString = (...keys: string[]): string | null => {
         for (const key of keys) {
@@ -511,15 +511,8 @@ export async function GET(request: Request, { params }: Context) {
         return null;
       };
       const qrCode = pickString('qrCode', 'qr');
-            const pickString = (...keys: string[]): string | null => {
-        for (const key of keys) {
-          const value = qr[key] ?? qrResponse[key];
-          if (typeof value === 'string' && value.length > 0) return value;
-        }
-        return null;
-      };
-      const qrCode = pickString('qrCode', 'qr');
       const qrCodeImage = pickString('qrCodeImage', 'qrImage');
+      const qrCodeUpdatedAt = typeof qr.qrCodeUpdatedAt === 'string' ? qr.qrCodeUpdatedAt : null;
 
       if (status === 'connected' || status === 'disconnected' || status === 'error') {
         const { error: persistError } = await supabase
