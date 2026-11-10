@@ -1,0 +1,55 @@
+From 0b2ff46fb1b65b43b7af6cf04a4902a0c144b02c Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 10 Nov 2026 13:45:25 +0000
+Subject: [PATCH] =?UTF-8?q?fix(whatsapp):=20aceita=20qr/qrImage=20e=20adic?=
+ =?UTF-8?q?iona=20diagn=C3=B3stico=20do=20QR?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/web/app/api/whatsapp/[action]/route.ts | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/apps/web/app/api/whatsapp/[action]/route.ts b/apps/web/app/api/whatsapp/[action]/route.ts
+index 5fca6e3..9373371 100644
+--- a/apps/web/app/api/whatsapp/[action]/route.ts
++++ b/apps/web/app/api/whatsapp/[action]/route.ts
+@@ -331,8 +331,17 @@ export async function GET(request: Request, { params }: Context) {
+       const rawStatus = extractDapiConnectionStatus(qrResponse) ??
+         (typeof qr.status === 'string' ? qr.status : 'connecting');
+       const status = normalizeDapiStatus(rawStatus);
+-      const qrCode = typeof qr.qrCode === 'string' ? qr.qrCode : null;
+-      const qrCodeImage = typeof qr.qrCodeImage === 'string' ? qr.qrCodeImage : null;
++      // GET /qr documents qrCode/qrCodeImage; the connection.qrcode webhook uses qr/qrImage.
++      // Accept both so a naming difference never leaves the screen waiting forever.
++      const pickString = (...keys: string[]): string | null => {
++        for (const key of keys) {
++          const value = qr[key] ?? qrResponse[key];
++          if (typeof value === 'string' && value.length > 0) return value;
++        }
++        return null;
++      };
++      const qrCode = pickString('qrCode', 'qr');
++      const qrCodeImage = pickString('qrCodeImage', 'qrImage');
+       const qrCodeUpdatedAt = typeof qr.qrCodeUpdatedAt === 'string' ? qr.qrCodeUpdatedAt : null;
+ 
+       if (status === 'connected' || status === 'disconnected' || status === 'error') {
+@@ -360,6 +369,14 @@ export async function GET(request: Request, { params }: Context) {
+         qrCodeImage,
+         qrCodeUpdatedAt,
+         waiting: !qrCode && !qrCodeImage && status === 'pending',
++        // Keys and flags only (no QR content, no secrets): shows what the D-API really returned.
++        diagnostic: {
++          providerStatus: rawStatus,
++          responseKeys: Object.keys(qrResponse),
++          resourceKeys: Object.keys(qr),
++          qrCodePresent: Boolean(qrCode),
++          qrCodeImagePresent: Boolean(qrCodeImage),
++        },
+       });
+     }
+ 
+-- 
+2.43.0
+
