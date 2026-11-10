@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { dapiRequest } from '@/lib/dapi';
 import { sendWhatsappText } from '@/lib/inbox-send';
 
@@ -23,10 +24,22 @@ export async function POST(request: Request) {
     const conversationId = typeof payload.conversationId === 'string' ? payload.conversationId : '';
     const text = typeof payload.text === 'string' ? payload.text : '';
 
+    // Nome que aparece em cima da mensagem no Inbox (vem do perfil do atendente).
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name,email')
+      .eq('id', auth.user.id)
+      .maybeSingle();
+    const fullName = typeof profile?.full_name === 'string' ? profile.full_name.trim() : '';
+    const emailName = typeof profile?.email === 'string' ? profile.email.split('@')[0] : '';
+    const senderName = fullName || emailName || null;
+
     const outcome = await sendWhatsappText(
       supabase,
-      { userId: auth.user.id, conversationId, text },
+      { userId: auth.user.id, senderName, conversationId, text },
       (path, requestBody) => dapiRequest<unknown>(path, { method: 'POST', body: JSON.stringify(requestBody) }),
+      // Gravações com a chave de serviço (depois de o acesso à conversa já ter sido validado acima).
+      createAdminClient() ?? supabase,
     );
     return NextResponse.json(outcome.body, { status: outcome.status });
   } catch (error) {
