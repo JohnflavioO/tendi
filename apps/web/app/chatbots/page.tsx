@@ -151,6 +151,12 @@ export default function ChatbotsPage(){
   let active=true;
   let inFlight=false;
   if(qrStartedAt.current===null)qrStartedAt.current=Date.now();
+  const timeout=window.setTimeout(()=>{
+   if(!active)return;
+   setQrPolling(false);
+   setQrTimedOut(true);
+   setNotice('O QR Code não foi conectado em 2 minutos. Gere um novo QR Code para tentar novamente.');
+  },120_000);
   const poll=async()=>{
    if(!active||inFlight)return;
    inFlight=true;
@@ -186,7 +192,7 @@ export default function ChatbotsPage(){
   };
   void poll();
   const timer=window.setInterval(()=>{void poll();},3000);
-  return ()=>{active=false;window.clearInterval(timer);};
+  return ()=>{active=false;window.clearInterval(timer);window.clearTimeout(timeout);};
  },[qrPolling,organizationId]);
 
  async function disconnect(){
