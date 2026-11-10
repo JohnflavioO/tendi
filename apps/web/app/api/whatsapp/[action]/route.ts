@@ -511,8 +511,15 @@ export async function GET(request: Request, { params }: Context) {
         return null;
       };
       const qrCode = pickString('qrCode', 'qr');
+            const pickString = (...keys: string[]): string | null => {
+        for (const key of keys) {
+          const value = qr[key] ?? qrResponse[key];
+          if (typeof value === 'string' && value.length > 0) return value;
+        }
+        return null;
+      };
+      const qrCode = pickString('qrCode', 'qr');
       const qrCodeImage = pickString('qrCodeImage', 'qrImage');
-      const qrCodeUpdatedAt = typeof qr.qrCodeUpdatedAt === 'string' ? qr.qrCodeUpdatedAt : null;
 
       if (status === 'connected' || status === 'disconnected' || status === 'error') {
         const { error: persistError } = await supabase
@@ -538,8 +545,7 @@ export async function GET(request: Request, { params }: Context) {
         qrCode,
         qrCodeImage,
         qrCodeUpdatedAt,
-        waiting: !qrCode && !qrCodeImage && status === 'pending',
-        // Safe diagnostics: names and presence flags only, never QR contents or secrets.
+                waiting: !qrCode && !qrCodeImage && status === 'pending',
         diagnostic: {
           providerStatus: rawStatus,
           responseKeys: Object.keys(qrResponse),
