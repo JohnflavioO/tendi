@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, Loader2, MessageCircle, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useTrialDays } from '@/lib/use-trial-days';
+import { provisionPendingWorkspace } from '@/lib/ensure-workspace';
 import { trialDaysLabel } from '@/lib/trial';
 
 export default function LoginPage() {
@@ -28,6 +29,16 @@ export default function LoginPage() {
       });
       if (loginError) throw loginError;
       const { data: admin } = await supabase.from('platform_admins').select('user_id').eq('user_id', data.user.id).maybeSingle();
+      if (!admin) {
+        // Conta confirmada sem empresa: conclui a criação do workspace iniciada no cadastro.
+        // Se falhar aqui, a Inbox tenta de novo e mostra o motivo.
+        try {
+          const { data: organizations } = await supabase.from('organizations').select('id').limit(1);
+          if (organizations && organizations.length === 0) await provisionPendingWorkspace(supabase as any, data.user);
+        } catch (provisionError) {
+          console.error('Falha ao criar o workspace no login:', provisionError);
+        }
+      }
       router.replace(admin ? '/admin' : '/inbox');
       router.refresh();
     } catch (err) {
