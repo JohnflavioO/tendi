@@ -10,7 +10,7 @@ type Context = { params: { secret: string } };
 
 class ConfigError extends Error {}
 
-const HANDLED_EVENTS = new Set(['messages.received', 'connection.status']);
+const HANDLED_EVENTS = new Set(['messages.received', 'connection.status', 'message.delivered', 'message.read']);
 
 function secretMatches(provided: string, expected: string): boolean {
   const a = Buffer.from(provided);

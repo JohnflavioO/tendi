@@ -1,11 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { ensureLeadForContact } from './crm-lead';
 
 /**
  * Processamento dos webhooks da D-API (Fase 3).
  *
  * Eventos tratados:
- * - messages.received: grava contato, conversa e mensagem no Inbox.
+ * - messages.received: grava contato, conversa e mensagem no Inbox. Número novo que escreve
+ *   primeiro vira um lead na primeira etapa do funil do CRM (desligável com
+ *   channel_connections.settings.auto_create_leads = false).
  * - connection.status: atualiza o status da conexão do WhatsApp.
+ * - message.delivered / message.read: avançam o status das mensagens enviadas (✓ → ✓✓ → ✓✓ azul).
  * Os demais eventos são reconhecidos (HTTP 200) e ignorados por enquanto.
  *
  * Idempotência: messages tem UNIQUE (provider, provider_message_id), então um
@@ -102,7 +106,7 @@ async function findConnection(db: Db, sessionId: string) {
   return must<{ id: string; organization_id: string; settings: Json | null; status: string }>(result, 'channel_connections');
 }
 
-async function ensureContact(db: Db, organizationId: string, phone: string, name: string | null): Promise<string> {
+async function ensureContact(db: Db, organizationId: string, phone: string, name: string | null): Promise<{ id: string; created: boolean }> {
   const lookup = () =>
     db
       .from('contacts')
@@ -117,7 +121,7 @@ async function ensureContact(db: Db, organizationId: string, phone: string, name
     if (name && name !== phone && existing.full_name === phone) {
       must(await db.from('contacts').update({ full_name: name }).eq('id', existing.id), 'contacts.update');
     }
-    return existing.id;
+    return { id: existing.id, created: false };
   }
 
   const inserted = await db
@@ -129,11 +133,11 @@ async function ensureContact(db: Db, organizationId: string, phone: string, name
     // Corrida entre dois eventos simultâneos: o outro já criou o contato.
     if (inserted.error.code === '23505') {
       const again = must<{ id: string }>(await lookup(), 'contacts.reselect');
-      if (again) return again.id;
+      if (again) return { id: again.id, created: false };
     }
     throw new Error(`contacts.insert: ${inserted.error.message}`);
   }
-  return (inserted.data as { id: string }).id;
+  return { id: (inserted.data as { id: string }).id, created: true };
 }
 
 type ConversationRow = { id: string; status: string; unread_count: number; last_message_at: string | null };
@@ -175,7 +179,7 @@ async function ensureConversation(db: Db, organizationId: string, contactId: str
 
 async function handleMessageReceived(
   db: Db,
-  connection: { organization_id: string },
+  connection: { organization_id: string; settings?: Json | null },
   envelope: DapiEnvelope,
 ): Promise<ProcessResult> {
   const { data, sessionId, traceId } = envelope;
@@ -230,7 +234,8 @@ async function handleMessageReceived(
 
   const sentAt = parseTimestamp(data.timestamp);
   const nowIso = new Date().toISOString();
-  const contactId = await ensureContact(db, organizationId, phone, contactName);
+  const contact = await ensureContact(db, organizationId, phone, contactName);
+  const contactId = contact.id;
   const conversation = await ensureConversation(db, organizationId, contactId, sentAt);
 
   const media = isRecord(data.media_data) ? data.media_data : {};
@@ -282,6 +287,16 @@ async function handleMessageReceived(
   if (!fromMe && isFresh) {
     must(await db.from('contacts').update({ last_interaction_at: nowIso }).eq('id', contactId), 'contacts.touch');
   }
+
+  // CRM: número novo que escreve primeiro vira lead. Uma falha aqui nunca pode perder a mensagem.
+  const settings = isRecord(connection.settings) ? connection.settings : {};
+  if (contact.created && !fromMe && settings.auto_create_leads !== false) {
+    try {
+      await ensureLeadForContact(db, { organizationId, contactId, title: contactName ?? phone });
+    } catch (error) {
+      console.warn('[D-API webhook] lead não criado', { sessionId, traceId, message: error instanceof Error ? error.message : String(error) });
+    }
+  }
   return { handled: true };
 }
 
@@ -326,8 +341,39 @@ async function handleConnectionStatus(
   return { handled: true };
 }
 
+const DELIVERY_RANK: Record<string, number> = { queued: 0, sent: 1, delivered: 2, read: 3 };
+
+/** Entregue/lida: só avança o status (um "entregue" atrasado nunca desfaz um "lida"). */
+async function handleDeliveryStatus(db: Db, connection: { organization_id: string }, envelope: DapiEnvelope): Promise<ProcessResult> {
+  const messageId = asString(envelope.data.message_id);
+  if (!messageId) return { handled: false, reason: 'status_without_message_id' };
+  const next = envelope.event === 'message.read' ? 'read' : 'delivered';
+
+  const found = must<{ id: string; delivery_status: string }>(
+    await db
+      .from('messages')
+      .select('id,delivery_status')
+      .eq('organization_id', connection.organization_id)
+      .eq('provider', DAPI_PROVIDER)
+      .eq('provider_message_id', messageId)
+      .eq('direction', 'outbound')
+      .limit(1)
+      .maybeSingle(),
+    'messages.status_lookup',
+  );
+  if (!found) return { handled: false, reason: 'message_not_found' };
+  const current = DELIVERY_RANK[found.delivery_status];
+  if (current === undefined) return { handled: false, reason: 'status_not_advanced' }; // failed/received: não mexe
+  if (DELIVERY_RANK[next]! <= current) return { handled: false, reason: 'status_not_advanced' };
+
+  must(await db.from('messages').update({ delivery_status: next }).eq('id', found.id), 'messages.status_update');
+  return { handled: true };
+}
+
+const HANDLED = new Set(['messages.received', 'connection.status', 'message.delivered', 'message.read']);
+
 export async function processDapiEvent(db: Db, envelope: DapiEnvelope): Promise<ProcessResult> {
-  if (envelope.event !== 'messages.received' && envelope.event !== 'connection.status') {
+  if (!HANDLED.has(envelope.event)) {
     return { handled: false, reason: 'event_not_handled' };
   }
 
@@ -336,5 +382,6 @@ export async function processDapiEvent(db: Db, envelope: DapiEnvelope): Promise<
   if (!connection) return { handled: false, reason: 'unknown_session' };
 
   if (envelope.event === 'connection.status') return handleConnectionStatus(db, connection, envelope);
+  if (envelope.event === 'message.delivered' || envelope.event === 'message.read') return handleDeliveryStatus(db, connection, envelope);
   return handleMessageReceived(db, connection, envelope);
 }
