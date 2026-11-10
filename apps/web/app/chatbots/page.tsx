@@ -27,17 +27,37 @@ export default function ChatbotsPage(){
   const {data:orgs,error:orgError}=await supabase.from('organizations').select('id,name').order('name');
   if(orgError)throw orgError;
   const selected=orgs?.find((o:any)=>o.id===requested)??orgs?.[0];
-  if(!selected){setLoading(false);return;}
+  if(!selected){setLoading(false);return null;}
   setWorkspace(selected.name);setOrganizationId(selected.id);
   const {data,error:e}=await supabase.from('channel_connections').select('id,channel,display_name,status,phone_number_id,updated_at').eq('organization_id',selected.id);
   if(e)throw e;
-  setRows(data??[]);setLoading(false);
+  setRows(data??[]);setLoading(false);return selected.id;
  }
- useEffect(()=>{void load().catch(e=>{setError(e.message);setLoading(false)});},[]);
+ useEffect(()=>{
+  let active=true;
+  void (async()=>{
+   try{
+    const id=await load();
+    if(!active||!id)return;
+    // Restore the provider's real session state after a page reload.
+    const current=await requestApi('status','GET',id);
+    if(!active)return;
+    if(current.status==='connected'){
+     setQr(null);
+     setNotice('WhatsApp conectado com sucesso.');
+     await load();
+     return;
+    }
+    const payload=await requestApi('qr','GET',id);
+    if(active&&payload.qrCodeImage)setQr(payload);
+   }catch(e){if(active)setError(e instanceof Error?e.message:'Não foi possível restaurar a conexão do WhatsApp.');}
+  })();
+  return ()=>{active=false;};
+ },[]);
 
- async function requestApi(action:string,method:'GET'|'POST'='GET'){
-  if(!organizationId)throw new Error('Workspace não encontrado.');
-  const response=await fetch(`/api/whatsapp/${action}?organizationId=${encodeURIComponent(organizationId)}`,{method,headers:{'Content-Type':'application/json'},cache:'no-store'});
+ async function requestApi(action:string,method:'GET'|'POST'='GET',organizationOverride=organizationId){
+  if(!organizationOverride)throw new Error('Workspace não encontrado.');
+  const response=await fetch(`/api/whatsapp/${action}?organizationId=${encodeURIComponent(organizationOverride)}`,{method,headers:{'Content-Type':'application/json'},cache:'no-store'});
   const payload=await response.json();
   if(!response.ok)throw new Error(payload.error??'Não foi possível concluir a operação.');
   return payload;
