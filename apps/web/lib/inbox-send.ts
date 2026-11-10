@@ -6,12 +6,18 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * Fluxo: valida a conversa (as regras de acesso do Supabase garantem que o usuário
  * só enxerga conversas do próprio workspace) -> grava a mensagem como "queued" ->
  * chama a D-API -> marca "sent" (ou "failed" com o motivo) e atualiza a conversa.
+ *
+ * `db` (cliente do usuário) só LÊ. `writeDb` grava: a regra de acesso de messages permite
+ * UPDATE só para owner/admin/manager, então um atendente comum não conseguiria marcar a
+ * mensagem como enviada. A leitura com o cliente do usuário já prova que ele tem acesso.
+ *
+ * Identificação de quem enviou: payload.sender = { type: 'human' | 'ai' | 'phone', name }.
  */
 
 type Db = SupabaseClient<any, any, any>;
 type Json = Record<string, unknown>;
 
-export type SendInput = { userId: string; conversationId: string; text: string };
+export type SendInput = { userId: string; senderName?: string | null; conversationId: string; text: string };
 export type SendOutcome = { status: number; body: Json };
 /** Faz o POST na D-API (ex.: path "/messages/send/text") e devolve o JSON da resposta. */
 export type SendFn = (path: string, body: Json) => Promise<unknown>;
@@ -58,7 +64,7 @@ export function friendlySendError(message: string): string {
 
 const fail = (status: number, error: string): SendOutcome => ({ status, body: { success: false, error } });
 
-export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn): Promise<SendOutcome> {
+export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, writeDb: Db = db): Promise<SendOutcome> {
   const text = input.text.trim();
   if (!UUID_RE.test(input.conversationId)) return fail(400, 'Conversa inválida.');
   if (!text) return fail(400, 'Escreva uma mensagem antes de enviar.');
@@ -97,7 +103,9 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn): 
 
   // 1) Registra a mensagem como "queued" para ela aparecer na hora no Inbox.
   const now = new Date().toISOString();
-  const inserted = await db
+  const senderName = asString(input.senderName) ?? 'Atendente';
+  const basePayload = { source: 'inbox', sender: { type: 'human', name: senderName, user_id: input.userId } };
+  const inserted = await writeDb
     .from('messages')
     .insert({
       organization_id: conversation.organization_id,
@@ -109,7 +117,7 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn): 
       sender_id: input.userId,
       provider: 'd-api',
       sent_at: now,
-      payload: { source: 'inbox' },
+      payload: basePayload,
     })
     .select('id')
     .single();
@@ -127,18 +135,18 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn): 
     const sentPatch = {
       delivery_status: 'sent',
       sent_at: new Date().toISOString(),
-      payload: { source: 'inbox', provider_response_keys: isRecord(response) ? Object.keys(response) : [] },
+      payload: { ...basePayload, provider_response_keys: isRecord(response) ? Object.keys(response) : [] },
     };
 
-    let update = await db
+    let update = await writeDb
       .from('messages')
       .update(providerMessageId ? { ...sentPatch, provider_message_id: providerMessageId } : sentPatch)
       .eq('id', messageRowId);
     if (update.error && providerMessageId) {
       // Ex.: o id já existe em outra linha. Mantém a mensagem como enviada, sem o id.
-      update = await db.from('messages').update(sentPatch).eq('id', messageRowId);
+      update = await writeDb.from('messages').update(sentPatch).eq('id', messageRowId);
     }
-    await db
+    await writeDb
       .from('conversations')
       .update({ last_message_at: new Date().toISOString(), status: 'open' })
       .eq('id', conversation.id);
@@ -149,9 +157,9 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn): 
     };
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'erro desconhecido';
-    await db
+    await writeDb
       .from('messages')
-      .update({ delivery_status: 'failed', payload: { source: 'inbox', error: reason.slice(0, 300) } })
+      .update({ delivery_status: 'failed', payload: { ...basePayload, error: reason.slice(0, 300) } })
       .eq('id', messageRowId);
     return { status: 502, body: { success: false, error: friendlySendError(reason), messageId: messageRowId } };
   }
