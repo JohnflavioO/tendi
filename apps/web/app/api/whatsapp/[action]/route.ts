@@ -97,6 +97,22 @@ function stableSessionId(organizationId: string): string {
   return `tendi-${safeOrganizationId}`;
 }
 
+function safeDapiDetails(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  let serialized: string;
+  try {
+    serialized = typeof value === 'string' ? value : JSON.stringify(value);
+  } catch {
+    return '[unserializable provider details]';
+  }
+  const secrets = [
+    process.env.DAPI_API_KEY,
+    process.env.DAPI_WEBHOOK_SECRET,
+  ].filter((secret): secret is string => Boolean(secret));
+  for (const secret of secrets) serialized = serialized.split(secret).join('[REDACTED]');
+  return serialized.slice(0, 4000);
+}
+
 async function persistSessionId(
   supabase: any,
   organizationId: string,
@@ -203,6 +219,7 @@ export async function POST(request: Request, { params }: Context) {
           status: createError instanceof DapiError ? createError.status : undefined,
           code: createError instanceof DapiError ? createError.code : undefined,
           traceId: createError instanceof DapiError ? createError.traceId : undefined,
+          details: createError instanceof DapiError ? safeDapiDetails(createError.details) : undefined,
         });
         throw createError;
       }
@@ -271,6 +288,7 @@ export async function POST(request: Request, { params }: Context) {
       status: error instanceof DapiError ? error.status : undefined,
       code: error instanceof DapiError ? error.code : undefined,
       traceId: error instanceof DapiError ? error.traceId : undefined,
+      details: error instanceof DapiError ? safeDapiDetails(error.details) : undefined,
     });
     const message = error instanceof Error ? error.message : 'Falha ao comunicar com a D-API.';
     return NextResponse.json({ error: message }, { status: 502 });
@@ -430,6 +448,7 @@ export async function GET(request: Request, { params }: Context) {
             status: recreateError instanceof DapiError ? recreateError.status : undefined,
             code: recreateError instanceof DapiError ? recreateError.code : undefined,
             traceId: recreateError instanceof DapiError ? recreateError.traceId : undefined,
+            details: recreateError instanceof DapiError ? safeDapiDetails(recreateError.details) : undefined,
           });
           throw recreateError;
         }
