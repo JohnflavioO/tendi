@@ -24,10 +24,19 @@ export default function ChatbotsPage(){
  async function load(){
   const {data:u}=await supabase.auth.getUser();if(!u.user){window.location.assign('/login');return;}
   const requested=new URLSearchParams(window.location.search).get('organization');
-  const {data:orgs,error:orgError}=await supabase.from('organizations').select('id,name').order('name');
+  // Resolve the workspace from the same active-membership rule enforced by the API.
+  const {data:memberships,error:membershipError}=await supabase
+   .from('organization_memberships')
+   .select('organization_id')
+   .eq('user_id',u.user.id)
+   .eq('status','active');
+  if(membershipError)throw membershipError;
+  const allowedIds=(memberships??[]).map((m:any)=>m.organization_id).filter(Boolean);
+  if(!allowedIds.length){setLoading(false);throw new Error('Sua conta não possui vínculo ativo com este workspace. Solicite ao administrador a revisão do seu acesso.');}
+  const {data:orgs,error:orgError}=await supabase.from('organizations').select('id,name').in('id',allowedIds).order('name');
   if(orgError)throw orgError;
   const selected=orgs?.find((o:any)=>o.id===requested)??orgs?.[0];
-  if(!selected){setLoading(false);return null;}
+  if(!selected){setLoading(false);throw new Error('Nenhum workspace autorizado foi encontrado para sua conta.');}
   setWorkspace(selected.name);setOrganizationId(selected.id);
   const {data,error:e}=await supabase.from('channel_connections').select('id,channel,display_name,status,phone_number_id,updated_at').eq('organization_id',selected.id);
   if(e)throw e;
