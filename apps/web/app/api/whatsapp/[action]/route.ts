@@ -83,7 +83,7 @@ async function persistSessionId(
   sessionId: string,
 ): Promise<{ connectionId: string } | { response: Response }> {
   if (connection) {
-    if (connection.provider_account_id) return { connectionId: connection.id };
+    if (connection.provider_account_id === sessionId) return { connectionId: connection.id };
 
     const { data, error } = await supabase
       .from('channel_connections')
