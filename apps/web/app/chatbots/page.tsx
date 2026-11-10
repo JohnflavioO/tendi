@@ -44,7 +44,7 @@ export default function ChatbotsPage(){
  }
  async function connect(){
   setBusy(true);setError('');setNotice('');
-  try{const payload=await requestApi('connect','POST');setQr(payload);await load();}
+  try{const payload=await requestApi('connect','POST');setQr(payload);setNotice(payload.message??'Sessão criada na D-API.');await load();}
   catch(e){setError(e instanceof Error?e.message:'Falha ao conectar com a D-API.');}
   finally{setBusy(false);}
  }
