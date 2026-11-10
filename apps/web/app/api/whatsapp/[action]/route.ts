@@ -273,16 +273,48 @@ export async function GET(request: Request, { params }: Context) {
         qrCodeUpdatedAt: null,
       });
 
-      const fetchQr = () => dapiRequest<Record<string, unknown>>(qrPath);
+      const fetchQr = () => dapiRequest<Record<string, unknown>>(qrPath, {}, {
+        onResponse: (httpStatus, payload) => {
+          const root = payload && typeof payload === 'object' && !Array.isArray(payload)
+            ? payload as Record<string, unknown>
+            : {};
+          const resource = unwrapDapiResource(payload);
+          const providerError = typeof root.error === 'string'
+            ? root.error
+            : typeof resource.error === 'string' ? resource.error : undefined;
+          console.log('[D-API QR response]', {
+            sessionId,
+            httpStatus,
+            responseKeys: Object.keys(root),
+            resourceKeys: Object.keys(resource),
+            providerStatus: extractDapiConnectionStatus(payload),
+            providerError,
+            code: typeof root.code === 'string' || typeof root.code === 'number' ? root.code : undefined,
+            traceId: typeof root.traceId === 'string' ? root.traceId : undefined,
+            // Intentionally never log qrCode, qrImage, authorization headers or secrets.
+          });
+        },
+      });
       let qrResponse: Record<string, unknown>;
 
       try {
         qrResponse = await fetchQr();
       } catch (error) {
-        if (!(error instanceof DapiError) || error.status !== 404) throw error;
+        if (!(error instanceof DapiError)) throw error;
+        const qrUnavailable = /qr code not available/i.test(error.message);
+        const sessionNotFound = /session not found/i.test(error.message);
+        if (!qrUnavailable && !sessionNotFound) throw error;
+
+        console.error('[D-API QR request returned an API error]', {
+          sessionId,
+          status: error.status,
+          message: error.message,
+          code: error.code,
+          traceId: error.traceId,
+        });
 
         let missingSessionError: DapiError | null = null;
-        if (/qr code not available/i.test(error.message)) {
+        if (qrUnavailable) {
           // A missing QR does not mean the session is still waiting: once paired,
           // D-API may stop returning a QR. Check the authoritative session status.
           try {
@@ -336,10 +368,8 @@ export async function GET(request: Request, { params }: Context) {
               throw sessionError;
             }
           }
-        } else if (/session not found/i.test(error.message)) {
+        } else if (sessionNotFound) {
           missingSessionError = error;
-        } else {
-          throw error;
         }
 
         if (!missingSessionError) return waitingResponse();
@@ -370,7 +400,14 @@ export async function GET(request: Request, { params }: Context) {
         try {
           qrResponse = await fetchQr();
         } catch (retryError) {
-          if (retryError instanceof DapiError && retryError.status === 404) {
+          if (retryError instanceof DapiError) {
+            console.error('[D-API QR retry error]', {
+              sessionId,
+              status: retryError.status,
+              message: retryError.message,
+              code: retryError.code,
+              traceId: retryError.traceId,
+            });
             if (/qr code not available/i.test(retryError.message)) return waitingResponse();
             if (/session not found/i.test(retryError.message)) {
               console.error('[D-API session missing after recreation]', {
