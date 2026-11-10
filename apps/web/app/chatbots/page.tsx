@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bot, MessageCircle, Instagram, Facebook, Globe2, Loader2, Smartphone, ShieldCheck, ArrowRight, RefreshCw, Unplug, QrCode, CheckCircle2 } from 'lucide-react';
+import { Bot, MessageCircle, Instagram, Facebook, Globe2, Loader2, ShieldCheck, ArrowRight, RefreshCw, Unplug, QrCode, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { WorkspaceShell } from '@/components/workspace-shell';
 
@@ -37,7 +37,7 @@ export default function ChatbotsPage(){
 
  async function requestApi(action:string,method:'GET'|'POST'='GET'){
   if(!organizationId)throw new Error('Workspace não encontrado.');
-  const response=await fetch(`/api/whatsapp/${action}?organizationId=${encodeURIComponent(organizationId)}`,{method,headers:{'Content-Type':'application/json'}});
+  const response=await fetch(`/api/whatsapp/${action}?organizationId=${encodeURIComponent(organizationId)}`,{method,headers:{'Content-Type':'application/json'},cache:'no-store'});
   const payload=await response.json();
   if(!response.ok)throw new Error(payload.error??'Não foi possível concluir a operação.');
   return payload;
@@ -50,10 +50,39 @@ export default function ChatbotsPage(){
  }
  async function refreshQr(){
   setBusy(true);setError('');
-  try{const payload=await requestApi('qr');setQr(payload);const current=await requestApi('status');if(current.status==='connected'){setQr(null);setNotice('WhatsApp conectado com sucesso.');}await load();}
+  try{const payload=await requestApi('qr');if(payload.qrCodeImage)setQr(payload);const current=await requestApi('status');if(current.status==='connected'){setQr(null);setNotice('WhatsApp conectado com sucesso.');}await load();}
   catch(e){setError(e instanceof Error?e.message:'Não foi possível atualizar o QR Code.');}
   finally{setBusy(false);}
  }
+ // A D-API rotates the QR while the session is connecting. Keep the image fresh
+ // in the browser; otherwise the customer may scan an expired QR code.
+ const qrVisible=Boolean(qr?.qrCodeImage);
+ useEffect(()=>{
+  if(!qrVisible||!organizationId)return;
+  let active=true;
+  let inFlight=false;
+  const poll=async()=>{
+   if(!active||inFlight)return;
+   inFlight=true;
+   try{
+    const freshQr=await requestApi('qr');
+    if(!active)return;
+    if(freshQr.qrCodeImage)setQr(freshQr);
+    const current=await requestApi('status');
+    if(!active)return;
+    if(current.status==='connected'){
+     setQr(null);
+     setNotice('WhatsApp conectado com sucesso.');
+     await load();
+    }
+   }catch(e){
+    if(active)setError(e instanceof Error?e.message:'Falha ao atualizar a conexão do WhatsApp.');
+   }finally{inFlight=false;}
+  };
+  const timer=window.setInterval(()=>{void poll();},2500);
+  return ()=>{active=false;window.clearInterval(timer);};
+ },[qrVisible,organizationId]);
+
  async function disconnect(){
   if(!window.confirm('Deseja realmente desconectar este WhatsApp?'))return;
   setBusy(true);setError('');
@@ -69,12 +98,12 @@ export default function ChatbotsPage(){
   </section>
   {error&&<p role="alert" className="mb-4 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">{error}</p>}
   {notice&&<p role="status" className="mb-4 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-700">{notice}</p>}
-  {loading?<div className="grid h-40 place-items-center"><Loader2 className="animate-spin text-[#2F316B]"/></div>:<>
+  {loading?<div className="grid h-40 place-items-center"><Loader2 className="animate-spin text-[#2F316B"/></div>:<>
    <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
     <div className="flex flex-wrap items-start justify-between gap-4"><div className="flex items-start gap-4"><span className="rounded-2xl bg-[#E8F6EF] p-4 text-[#16834C]"><MessageCircle size={27}/></span><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold text-[#25275B]">WhatsApp</h2><span className={connected?'rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700':'rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700'}>{statusLabel(whatsapp?.status??'disconnected')}</span></div><p className="mt-1 text-xs text-slate-500">Conecte seu WhatsApp pelo QR Code, sem compartilhar códigos ou chaves com a equipe Tendi.</p><p className="mt-2 text-xs font-semibold text-slate-700">{whatsapp?.display_name??'Nenhum número conectado'}</p></div></div>
      <div className="flex flex-wrap gap-2">{connected?<button onClick={disconnect} disabled={busy} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-4 py-3 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"><Unplug size={15}/>Desconectar</button>:<button onClick={connect} disabled={busy||!organizationId} className="inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-3 text-xs font-semibold text-white transition hover:bg-[#003B44] disabled:opacity-50">{busy?<Loader2 size={15} className="animate-spin"/>:<QrCode size={15}/>} {whatsapp?.status==='pending'?'Continuar conexão':'Conectar com QR Code'}<ArrowRight size={14}/></button>}</div>
     </div>
-    {qr?.qrCodeImage&&<div className="mt-6 grid gap-5 rounded-2xl border border-slate-200 bg-[#F8FAFC] p-5 md:grid-cols-[190px_1fr] md:items-center"><div className="mx-auto rounded-2xl border border-slate-200 bg-white p-3"><img src={qr.qrCodeImage} alt="QR Code para conectar o WhatsApp" className="size-44 object-contain"/></div><div><div className="flex items-center gap-2 text-sm font-bold text-[#25275B]"><QrCode size={17}/>Leia o QR Code no WhatsApp</div><ol className="mt-3 list-inside list-decimal space-y-2 text-xs leading-5 text-slate-600"><li>Abra o WhatsApp no celular que deseja conectar.</li><li>Acesse <strong>Dispositivos conectados</strong> e toque em <strong>Conectar dispositivo</strong>.</li><li>Escaneie o QR Code exibido nesta tela.</li></ol><div className="mt-4 flex flex-wrap items-center gap-2"><button onClick={refreshQr} disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#004751] ring-1 ring-slate-200 disabled:opacity-50"><RefreshCw size={14}/>Atualizar QR / status</button><span className="text-[10px] text-slate-400">QR Code temporário. Atualize se expirar.</span></div></div></div>}
+    {qr?.qrCodeImage&&<div className="mt-6 grid gap-5 rounded-2xl border border-slate-200 bg-[#F8FAFC] p-5 md:grid-cols-[190px_1fr] md:items-center"><div className="mx-auto rounded-2xl border border-slate-200 bg-white p-3"><img src={qr.qrCodeImage} alt="QR Code para conectar o WhatsApp" className="size-44 object-contain"/></div><div><div className="flex items-center gap-2 text-sm font-bold text-[#25275B]"><QrCode size={17}/>Leia o QR Code no WhatsApp</div><ol className="mt-3 list-inside list-decimal space-y-2 text-xs leading-5 text-slate-600"><li>Abra o WhatsApp no celular que deseja conectar.</li><li>Acesse <strong>Dispositivos conectados</strong> e toque em <strong>Conectar dispositivo</strong>.</li><li>Escaneie o QR Code exibido nesta tela.</li></ol><div className="mt-4 flex flex-wrap items-center gap-2"><button onClick={refreshQr} disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#004751] ring-1 ring-slate-200 disabled:opacity-50"><RefreshCw size={14}/>Atualizar QR / status</button><span className="text-[10px] text-slate-400">QR Code temporário. Atualizado automaticamente a cada 2,5 segundos.</span></div></div></div>}
     {connected&&<div className="mt-5 flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs font-medium text-emerald-800"><CheckCircle2 size={16}/>Sessão confirmada pela D-API.</div>}
     <div className="mt-6 grid gap-3 border-t border-slate-100 pt-5 md:grid-cols-3"><Step number="01" title="Inicie a conexão" detail="O Tendi cria uma sessão exclusiva para este workspace."/><Step number="02" title="Leia o QR Code" detail="Autorize o acesso pelo menu Dispositivos conectados do WhatsApp."/><Step number="03" title="Confirme o status" detail="O Tendi consulta a sessão diretamente na D-API." /></div>
    </section>
