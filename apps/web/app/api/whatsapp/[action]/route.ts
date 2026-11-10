@@ -360,9 +360,9 @@ export async function GET(request: Request, { params }: Context) {
           } catch (sessionError) {
             if (
               sessionError instanceof DapiError &&
-              sessionError.status === 404 &&
               /session not found/i.test(sessionError.message)
             ) {
+              // D-API may encode this provider error in an HTTP 200 JSON envelope.
               missingSessionError = sessionError;
             } else {
               throw sessionError;
