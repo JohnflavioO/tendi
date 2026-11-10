@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Loader2, MessageCircle, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useTrialDays } from '@/lib/use-trial-days';
+import { trialDaysLabel } from '@/lib/trial';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,6 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const trialLabel = trialDaysLabel(useTrialDays());
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,7 +74,7 @@ export default function LoginPage() {
 
           <div className="mt-7 rounded-xl bg-[#F6F7FB] p-4 text-center">
             <p className="text-sm font-semibold text-[#25275B]">Ainda não tem uma conta?</p>
-            <Link href="/register" className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-[#004751] hover:underline">Comece seu teste gratuito de 14 dias <ArrowRight size={15}/></Link>
+            <Link href="/register" className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-[#004751] hover:underline">Comece seu teste gratuito de {trialLabel} <ArrowRight size={15}/></Link>
             <p className="mt-1 text-xs text-slate-400">Sem cartão de crédito e sem cobrança no cadastro.</p>
           </div>
           <div className="mt-8 flex items-center gap-2 text-xs text-slate-400"><ShieldCheck size={15} /> Autenticação protegida pelo Supabase Auth</div>

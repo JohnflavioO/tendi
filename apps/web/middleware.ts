@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isPublicMarketingPath } from './lib/marketing-routes';
+import { isTrialExemptPath, shouldBlockForExpiredTrial } from './lib/trial';
 
 export async function middleware(request: NextRequest) {
   // Webhooks de provedores (ex.: D-API) não têm sessão de usuário. A autenticação é o segredo
@@ -37,6 +38,26 @@ export async function middleware(request: NextRequest) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = '/inbox';
     return NextResponse.redirect(redirect);
+  }
+
+  // Teste gratuito vencido: o usuário só alcança a tela de encerramento, o logout e o console admin.
+  const pathname = request.nextUrl.pathname;
+  if (data.user && !isTrialExemptPath(pathname)) {
+    const { data: organizations, error } = await supabase
+      .from('organizations')
+      .select('status,trial_ends_at');
+    if (!error && shouldBlockForExpiredTrial(organizations ?? [])) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'O período de teste gratuito terminou. Fale com o suporte para continuar usando o Tendi.' },
+          { status: 402 },
+        );
+      }
+      const redirect = request.nextUrl.clone();
+      redirect.pathname = '/teste-encerrado';
+      redirect.search = '';
+      return NextResponse.redirect(redirect);
+    }
   }
   return response;
 }

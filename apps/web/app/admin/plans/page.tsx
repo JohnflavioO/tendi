@@ -15,7 +15,7 @@ export default function PlansPage() {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [trialDays, setTrialDays] = useState(14);
+  const [trialDays, setTrialDays] = useState(7);
   const [error, setError] = useState('');
 
   useEffect(() => {
