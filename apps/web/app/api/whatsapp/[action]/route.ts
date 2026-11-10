@@ -39,13 +39,31 @@ async function workspaceContext(request: Request) {
     .eq('status', 'active')
     .maybeSingle();
 
-  if (error || !membership) {
+  if (error) {
     return {
       response: NextResponse.json(
-        { error: 'Você não tem acesso a este workspace.' },
-        { status: 403 },
+        { error: 'Não foi possível validar o vínculo com este workspace.' },
+        { status: 500 },
       ),
     };
+  }
+
+  // Platform Super Admins can manage customer workspaces without a tenant membership.
+  if (!membership) {
+    const { data: platformAdmin, error: platformAdminError } = await supabase
+      .from('platform_admins')
+      .select('user_id')
+      .eq('user_id', auth.user.id)
+      .maybeSingle();
+
+    if (platformAdminError || !platformAdmin) {
+      return {
+        response: NextResponse.json(
+          { error: 'Você não tem acesso a este workspace.' },
+          { status: 403 },
+        ),
+      };
+    }
   }
 
   const { data: connection, error: connectionError } = await supabase
