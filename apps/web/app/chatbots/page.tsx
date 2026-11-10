@@ -5,7 +5,7 @@ import { Bot, MessageCircle, Instagram, Facebook, Globe2, Loader2, ShieldCheck, 
 import { createClient } from '@/lib/supabase/client';
 import { WorkspaceShell } from '@/components/workspace-shell';
 
-type Connection={id:string;channel:string;display_name:string;status:string;phone_number_id:string|null;updated_at:string};
+type Connection={id:string;channel:string;display_name:string;status:string;phone_number_id:string|null;provider_account_id:string|null;updated_at:string};
 type QrPayload={status:string;qrCode?:string|null;qrCodeImage?:string|null;qrCodeUpdatedAt?:string|null;displayName?:string};
 const channels=[{id:'instagram',name:'Instagram',detail:'Mensagens diretas do Instagram',icon:Instagram},{id:'messenger',name:'Messenger',detail:'Conversas da página do Facebook',icon:Facebook},{id:'webchat',name:'Webchat',detail:'Widget de atendimento para seu site',icon:Globe2}];
 const statusLabel=(status:string)=>status==='connected'?'Conectado':status==='error'?'Atenção necessária':status==='pending'?'Aguardando leitura do QR Code':status==='disconnected'?'Desconectado':status;
@@ -47,7 +47,7 @@ export default function ChatbotsPage(){
   const selected=orgs?.find((o:any)=>o.id===requested)??orgs?.[0];
   if(!selected){setLoading(false);throw new Error('Nenhum workspace autorizado foi encontrado para sua conta.');}
   setWorkspace(selected.name);setOrganizationId(selected.id);
-  const {data,error:e}=await supabase.from('channel_connections').select('id,channel,display_name,status,phone_number_id,updated_at').eq('organization_id',selected.id);
+  const {data,error:e}=await supabase.from('channel_connections').select('id,channel,display_name,status,phone_number_id,provider_account_id,updated_at').eq('organization_id',selected.id);
   if(e)throw e;
   setRows(data??[]);setLoading(false);return selected.id;
  }
@@ -81,15 +81,40 @@ export default function ChatbotsPage(){
   return payload;
  }
  async function connect(){
-  setBusy(true);setError('');setNotice('');
-  try{const payload=await requestApi('connect','POST');setQr(payload);setNotice(payload.message??'Sessão criada na D-API.');await load();}
-  catch(e){setError(e instanceof Error?e.message:'Falha ao conectar com a D-API.');}
+  setBusy(true);setError('');setNotice('');setQr(null);
+  try{
+   // Reuse the session already reserved for this workspace. Creating it again
+   // on every click can reset an active pairing and never returns the QR itself.
+   if(!whatsapp?.provider_account_id){
+    await requestApi('connect','POST');
+    await load();
+   }
+   const payload=await requestApi('qr');
+   if(payload.qrCodeImage){
+    setQr(payload);
+    setNotice('QR Code carregado. Escaneie pelo menu Dispositivos conectados do WhatsApp.');
+   }else{
+    const current=await requestApi('status');
+    if(current.status==='connected'){
+     setQr(null);
+     setNotice('WhatsApp conectado com sucesso.');
+     await load();
+    }else{
+     throw new Error('A sessão existe na D-API, mas não retornou um QR Code válido. Atualize o QR / status em alguns segundos.');
+    }
+   }
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao carregar o QR Code da D-API.');}
   finally{setBusy(false);}
  }
  async function refreshQr(){
   setBusy(true);setError('');
-  try{const payload=await requestApi('qr');if(payload.qrCodeImage)setQr(payload);const current=await requestApi('status');if(current.status==='connected'){setQr(null);setNotice('WhatsApp conectado com sucesso.');}await load();}
-  catch(e){setError(e instanceof Error?e.message:'Não foi possível atualizar o QR Code.');}
+  try{
+   const payload=await requestApi('qr');
+   if(payload.qrCodeImage)setQr(payload);
+   const current=await requestApi('status');
+   if(current.status==='connected'){setQr(null);setNotice('WhatsApp conectado com sucesso.');await load();}
+   else if(!payload.qrCodeImage)throw new Error('A D-API ainda não disponibilizou um QR Code válido para esta sessão.');
+  }catch(e){setError(e instanceof Error?e.message:'Não foi possível atualizar o QR Code.');}
   finally{setBusy(false);}
  }
  // A D-API rotates the QR while the session is connecting. Keep the image fresh
