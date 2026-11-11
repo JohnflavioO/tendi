@@ -68,3 +68,58 @@ export function statusLabel(status: string): string {
     default: return status;
   }
 }
+
+/** "agora", "há 5 min", "há 2 h", "ontem", "há 3 dias" ou a data (dd/mm). */
+export function relativeTime(iso: string | null | undefined, now: Date = new Date()): string {
+  if (!iso) return '';
+  const at = new Date(iso);
+  const diff = now.getTime() - at.getTime();
+  if (!Number.isFinite(diff)) return '';
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return 'agora';
+  if (minutes < 60) return `há ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `há ${hours} h`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'ontem';
+  if (days < 7) return `há ${days} dias`;
+  return at.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+/** Cores fortes para etiquetas: a mesma etiqueta sempre ganha a mesma cor. */
+export const TAG_TONES = [
+  'bg-blue-600 text-white',
+  'bg-pink-600 text-white',
+  'bg-emerald-600 text-white',
+  'bg-amber-500 text-white',
+  'bg-violet-600 text-white',
+  'bg-cyan-600 text-white',
+  'bg-rose-600 text-white',
+  'bg-teal-600 text-white',
+] as const;
+
+export function tagTone(tag: string): string {
+  let hash = 0;
+  for (const char of tag.trim().toLowerCase()) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return TAG_TONES[hash % TAG_TONES.length]!;
+}
+
+export type InboxTab = 'novos' | 'meus' | 'outros' | 'todas';
+
+/** Aba da conversa: Novos (sem responsável), Meus (comigo), Outros (com colegas). Encerradas só em "Todas". */
+export function inboxTabOf(conversation: { assigned_to: string | null; status: string }, userId: string): Exclude<InboxTab, 'todas'> | null {
+  if (conversation.status === 'closed') return null;
+  if (!conversation.assigned_to) return 'novos';
+  return conversation.assigned_to === userId ? 'meus' : 'outros';
+}
+
+export type ConversationTag = { label: string; className: string };
+
+/** Etiquetas da conversa: fluxo (IA atendendo / aguardando atendente) e etiquetas do contato. */
+export function conversationTags(input: { aiMode?: string | null; contactTags?: string[] | null }): ConversationTag[] {
+  const tags: ConversationTag[] = [];
+  if (input.aiMode === 'on') tags.push({ label: 'Fluxo IA', className: 'bg-[#1D1F4E] text-white' });
+  if (input.aiMode === 'handoff') tags.push({ label: 'Aguardando atendente', className: 'bg-orange-500 text-white' });
+  for (const tag of input.contactTags ?? []) if (tag.trim()) tags.push({ label: tag.trim(), className: tagTone(tag) });
+  return tags;
+}
