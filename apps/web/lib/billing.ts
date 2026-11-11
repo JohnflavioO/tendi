@@ -102,6 +102,23 @@ export function buildCheckoutPayload(input: {
   };
 }
 
+/** Confere um plano já existente na Pagar.me (ativo, mensal) e devolve o preço em reais. */
+export function readPlanPrice(remote: unknown): { ok: true; monthlyPrice: number } | { ok: false; error: string } {
+  if (!isRecord(remote)) return { ok: false, error: 'Resposta inválida da Pagar.me.' };
+  if (remote.status && remote.status !== 'active') return { ok: false, error: 'Este plano não está ativo na Pagar.me.' };
+  const interval = str(remote.interval) ?? 'month';
+  const count = Number(remote.interval_count ?? 1);
+  if (interval !== 'month' || count !== 1) return { ok: false, error: 'O plano precisa ter cobrança mensal ("Todo mês").' };
+  const items = Array.isArray(remote.items) ? remote.items : [];
+  const cents = items.reduce((sum: number, item: any) => {
+    const price = Number(item?.pricing_scheme?.price ?? 0);
+    const quantity = Number(item?.quantity ?? 1) || 1;
+    return sum + (Number.isFinite(price) ? price * quantity : 0);
+  }, 0);
+  if (!(cents > 0)) return { ok: false, error: 'Não foi possível ler o valor do plano na Pagar.me.' };
+  return { ok: true, monthlyPrice: cents / 100 };
+}
+
 // ---------- Webhook ----------
 
 /** Descobre o id da assinatura (sub_...) em eventos de assinatura, fatura ou cobrança. */
@@ -127,6 +144,7 @@ export type SubscriptionSnapshot = {
   pagarmeStatus: string;
   organizationId: string | null;
   customerId: string | null;
+  customerEmail: string | null;
   planId: string | null;
   currentPeriodEnd: string | null;
   nextBillingAt: string | null;
@@ -146,6 +164,7 @@ export function readSubscription(sub: Json): SubscriptionSnapshot {
     pagarmeStatus: str(sub.status) ?? 'unknown',
     organizationId: code && UUID_RE.test(code) ? code : null,
     customerId: str(customer.id),
+    customerEmail: str(customer.email)?.toLowerCase() ?? null,
     planId: isRecord(sub.plan) ? str(sub.plan.id) : null,
     currentPeriodEnd: str(cycle.end_at),
     nextBillingAt: str(sub.next_billing_at),
@@ -163,7 +182,25 @@ export function nextBillingStatus(pagarmeStatus: string, eventType: string, prev
   return previous === 'past_due' ? 'past_due' : 'active';
 }
 
-export type SyncResult = { organizationId: string | null; status: BillingStatus | null; reason?: string };
+/**
+ * Assinatura feita por um link manual (sem customer.code): procura a empresa pelo e-mail do pagador.
+ * Só aceita quando o e-mail é de um usuário dono/admin de exatamente uma empresa.
+ */
+export async function findOrganizationByEmail(db: Db, email: string | null): Promise<string | null> {
+  if (!email) return null;
+  const profiles = await db.from('profiles').select('id').eq('email', email).limit(2);
+  const users = ((profiles.data ?? []) as Array<{ id: string }>).map(row => row.id);
+  if (users.length !== 1) return null;
+  const memberships = await db.from('organization_memberships')
+    .select('organization_id')
+    .eq('user_id', users[0])
+    .eq('status', 'active')
+    .in('role', ['owner', 'admin']);
+  const orgs = [...new Set(((memberships.data ?? []) as Array<{ organization_id: string }>).map(row => row.organization_id))];
+  return orgs.length === 1 ? orgs[0]! : null;
+}
+
+export type SyncResult ={ organizationId: string | null; status: BillingStatus | null; reason?: string };
 
 /** Busca a assinatura na Pagar.me e aplica o estado no Tendi (assinatura + empresa). Idempotente. */
 export async function syncSubscription(db: Db, api: PagarmeRequest, subscriptionId: string, eventType: string, now = new Date()): Promise<SyncResult> {
@@ -171,7 +208,9 @@ export async function syncSubscription(db: Db, api: PagarmeRequest, subscription
 
   const byProvider = await db.from('billing_subscriptions').select('*').eq('provider_subscription_id', snapshot.id).maybeSingle();
   if (byProvider.error) throw new Error(`billing_subscriptions: ${byProvider.error.message}`);
-  const organizationId = snapshot.organizationId ?? (byProvider.data?.organization_id as string | undefined) ?? null;
+  const organizationId = snapshot.organizationId
+    ?? (byProvider.data?.organization_id as string | undefined)
+    ?? (await findOrganizationByEmail(db, snapshot.customerEmail));
   if (!organizationId) return { organizationId: null, status: null, reason: 'subscription_without_organization' };
 
   const org = await db.from('organizations').select('id,status').eq('id', organizationId).maybeSingle();
