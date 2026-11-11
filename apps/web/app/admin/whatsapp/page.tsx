@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ShieldCheck, MessageCircle, Server, Webhook, LockKeyhole, CircleCheck, Clock3, ExternalLink, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { AdminShell } from '@/components/admin/admin-shell';
 
 export default function AdminWhatsAppPage() {
   const supabase = createClient() as any;
@@ -29,9 +30,8 @@ export default function AdminWhatsAppPage() {
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#F6F7FB] text-[#2F316B]">Carregando configurações...</main>;
   if (!authorized) return <main className="grid min-h-screen place-items-center bg-[#F6F7FB] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><ShieldCheck className="mx-auto text-[#CB0A9F]" size={32}/><h1 className="mt-4 text-xl font-semibold text-[#2F316B]">Acesso restrito</h1><p className="mt-2 text-sm text-slate-500">Somente o Super Admin pode gerenciar provedores de conectividade.</p><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-[#004751]">Voltar ao Tendi</a></div></main>;
 
-  return <main className="min-h-screen bg-[#F6F7FB] p-5 text-slate-800 md:p-8">
-    <div className="mx-auto max-w-5xl">
-      <a href="/admin" className="mb-5 inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-[#2F316B]"><ArrowLeft size={15}/>Voltar ao Console</a>
+  return <AdminShell title="Conectividade WhatsApp">
+    <div>
       <header className="mb-7 flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#CB0A9F]">Console Super Admin</p><h1 className="mt-2 text-3xl font-bold tracking-tight text-[#25275B]">Conectividade WhatsApp</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Gerencie a estratégia de integração e acompanhe as conexões dos workspaces sem expor credenciais aos clientes.</p></div><span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700"><Clock3 size={14}/>Integração por QR Code</span></header>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
@@ -46,7 +46,7 @@ export default function AdminWhatsAppPage() {
       </section>
       <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-sm font-bold text-[#25275B]">Conexões WhatsApp cadastradas</h3><p className="mt-1 text-xs text-slate-400">Total registrado em todos os workspaces visíveis ao Super Admin.</p></div><strong className="text-2xl text-[#2F316B]">{connections}</strong></div><p className="mt-3 text-[11px] leading-5 text-slate-400">O total é apenas uma contagem dos registros existentes em channel_connections; não representa sessões ativas na provedora.</p></section>
     </div>
-  </main>;
+  </AdminShell>;
 }
 
 function Info({icon:Icon,title,value}:{icon:React.ElementType;title:string;value:string}) { return <div className="rounded-xl bg-[#F7F8FC] p-4"><Icon size={17} className="text-[#2F316B]"/><p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-slate-400">{title}</p><p className="mt-1 text-xs font-semibold text-slate-700">{value}</p></div>; }

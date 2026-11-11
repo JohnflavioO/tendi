@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Gauge, Loader2, Save, ShieldCheck, TriangleAlert, Wallet } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { AdminShell } from '@/components/admin/admin-shell';
 import {
   monthStartIso, normalizeLimits, normalizePricing, resolveMonthlyLimit, typicalReplyCostBrl, usageLevel,
   type AiLimitSettings, type AiPricing,
@@ -129,13 +130,9 @@ export default function AiUsagePage() {
   const totalReplies = rows.reduce((sum, row) => sum + (row.used?.replies ?? 0), 0);
   const field = (key: string, extra = '') => <input inputMode="decimal" value={form[key] ?? ''} onChange={e => setForm(current => ({ ...current, [key]: e.target.value }))} className={`${input} ${extra}`} />;
 
-  return <main className="min-h-screen bg-[#F6F7FB] text-slate-800">
-    <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-      <div className="flex items-center gap-3"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain" /><div className="border-l border-slate-200 pl-3"><p className="text-xs font-semibold uppercase tracking-[.16em] text-[#CB0A9F]">Super Admin</p><h1 className="text-sm font-bold text-[#25275B]">Consumo e limites da IA</h1></div></div>
-      <div className="flex items-center gap-5"><a href="/admin/ia" className="text-sm font-semibold text-[#004751]">Agentes de IA</a><a href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-[#004751]"><ArrowLeft size={16} /> Painel</a></div>
-    </div></header>
+  return <AdminShell title="Consumo da IA">
 
-    <div className="mx-auto max-w-6xl space-y-6 px-6 py-8">
+    <div className="space-y-6">
       {message && <p role="status" className={message.ok ? 'rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700' : 'rounded-xl bg-rose-50 p-3 text-xs text-rose-700'}>{message.text}</p>}
 
       <section className="grid gap-4 sm:grid-cols-3">
@@ -190,7 +187,7 @@ export default function AiUsagePage() {
 
       <button type="button" onClick={() => void save()} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#004751] px-5 py-3 text-sm font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}Salvar limites e preços</button>
     </div>
-  </main>;
+  </AdminShell>;
 }
 
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {

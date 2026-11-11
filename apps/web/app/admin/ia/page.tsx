@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Bot, CircleCheck, CircleX, Loader2, Save, ShieldCheck, Sparkles, TriangleAlert } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { AdminShell } from '@/components/admin/admin-shell';
 import { BusinessEditor, EMPTY_PROFILE, type BusinessData } from '@/components/ai/business-editor';
 import { AI_PROVIDERS, AI_TONES, buildSystemPrompt, type AiProvider, type AiTone } from '@/lib/ai-agent';
 import type { KeyStatus } from '@/lib/ai-keys';
@@ -183,13 +184,9 @@ export default function AdminAiPage() {
   const planIncludesAi = org ? planAi[org.plan_code] !== false : true;
   const keysMissing = keys !== null && !AI_PROVIDERS.some(provider => keys[provider.value]?.configured);
 
-  return <main className="min-h-screen bg-[#F6F7FB] text-slate-800">
-    <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-      <div className="flex items-center gap-3"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain" /><div className="border-l border-slate-200 pl-3"><p className="text-xs font-semibold uppercase tracking-[.16em] text-[#CB0A9F]">Super Admin</p><h1 className="text-sm font-bold text-[#25275B]">Agentes de IA</h1></div></div>
-      <div className="flex items-center gap-5"><a href="/admin/ia/consumo" className="text-sm font-semibold text-[#004751]">Consumo e limites</a><a href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-[#004751]"><ArrowLeft size={16} /> Voltar ao painel</a></div>
-    </div></header>
+  return <AdminShell title="Agentes de IA">
 
-    <div className="mx-auto max-w-6xl space-y-6 px-6 py-8">
+    <div className="space-y-6">
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{error}</p>}
       {notice && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700">{notice}</p>}
       {keysMissing && <p className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-800"><TriangleAlert size={16} className="mt-0.5 shrink-0" />Nenhum provedor de IA conectado. Cole a chave de API abaixo para os agentes começarem a responder.</p>}
@@ -251,7 +248,7 @@ export default function AdminAiPage() {
         </div>}
       </section>
     </div>
-  </main>;
+  </AdminShell>;
 }
 
 function ProviderKeyCard({ provider, label, status, model, onChange }: {

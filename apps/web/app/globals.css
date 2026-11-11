@@ -5,7 +5,7 @@
 :root { color-scheme: light; --tendi-indigo: #2F316B; --tendi-teal: #004751; --tendi-magenta: #CB0A9F; --tendi-surface: #F7F8FC; --tendi-border: #E2E8F0; --tendi-muted: #64748B; }
 * { box-sizing: border-box; }
 html, body { min-height: 100%; scroll-behavior: smooth; }
-body { margin: 0; background: var(--tendi-surface); color: #17211f; font-family: Arial, Helvetica, sans-serif; }
+body { margin: 0; background: var(--tendi-surface); color: #17211f; font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 button, input { font: inherit; }
 button { cursor: pointer; }
 ::selection { background: #c9eee3; }
@@ -15,3 +15,9 @@ button { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Console: entrada suave dos blocos e do painel de busca. */
+@keyframes tendi-fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes tendi-pop { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+.animate-fade-up { animation: tendi-fade-up .35s ease-out both; }
+.animate-pop { animation: tendi-pop .16s ease-out both; }

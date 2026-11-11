@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, CircleCheck, CircleX, Copy, CreditCard, Loader2, Receipt, ShieldCheck, Webhook } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { AdminShell } from '@/components/admin/admin-shell';
 import { annualDiscountPercent } from '@/lib/billing-format';
 
 type Status = {
@@ -115,13 +116,9 @@ export default function BillingAdminPage() {
 
   const connected = Boolean(status?.secretKey.configured);
 
-  return <main className="min-h-screen bg-[#F6F7FB] text-slate-800">
-    <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-      <div className="flex items-center gap-3"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain" /><div className="border-l border-slate-200 pl-3"><p className="text-xs font-semibold uppercase tracking-[.16em] text-[#CB0A9F]">Super Admin</p><h1 className="text-sm font-bold text-[#25275B]">Pagamentos</h1></div></div>
-      <a href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-[#004751]"><ArrowLeft size={16} /> Voltar ao painel</a>
-    </div></header>
+  return <AdminShell title="Pagamentos e assinaturas">
 
-    <div className="mx-auto max-w-5xl space-y-6 px-6 py-8">
+    <div className="space-y-6">
       {message && <p role="status" className={message.ok ? 'rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700' : 'rounded-xl bg-rose-50 p-3 text-xs text-rose-700'}>{message.text}</p>}
 
       <section className={card}>
@@ -156,5 +153,5 @@ export default function BillingAdminPage() {
         {subs.length ? <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-[10px] uppercase tracking-wide text-slate-400"><tr><th className="py-2">Empresa</th><th>Plano</th><th>Situação</th><th>Próxima cobrança</th><th>Cartão</th></tr></thead><tbody>{subs.map(sub => <tr key={sub.organization_id} className="border-t border-slate-100"><td className="py-2.5 font-semibold text-slate-700">{sub.organizations?.name ?? sub.organization_id}</td><td>{plans.find(plan => plan.code === sub.plan_code)?.name ?? sub.plan_code ?? '—'}</td><td><span className={sub.status === 'active' ? 'text-emerald-700' : sub.status === 'past_due' ? 'text-amber-700' : 'text-slate-500'}>{STATUS_LABEL[sub.status] ?? sub.status}</span></td><td>{sub.next_billing_at ? new Date(sub.next_billing_at).toLocaleDateString('pt-BR') : '—'}</td><td>{sub.card_last_digits ? `•••• ${sub.card_last_digits}` : '—'}</td></tr>)}</tbody></table></div> : <p className="text-xs text-slate-400">Nenhuma assinatura ainda.</p>}
       </section>
     </div>
-  </main>;
+  </AdminShell>;
 }

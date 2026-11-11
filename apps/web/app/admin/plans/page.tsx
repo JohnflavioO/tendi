@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Bot, Building2, Check, Clock3, CreditCard, FileText, Loader2, Plug, ShieldCheck, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { AdminShell } from '@/components/admin/admin-shell';
 
 type Plan = {
   id: string; code: string; name: string; description: string;
@@ -52,12 +53,8 @@ export default function PlansPage() {
     { icon: Plug, label: plan.integrations.length ? plan.integrations.length + ' integrações configuradas' : 'Integrações adicionais sob definição', enabled: plan.integrations.length > 0 },
   ];
 
-  return <main className="min-h-screen bg-[#F6F7FB] text-slate-800">
-    <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-      <div className="flex items-center gap-3"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain"/><div className="border-l border-slate-200 pl-3"><p className="text-xs font-semibold text-[#2F316B]">Console</p><p className="text-xs text-slate-500">Planos e recursos</p></div></div>
-      <a href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-[#004751]"><ArrowLeft size={16}/> Voltar ao painel</a>
-    </div></header>
-    <div className="mx-auto max-w-6xl px-6 py-9">
+  return <AdminShell title="Planos e recursos">
+    <div>
       <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#CB0A9F]">Gestão comercial</p><h1 className="mt-2 text-3xl font-bold tracking-tight text-[#25275B]">Planos e recursos</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Defina o que cada assinatura libera. Os preços são definidos e publicados em Pagamentos e assinaturas.</p></div>
       <section className="mt-7 flex flex-wrap items-center gap-4 rounded-2xl border border-[#2F316B]/10 bg-white p-5 shadow-sm"><span className="rounded-xl bg-amber-50 p-3 text-amber-600"><Clock3 size={22}/></span><div><p className="font-semibold text-[#25275B]">Período de teste gratuito</p><p className="mt-1 text-sm text-slate-500">Prazo padrão configurado para novos cadastros.</p></div><div className="ml-auto text-right"><p className="text-2xl font-bold text-[#25275B]">{trialDays} dias</p><p className="text-xs text-slate-400">Sem cartão no cadastro</p></div></section>
       {error && <div role="alert" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{error}</div>}
@@ -67,5 +64,5 @@ export default function PlansPage() {
       </article>)}</section>
       <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5"><div className="flex items-start gap-3"><CreditCard className="mt-0.5 text-slate-400" size={19}/><div><p className="text-sm font-semibold text-slate-700">Cobrança pela Pagar.me</p><p className="mt-1 text-xs leading-5 text-slate-500">Preços, conexão com a Pagar.me e assinaturas ficam em <a href="/admin/pagamentos" className="font-semibold text-[#004751] underline">Pagamentos e assinaturas</a>.</p></div></div></div>
     </div>
-  </main>;
+  </AdminShell>;
 }
