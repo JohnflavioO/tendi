@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildCheckoutPayload, buildPlanPayload, extractSubscriptionId, nextBillingStatus, processPagarmeEvent, readPlanPrice, readSubscription } from './billing';
+import { annualDiscountPercent, buildCheckoutPayload, buildPlanPayload, extractSubscriptionId, nextBillingStatus, processPagarmeEvent, readPlanPrice, readSubscription } from './billing';
 import { pagarmeBaseUrl, toCents, validateSecretKey } from './pagarme';
 import { isOrganizationBlocked, shouldBlockAccess } from './trial';
 
@@ -49,7 +49,7 @@ const subscription = (over: Row = {}) => ({
 function setup(sub: Row = subscription()) {
   const db = new FakeDb();
   db.t.organizations.push({ id: ORG, status: 'trial', plan_code: 'starter', trial_ends_at: '2026-11-01T00:00:00Z' });
-  db.t.subscription_plans.push({ code: 'tendi_start', pagarme_plan_id: 'plan_start' }, { code: 'tendi_pro', pagarme_plan_id: 'plan_pro' });
+  db.t.subscription_plans.push({ code: 'tendi_start', pagarme_plan_id: 'plan_start', pagarme_annual_plan_id: 'plan_start_year' }, { code: 'tendi_pro', pagarme_plan_id: 'plan_pro', pagarme_annual_plan_id: 'plan_pro_year' });
   const api = vi.fn(async (_path: string) => sub);
   const send = (id: string, type: string, data: Row = { id: 'sub_abc' }) => processPagarmeEvent(db as any, api as any, { id, type, data });
   return { db, api, send };
@@ -198,8 +198,38 @@ describe('links manuais e planos já existentes', () => {
   });
 
   it('readPlanPrice lê o valor e exige plano ativo e mensal', () => {
-    expect(readPlanPrice({ status: 'active', interval: 'month', interval_count: 1, items: [{ quantity: 1, pricing_scheme: { price: 28900 } }] })).toEqual({ ok: true, monthlyPrice: 289 });
+    expect(readPlanPrice({ status: 'active', interval: 'month', interval_count: 1, items: [{ quantity: 1, pricing_scheme: { price: 28900 } }] })).toEqual({ ok: true, price: 289 });
     expect(readPlanPrice({ status: 'inactive', items: [] })).toMatchObject({ ok: false });
     expect(readPlanPrice({ status: 'active', interval: 'year', interval_count: 1, items: [{ pricing_scheme: { price: 100 } }] })).toMatchObject({ ok: false });
+  });
+});
+
+describe('assinatura anual', () => {
+  it('plano anual vinculado: assinatura fica no plano certo e com período anual', async () => {
+    const { db, send } = setup(subscription({ plan: { id: 'plan_pro_year' } }));
+    await send('hook_1', 'subscription.created');
+    expect(db.t.billing_subscriptions[0]).toMatchObject({ plan_code: 'tendi_pro', billing_period: 'annual', status: 'active' });
+    expect(db.t.organizations[0]).toMatchObject({ status: 'active', plan_code: 'tendi_pro' });
+  });
+
+  it('plano mensal continua com período mensal', async () => {
+    const { db, send } = setup();
+    await send('hook_1', 'subscription.created');
+    expect(db.t.billing_subscriptions[0]).toMatchObject({ plan_code: 'tendi_start', billing_period: 'monthly' });
+  });
+
+  it('readPlanPrice no modo anual aceita "Todo ano" e recusa mensal', () => {
+    const yearly = { status: 'active', interval: 'year', interval_count: 1, items: [{ quantity: 1, pricing_scheme: { price: 192780 } }] };
+    expect(readPlanPrice(yearly, 'annual')).toEqual({ ok: true, price: 1927.8 });
+    expect(readPlanPrice({ ...yearly, interval: 'month', interval_count: 12 }, 'annual')).toEqual({ ok: true, price: 1927.8 });
+    expect(readPlanPrice({ ...yearly, interval: 'month' }, 'annual')).toMatchObject({ ok: false });
+    expect(readPlanPrice(yearly, 'monthly')).toMatchObject({ ok: false });
+  });
+
+  it('annualDiscountPercent', () => {
+    expect(annualDiscountPercent(189, 1927.8)).toBe(15);
+    expect(annualDiscountPercent(289, 2947.8)).toBe(15);
+    expect(annualDiscountPercent(189, null)).toBeNull();
+    expect(annualDiscountPercent(100, 1300)).toBeNull();
   });
 });
