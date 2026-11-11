@@ -90,7 +90,7 @@ export default function AdminPage() {
       const baseSlug = cleanName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       const slug = baseSlug + '-' + Math.random().toString(36).slice(2, 6);
       const { data: organization, error: orgError } = await supabase.from('organizations')
-        .insert({ name: cleanName, slug, status: 'active', plan_code: 'starter' })
+        .insert({ name: cleanName, slug, status: 'active', plan_code: 'tendi_start' })
         .select('id,name,slug,status,plan_code,created_at').single();
       if (orgError) throw orgError;
       const { error: teamError } = await supabase.from('teams').insert({
@@ -139,10 +139,12 @@ export default function AdminPage() {
         <a href="/admin/pagamentos" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"><Zap size={18}/> Pagamentos e assinaturas <ArrowRight size={14} className="ml-auto text-slate-400"/></a>
         <a href="/admin/whatsapp"className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"><MessageSquare size={18}/> Conectividade WhatsApp <ArrowRight size={14} className="ml-auto text-slate-400"/></a>
         <a href="/admin/ia" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"><Sparkles size={18}/> Agentes de IA <ArrowRight size={14} className="ml-auto text-slate-400"/></a>
+        <a href="/admin/ia/consumo" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"><Activity size={18}/> Consumo da IA <ArrowRight size={14} className="ml-auto text-slate-400"/></a>
         <div className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400"><Clock3 size={18}/> Testes gratuitos <span className="ml-auto text-[10px]">Em breve</span></div>
       </div>
       <div className="mt-auto border-t border-slate-100 p-4">
         {internalOrganization && <a href={inboxUrl(internalOrganization.id)} className="mb-3 flex items-center gap-3 rounded-xl bg-[#F6F7FB] p-3 text-left hover:bg-[#F0F1FA]"><span className="rounded-lg bg-white p-2 text-[#2F316B]"><Building2 size={17}/></span><span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-slate-700">Workspace Tendi</span><span className="block text-[10px] text-slate-400">Ambiente interno</span></span><ArrowRight size={14} className="text-slate-400"/></a>}
+        <a href="/" target="_blank" rel="noopener" className="mb-2 flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-[#004751] hover:bg-slate-50"><ExternalLink size={14}/> Ver site do Tendi</a>
         <div className="flex items-center gap-2 px-2 text-xs text-slate-500"><ShieldCheck size={15} className="text-[#CB0A9F]"/> Super Admin</div>
         <a href="/auth/signout" className="mt-3 flex items-center gap-2 px-2 text-xs text-slate-400 hover:text-slate-700"><LogOut size={14}/> Sair da plataforma</a>
       </div>

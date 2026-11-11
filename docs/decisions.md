@@ -28,3 +28,11 @@
 - Regras: assinatura ativa libera a empresa no plano pago; cobrança recusada = "pagamento pendente" (acesso continua enquanto a Pagar.me tenta de novo); cancelada = empresa suspensa. Teste vencido ou empresa suspensa levam a `/assinatura`.
 - Segurança: um gatilho no banco impede que usuários alterem `status`, `plan_code` e datas do teste da própria empresa; só o Super Admin e o servidor alteram.
 - Troca de plano e cancelamento pelo cliente ficam com o suporte nesta etapa.
+
+## 2026-11-13 — Limite de uso da IA por empresa
+
+- A IA é paga pela plataforma, então cada empresa tem um limite mensal de **respostas da IA** (mês do calendário, horário de Brasília). Ordem: exceção da empresa (`ai_agents.monthly_reply_limit`) > limite do plano (`subscription_plans.ai_monthly_replies`, Start 1.000 e Pro 3.000 de partida) > padrão da plataforma (500). Em teste gratuito vale no máximo o teto de teste (200), exceto se houver exceção da empresa.
+- Ao atingir o limite a IA não chama o modelo: a conversa vai para "Aguardando atendente" e o evento fica registrado como `limit`.
+- Cada resposta grava o custo estimado (`ai_usage_events.cost_usd`) com o preço de tabela do modelo (`platform_settings.ai_pricing`, editável). Super Admin › Consumo da IA mostra uso, custo em R$ e % da mensalidade por empresa, e o custo máximo de cada plano com o limite definido.
+- O cliente vê o uso do mês em Configurações e um aviso no menu a partir de 80%.
+- O atalho "Console Super Admin" no menu do workspace passou a aparecer só para o Super Admin.
