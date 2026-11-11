@@ -136,7 +136,8 @@ export default function AdminPage() {
       <div className="px-4 pt-7"><p className="px-3 text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Gestão</p>
         <div className="mt-2 flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400"><Users size={18}/> Usuários <span className="ml-auto text-[10px]">Em breve</span></div>
         <a href="/admin/plans" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"><Zap size={18}/> Planos e recursos <ArrowRight size={14} className="ml-auto text-slate-400"/></a>
-        <a href="/admin/whatsapp" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"><MessageSquare size={18}/> Conectividade WhatsApp <ArrowRight size={14} className="ml-auto text-slate-400"/></a>
+        <a href="/admin/pagamentos" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"><Zap size={18}/> Pagamentos e assinaturas <ArrowRight size={14} className="ml-auto text-slate-400"/></a>
+        <a href="/admin/whatsapp"className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"><MessageSquare size={18}/> Conectividade WhatsApp <ArrowRight size={14} className="ml-auto text-slate-400"/></a>
         <a href="/admin/ia" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"><Sparkles size={18}/> Agentes de IA <ArrowRight size={14} className="ml-auto text-slate-400"/></a>
         <div className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-400"><Clock3 size={18}/> Testes gratuitos <span className="ml-auto text-[10px]">Em breve</span></div>
       </div>

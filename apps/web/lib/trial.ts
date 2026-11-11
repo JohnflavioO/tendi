@@ -46,9 +46,24 @@ export function shouldBlockForExpiredTrial(organizations: TrialOrganization[], n
   return organizations.length > 0 && organizations.every(organization => isTrialExpired(organization, now));
 }
 
-/** Rotas que continuam acessíveis mesmo com o teste vencido. */
+/** Empresa sem acesso: teste vencido ou suspensa (assinatura cancelada ou não paga). */
+export function isOrganizationBlocked(organization: TrialOrganization, now: Date = new Date()): boolean {
+  return organization.status === 'suspended' || isTrialExpired(organization, now);
+}
+
+/**
+ * Bloqueia quando o usuário enxerga ao menos uma empresa e todas estão sem acesso
+ * (teste vencido ou suspensa). Uma empresa ativa já libera a entrada.
+ */
+export function shouldBlockAccess(organizations: TrialOrganization[], now: Date = new Date()): boolean {
+  return organizations.length > 0 && organizations.every(organization => isOrganizationBlocked(organization, now));
+}
+
+/** Rotas que continuam acessíveis mesmo com o teste vencido ou a empresa suspensa. */
 export function isTrialExemptPath(pathname: string): boolean {
   return pathname === '/teste-encerrado' ||
+    pathname === '/assinatura' ||
+    pathname.startsWith('/api/billing/') ||
     pathname === '/login' ||
     pathname === '/register' ||
     pathname.startsWith('/auth/') ||
