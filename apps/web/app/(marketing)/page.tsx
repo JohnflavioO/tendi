@@ -7,7 +7,8 @@ import {
 import { siteContent, features, steps, getFaqs } from '@/content/marketing/site';
 import { getTrialDays } from '@/lib/trial-days';
 import { trialDaysLabel } from '@/lib/trial';
-import { plans, comparison } from '@/content/marketing/plans';
+import { Pricing } from '@/components/marketing/pricing';
+import { getPublicPlans } from '@/lib/public-plans';
 import { ProductPreview } from '@/components/marketing/product-preview';
 
 const featureIcons = [MessageSquareText, Workflow, Bot, Users, ReceiptText, Building2];
@@ -63,7 +64,7 @@ function ConversationIllustration() {
           </div>
           <div className="rounded-2xl bg-[#F7F8FC] p-3">
             <div className="flex items-center gap-2 border-b border-slate-200 pb-3"><span className="flex size-8 items-center justify-center rounded-full bg-[#CB0A9F] text-[10px] font-bold text-white">MC</span><div><p className="text-[11px] font-bold text-[#2F316B]">Mariana Costa</p><p className="text-[9px] text-emerald-600">Atendimento em andamento</p></div></div>
-            <div className="space-y-3 py-4"><div className="max-w-[90%] rounded-2xl rounded-tl-sm bg-white p-3 text-[10px] leading-4 text-slate-600 shadow-sm">Olá! Gostaria de saber como funciona para minha equipe.</div><div className="ml-auto max-w-[90%] rounded-2xl rounded-tr-sm bg-[#004751] p-3 text-[10px] leading-4 text-white">Claro! Vou te mostrar como podemos organizar tudo.</div><div className="rounded-xl border border-[#CB0A9F]/20 bg-white p-3"><div className="flex items-center gap-2 text-[9px] font-bold text-[#CB0A9F]"><Bot size={13}/> Sugestão inteligente</div><p className="mt-1 text-[9px] leading-4 text-slate-500">Personalize a resposta e continue a conversa com contexto.</p></div></div>
+            <div className="space-y-3 py-4"><div className="max-w-[90%] rounded-2xl rounded-tl-sm bg-white p-3 text-[10px] leading-4 text-slate-600 shadow-sm">Olá! Gostaria de saber como funciona para minha equipe.</div><div className="ml-auto max-w-[90%] rounded-2xl rounded-tr-sm bg-[#004751] p-3 text-[10px] leading-4 text-white">Claro! Vou te mostrar como podemos organizar tudo.</div><div className="rounded-xl border border-[#CB0A9F]/20 bg-white p-3"><div className="flex items-center gap-2 text-[9px] font-bold text-[#CB0A9F]"><Bot size={13}/> Agente de IA respondeu</div><p className="mt-1 text-[9px] leading-4 text-slate-500">Fora do horário, a IA atende e passa para a equipe quando precisa.</p></div></div>
             <div className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[9px] text-slate-400">Escreva uma mensagem...</div>
           </div>
         </div>
@@ -77,8 +78,10 @@ function ConversationIllustration() {
 export const revalidate = 300;
 
 export default async function MarketingHome() {
-  const trialLabel = trialDaysLabel(await getTrialDays());
-  const faqs = getFaqs(trialLabel);
+  const [trialDays, plans] = await Promise.all([getTrialDays(), getPublicPlans()]);
+  const trialLabel = trialDaysLabel(trialDays);
+  const faqs = getFaqs(trialLabel, plans);
+  const startPrice = plans.map(plan => plan.annualPrice ? Math.min(plan.monthlyPrice ?? Infinity, plan.annualPrice / 12) : plan.monthlyPrice ?? Infinity).reduce((a, b) => Math.min(a, b), Infinity);
   return (
     <>
       <section className="relative isolate overflow-hidden bg-gradient-to-br from-[#F7F8FC] via-[#F7F8FC] to-[#FCEAF7]">
@@ -96,7 +99,8 @@ export default async function MarketingHome() {
             <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
               <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />{trialLabel} para testar</span>
               <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />Sem cartão no cadastro</span>
-              <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />IA nos dois planos</span>
+              <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />IA que responde no WhatsApp</span>
+              {Number.isFinite(startPrice) && <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />Planos a partir de {startPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês</span>}
             </div>
           </div>
           <ProductPreview />
@@ -118,7 +122,7 @@ export default async function MarketingHome() {
         <div className="pointer-events-none absolute -left-32 top-0 -z-10 size-[420px] rounded-full bg-[#CB0A9F]/35 blur-3xl"/>
         <div className="pointer-events-none absolute -bottom-40 right-0 -z-10 size-[480px] rounded-full bg-[#00A59A]/25 blur-3xl"/>
         <div className="mx-auto grid max-w-[1200px] items-center gap-16 px-5 md:grid-cols-2 md:px-6">
-          <div><p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[.18em] text-[#F4A8DF]"><Sparkles size={13}/> Atendimento que flui</p><h2 className="mt-6 text-3xl font-extrabold leading-tight tracking-tight md:text-5xl">Sua equipe conectada. Cada conversa com um próximo passo.</h2><p className="mt-5 max-w-lg text-base leading-7 text-white/75">Mais do que reunir mensagens: dê contexto para as pessoas, organize responsabilidades e transforme atendimento em relacionamento contínuo.</p><div className="mt-8 flex flex-wrap gap-3"><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">Inbox compartilhado</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">CRM integrado</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">IA como apoio</span></div></div>
+          <div><p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[.18em] text-[#F4A8DF]"><Sparkles size={13}/> Atendimento que flui</p><h2 className="mt-6 text-3xl font-extrabold leading-tight tracking-tight md:text-5xl">Sua equipe conectada. Cada conversa com um próximo passo.</h2><p className="mt-5 max-w-lg text-base leading-7 text-white/75">Mais do que reunir mensagens: dê contexto para as pessoas, organize responsabilidades e transforme atendimento em relacionamento contínuo.</p><div className="mt-8 flex flex-wrap gap-3"><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">Inbox compartilhado</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">CRM integrado</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">IA que responde no WhatsApp</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">Equipe com papéis</span></div></div>
           <ConversationIllustration/>
         </div>
       </section>
@@ -149,7 +153,7 @@ export default async function MarketingHome() {
       <section className="bg-white py-20 md:py-24">
         <div className="mx-auto max-w-[1200px] space-y-20 px-5 md:px-6">
           <div className="grid items-center gap-12 md:grid-cols-2">
-            <div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Atendimento com contexto</p><h2 className="mt-4 text-3xl font-bold leading-tight text-[#25275B] md:text-4xl">Uma conversa não deveria depender da memória de alguém.</h2><p className="mt-5 text-base leading-7 text-slate-600">Com uma visão compartilhada, sua equipe consegue entender o histórico, identificar responsáveis e seguir com o atendimento com mais consistência.</p><ul className="mt-6 space-y-3 text-sm text-slate-600"><li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Conversas centralizadas e contextualizadas</li><li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Distribuição e acompanhamento por equipe</li><li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Apoio de inteligência artificial</li></ul><Link href="/register" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#004751]">Começar teste grátis<ArrowRight size={16} /></Link></div>
+            <div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Atendimento com contexto</p><h2 className="mt-4 text-3xl font-bold leading-tight text-[#25275B] md:text-4xl">Uma conversa não deveria depender da memória de alguém.</h2><p className="mt-5 text-base leading-7 text-slate-600">Com uma visão compartilhada, sua equipe consegue entender o histórico, identificar responsáveis e seguir com o atendimento com mais consistência.</p><ul className="mt-6 space-y-3 text-sm text-slate-600"><li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Conversas centralizadas e contextualizadas</li><li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Distribuição e acompanhamento por equipe</li><li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Agente de IA que responde e chama um atendente quando precisa</li></ul><Link href="/register" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#004751]">Começar teste grátis<ArrowRight size={16} /></Link></div>
             <div className="rounded-[2rem] bg-[#F7F8FC] p-4 sm:p-7"><ProductPreview /></div>
           </div>
           <div className="grid items-center gap-12 md:grid-cols-2">
@@ -161,20 +165,8 @@ export default async function MarketingHome() {
 
       <section id="planos" className="scroll-mt-24 bg-[#F7F8FC] py-20 md:py-24">
         <div className="mx-auto max-w-[1200px] px-5 md:px-6">
-          <div className="mx-auto max-w-2xl text-center"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Planos Tendi</p><h2 className="mt-4 text-3xl font-bold text-[#25275B] md:text-4xl">O espaço certo para sua equipe crescer.</h2><p className="mt-4 text-base leading-7 text-slate-600">Comece com {trialLabel} de teste gratuito, sem cartão no cadastro. Escolha a estrutura que acompanha o momento da sua operação.</p></div>
-          <div className="mx-auto mt-12 grid max-w-4xl items-stretch gap-5 md:grid-cols-2">
-            {plans.map((plan) => <article key={plan.code} className={`relative flex flex-col overflow-hidden rounded-3xl bg-white ${plan.featured ? 'border-2 border-[#004751] shadow-xl shadow-[#004751]/10' : 'border border-slate-200 shadow-sm'}`}>
-              {plan.featured && <div className="bg-[#004751] px-6 py-2 text-center text-xs font-bold uppercase tracking-wider text-white">Para uma operação em expansão</div>}
-              <div className="flex flex-1 flex-col p-7 md:p-8">
-                <p className="text-xs font-bold uppercase tracking-[.16em] text-[#CB0A9F]">{plan.label}</p><h3 className="mt-3 text-2xl font-extrabold text-[#25275B]">{plan.name}</h3><p className="mt-3 min-h-12 text-sm leading-6 text-slate-600">{plan.description}</p>
-                <div className="mt-6 rounded-2xl bg-[#F7F8FC] p-5"><p className="text-lg font-extrabold text-[#25275B]">{trialLabel} para experimentar</p><p className="mt-1 text-xs text-slate-500">Sem cartão no cadastro e sem cobrança durante o teste.</p></div>
-                <div className="mt-6 space-y-3"><p className="text-xs font-bold uppercase tracking-wider text-slate-400">O que está incluído</p>{plan.features.map((feature) => <div key={feature} className="flex items-start gap-3 text-sm text-slate-700"><Check size={17} className="mt-0.5 shrink-0 text-emerald-600" />{feature}</div>)}</div>
-                <Link href={plan.href} className={`mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold transition ${plan.featured ? 'bg-[#004751] text-white hover:bg-[#003943]' : 'border border-[#004751] text-[#004751] hover:bg-[#004751]/5'}`}>{plan.cta}<ArrowRight size={16} /></Link>
-              </div>
-            </article>)}
-          </div>
-          <div className="mx-auto mt-7 flex max-w-3xl items-start gap-3 rounded-2xl border border-slate-200 bg-white p-5"><ShieldCheck size={20} className="mt-0.5 shrink-0 text-[#004751]" /><p className="text-xs leading-5 text-slate-500">Valores de contratação e eventuais custos de provedores externos serão apresentados antes da contratação. Integrações adicionais dependem de escopo, disponibilidade técnica e configuração.</p></div>
-          <details className="mx-auto mt-8 max-w-4xl rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer px-6 py-5 text-sm font-bold text-[#25275B]">Comparar os recursos dos planos</summary><div className="overflow-x-auto px-4 pb-5"><table className="w-full min-w-[560px] border-collapse text-left text-sm"><thead><tr className="border-b border-slate-200"><th className="sticky left-0 bg-white px-3 py-3 text-slate-500">Recurso</th><th className="px-3 py-3 text-[#25275B]">Tendi Start</th><th className="px-3 py-3 text-[#004751]">Tendi Pro</th></tr></thead><tbody>{comparison.map((row) => <tr key={row.feature} className="border-b border-slate-100"><th className="sticky left-0 bg-white px-3 py-3 font-medium text-slate-600">{row.feature}</th><td className="px-3 py-3 text-slate-600">{row.start}</td><td className="px-3 py-3 text-slate-600">{row.pro}</td></tr>)}</tbody></table></div></details>
+          <div className="mx-auto max-w-2xl text-center"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Planos Tendi</p><h2 className="mt-4 text-3xl font-bold text-[#25275B] md:text-4xl">O espaço certo para sua equipe crescer.</h2><p className="mt-4 text-base leading-7 text-slate-600">Comece com {trialLabel} de teste grátis, sem cartão. Depois, escolha o plano mensal ou anual que acompanha o tamanho da sua equipe.</p></div>
+          <Pricing plans={plans} trialLabel={trialLabel} />
         </div>
       </section>
 

@@ -17,6 +17,8 @@ type Plan = {
   max_teams: number | null;
   ai_enabled: boolean;
   boleto_second_copy_enabled: boolean;
+  monthly_price: number | null;
+  ai_monthly_replies: number | null;
 };
 
 export default function RegisterPage() {
@@ -37,13 +39,16 @@ export default function RegisterPage() {
       const supabase = createClient();
       const { data, error: queryError } = await supabase
         .from('subscription_plans')
-        .select('code,name,description,max_attendants,max_teams,ai_enabled,boleto_second_copy_enabled')
+        .select('code,name,description,max_attendants,max_teams,ai_enabled,boleto_second_copy_enabled,monthly_price,ai_monthly_replies')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
       if (queryError) setError('Não foi possível carregar os planos. Tente novamente em instantes.');
       const available = (data ?? []) as Plan[];
       setPlans(available);
-      if (available.length && !available.some(plan => plan.code === planCode)) setPlanCode(available[0].code);
+      // Veio de "Começar teste grátis" de um plano no site: já deixa esse plano escolhido.
+      const requested = new URLSearchParams(window.location.search).get('plano');
+      if (requested && available.some(plan => plan.code === requested)) setPlanCode(requested);
+      else if (available.length && !available.some(plan => plan.code === planCode)) setPlanCode(available[0].code);
       setLoadingPlans(false);
     }
     void loadPlans();
@@ -118,7 +123,7 @@ export default function RegisterPage() {
           <p className="mt-5 max-w-lg text-base leading-7 text-slate-500">Crie seu ambiente, escolha o plano e experimente o Tendi por {trialLabel}. Sem cartão de crédito e sem cobrança automática.</p>
           <div className="mt-8 space-y-4">
             <div className="flex items-center gap-3 text-sm text-slate-600"><span className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Clock3 size={18}/></span>{trialLabel} de teste gratuito</div>
-            <div className="flex items-center gap-3 text-sm text-slate-600"><span className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Bot size={18}/></span>Inteligência artificial incluída nos dois planos</div>
+            <div className="flex items-center gap-3 text-sm text-slate-600"><span className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Bot size={18}/></span>Agente de IA que responde no WhatsApp nos dois planos</div>
             <div className="flex items-center gap-3 text-sm text-slate-600"><span className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Users size={18}/></span>Comece com sua equipe e amplie quando precisar</div>
           </div>
         </section>
@@ -154,8 +159,9 @@ export default function RegisterPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   {plans.map(plan => <button key={plan.code} type="button" onClick={() => setPlanCode(plan.code)} className={`rounded-xl border p-4 text-left transition ${planCode === plan.code ? 'border-[#004751] bg-[#004751]/[.04] ring-2 ring-[#004751]/10' : 'border-slate-200 hover:border-slate-300'}`}>
                     <div className="flex items-center justify-between"><span className="font-bold text-[#25275B]">{plan.name}</span>{planCode === plan.code && <Check className="text-[#00856A]" size={17}/>}</div>
-                    <p className="mt-2 text-xs leading-5 text-slate-500">{plan.max_attendants} atendentes{plan.max_teams ? ` · ${plan.max_teams} setores` : ''}</p>
-                    <p className="mt-1 text-xs text-slate-500">{plan.boleto_second_copy_enabled ? 'Segunda via de boleto incluída' : 'Atendimento com IA'}</p>
+                    {plan.monthly_price ? <p className="mt-1 text-sm font-semibold text-[#25275B]">{Number(plan.monthly_price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}<span className="text-xs font-normal text-slate-400">/mês após o teste</span></p> : null}
+                    <p className="mt-2 text-xs leading-5 text-slate-500">Até {plan.max_attendants} usuários{plan.max_teams ? ` · ${plan.max_teams} setores` : ''}</p>
+                    <p className="mt-1 text-xs text-slate-500">{plan.ai_monthly_replies ? `IA no WhatsApp: ${Number(plan.ai_monthly_replies).toLocaleString('pt-BR')} respostas/mês` : 'Atendimento com IA'}</p>
                   </button>)}
                 </div>
               )}
