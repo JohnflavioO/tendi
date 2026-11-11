@@ -4,10 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Bot, Check, CheckCircle2, Clock3, CreditCard, Loader2, Lock, ShieldCheck, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { isOrganizationBlocked, trialDaysLabel, trialDaysLeft } from '@/lib/trial';
+import { annualDiscountPercent, type BillingPeriod } from '@/lib/billing-format';
 
 type Org = { id: string; name: string; status: string; plan_code: string | null; trial_ends_at: string | null };
-type Plan = { code: string; name: string; description: string; max_attendants: number; max_teams: number | null; ai_enabled: boolean; monthly_price: number | null; pagarme_plan_id: string | null };
-type Subscription = { status: 'active' | 'past_due' | 'canceled'; plan_code: string | null; next_billing_at: string | null; current_period_end: string | null; card_brand: string | null; card_last_digits: string | null };
+type Plan = { code: string; name: string; description: string; max_attendants: number; max_teams: number | null; ai_enabled: boolean; monthly_price: number | null; pagarme_plan_id: string | null; annual_price: number | null; pagarme_annual_plan_id: string | null };
+type Subscription = { status: 'active' | 'past_due' | 'canceled'; plan_code: string | null; billing_period: 'monthly' | 'annual' | null; next_billing_at: string | null; current_period_end: string | null; card_brand: string | null; card_last_digits: string | null };
 
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const date = (value: string | null) => (value ? new Date(value).toLocaleDateString('pt-BR') : '—');
@@ -21,11 +22,12 @@ export default function SubscriptionPage() {
   const [busyPlan, setBusyPlan] = useState('');
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState(false);
+  const [period, setPeriod] = useState<BillingPeriod>('monthly');
 
   const loadSubscription = useCallback(async (organizationId: string) => {
     const supabase = createClient() as any;
     const [{ data: sub }, { data: org }] = await Promise.all([
-      supabase.from('billing_subscriptions').select('status,plan_code,next_billing_at,current_period_end,card_brand,card_last_digits').eq('organization_id', organizationId).maybeSingle(),
+      supabase.from('billing_subscriptions').select('status,plan_code,billing_period,next_billing_at,current_period_end,card_brand,card_last_digits').eq('organization_id', organizationId).maybeSingle(),
       supabase.from('organizations').select('id,name,status,plan_code,trial_ends_at').eq('id', organizationId).maybeSingle(),
     ]);
     setSubscription((sub ?? null) as Subscription | null);
@@ -40,7 +42,7 @@ export default function SubscriptionPage() {
       if (!auth.user) { window.location.assign('/login'); return; }
       const [{ data: orgList }, { data: planList }] = await Promise.all([
         supabase.from('organizations').select('id,name,status,plan_code,trial_ends_at').order('name'),
-        supabase.from('subscription_plans').select('code,name,description,max_attendants,max_teams,ai_enabled,monthly_price,pagarme_plan_id').eq('is_active', true).order('display_order'),
+        supabase.from('subscription_plans').select('code,name,description,max_attendants,max_teams,ai_enabled,monthly_price,pagarme_plan_id,annual_price,pagarme_annual_plan_id').eq('is_active', true).order('display_order'),
       ]);
       const list = (orgList ?? []) as Org[];
       setOrgs(list);
@@ -70,7 +72,7 @@ export default function SubscriptionPage() {
 
   async function subscribe(planCode: string) {
     setBusyPlan(planCode); setError('');
-    const response = await fetch('/api/billing/checkout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ organizationId: orgId, planCode }) }).catch(() => null);
+    const response = await fetch('/api/billing/checkout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ organizationId: orgId, planCode, period }) }).catch(() => null);
     const data = await response?.json().catch(() => null);
     if (response?.ok && data?.url) { window.location.assign(data.url); return; }
     setBusyPlan('');
@@ -84,6 +86,9 @@ export default function SubscriptionPage() {
   const daysLeft = org ? trialDaysLeft(org) : null;
   const hasSubscription = Boolean(subscription && subscription.status !== 'canceled');
   const currentPlan = plans.find(plan => plan.code === subscription?.plan_code);
+  // O seletor Mensal/Anual só aparece quando algum plano tem a versão anual vinculada.
+  const hasAnnual = plans.some(plan => plan.annual_price && plan.pagarme_annual_plan_id);
+  const bestDiscount = Math.max(0, ...plans.map(plan => annualDiscountPercent(plan.monthly_price, plan.annual_price) ?? 0)) || null;
 
   return <main className="min-h-screen bg-[#F5F6FB] text-slate-800">
     <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
@@ -109,7 +114,9 @@ export default function SubscriptionPage() {
       {hasSubscription && subscription && <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           {subscription.status === 'active' ? <CheckCircle2 className="text-emerald-600" size={24} /> : <AlertTriangle className="text-amber-600" size={24} />}
-          <div><p className="text-lg font-bold text-[#25275B]">{currentPlan?.name ?? 'Plano Tendi'}{currentPlan?.monthly_price ? ` · ${money(Number(currentPlan.monthly_price))}/mês` : ''}</p>
+          <div><p className="text-lg font-bold text-[#25275B]">{currentPlan?.name ?? 'Plano Tendi'}{subscription.billing_period === 'annual'
+            ? (currentPlan?.annual_price ? ` Anual · ${money(Number(currentPlan.annual_price))}/ano` : ' Anual')
+            : (currentPlan?.monthly_price ? ` · ${money(Number(currentPlan.monthly_price))}/mês` : '')}</p>
             <p className={subscription.status === 'active' ? 'text-sm font-semibold text-emerald-700' : 'text-sm font-semibold text-amber-700'}>{subscription.status === 'active' ? 'Assinatura ativa' : 'Pagamento pendente'}</p></div>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -120,18 +127,33 @@ export default function SubscriptionPage() {
         <p className="mt-4 text-xs text-slate-400">Para trocar de plano ou cancelar, fale com o suporte em suporte@tendi.app.</p>
       </section>}
 
-      {!hasSubscription && <section className="mt-8 grid gap-5 md:grid-cols-2">
+      {!hasSubscription && hasAnnual && <div role="radiogroup" aria-label="Período de cobrança" className="mt-8 inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        {(['monthly', 'annual'] as const).map(value => <button key={value} type="button" role="radio" aria-checked={period === value} onClick={() => setPeriod(value)} className={period === value ? 'rounded-lg bg-[#2F316B] px-4 py-2 text-sm font-semibold text-white' : 'rounded-lg px-4 py-2 text-sm font-semibold text-slate-500 hover:text-[#2F316B]'}>
+          {value === 'monthly' ? 'Mensal' : <>Anual{bestDiscount ? <span className={period === value ? 'ml-1.5 rounded-md bg-white/20 px-1.5 py-0.5 text-[11px]' : 'ml-1.5 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] text-emerald-700'}>{bestDiscount}% off</span> : null}</>}
+        </button>)}
+      </div>}
+
+      {!hasSubscription && <section className={hasAnnual ? 'mt-5 grid gap-5 md:grid-cols-2' : 'mt-8 grid gap-5 md:grid-cols-2'}>
         {plans.map(plan => {
-          const available = Boolean(plan.monthly_price && plan.pagarme_plan_id);
+          const annual = period === 'annual';
+          const price = annual ? plan.annual_price : plan.monthly_price;
+          const available = Boolean(price && (annual ? plan.pagarme_annual_plan_id : plan.pagarme_plan_id));
+          const discount = annualDiscountPercent(plan.monthly_price, plan.annual_price);
           return <article key={plan.code} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-[#25275B]">{plan.name}</h2>
+            <h2 className="text-xl font-bold text-[#25275B]">{plan.name}{annual ? ' Anual' : ''}</h2>
             <p className="mt-2 min-h-12 text-sm leading-6 text-slate-500">{plan.description}</p>
-            <p className="mt-4 text-3xl font-bold text-[#25275B]">{plan.monthly_price ? money(Number(plan.monthly_price)) : 'Em breve'}{plan.monthly_price ? <span className="text-sm font-medium text-slate-400"> /mês</span> : null}</p>
+            {annual && price && plan.monthly_price
+              ? <div className="mt-4">
+                  <p className="text-3xl font-bold text-[#25275B]">{money(Number(price) / 12)}<span className="text-sm font-medium text-slate-400"> /mês</span></p>
+                  <p className="mt-1 text-sm text-slate-500"><span className="text-slate-400 line-through">{money(Number(plan.monthly_price))}</span> · {money(Number(price))} cobrados uma vez por ano</p>
+                  {discount && <p className="mt-1 text-sm font-semibold text-emerald-700">Economia de {money(Number(plan.monthly_price) * 12 - Number(price))} por ano ({discount}% off)</p>}
+                </div>
+              : <p className="mt-4 text-3xl font-bold text-[#25275B]">{price ? money(Number(price)) : 'Em breve'}{price ? <span className="text-sm font-medium text-slate-400"> /{annual ? 'ano' : 'mês'}</span> : null}</p>}
             <ul className="mt-5 space-y-2.5 text-sm text-slate-600">
               <li className="flex items-center gap-2"><Users size={16} className="text-[#004751]" /> Até {plan.max_attendants} atendentes</li>
               {plan.max_teams !== null && <li className="flex items-center gap-2"><Check size={16} className="text-[#004751]" /> Até {plan.max_teams} setores</li>}
               {plan.ai_enabled && <li className="flex items-center gap-2"><Bot size={16} className="text-[#004751]" /> Agente de IA no WhatsApp</li>}
-              <li className="flex items-center gap-2"><CreditCard size={16} className="text-[#004751]" /> Cobrança mensal no cartão de crédito</li>
+              <li className="flex items-center gap-2"><CreditCard size={16} className="text-[#004751]" /> {period === 'annual' ? 'Cobrança anual à vista no cartão de crédito' : 'Cobrança mensal no cartão de crédito'}</li>
             </ul>
             <button type="button" disabled={!available || busyPlan !== '' || !orgId} onClick={() => void subscribe(plan.code)} className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-[#004751] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#003943] disabled:opacity-50">{busyPlan === plan.code && <Loader2 size={16} className="animate-spin" />}{available ? `Assinar ${plan.name}` : 'Indisponível no momento'}</button>
           </article>;

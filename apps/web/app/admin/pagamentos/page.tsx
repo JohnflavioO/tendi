@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, CircleCheck, CircleX, Copy, CreditCard, Loader2, Receipt, ShieldCheck, Webhook } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { annualDiscountPercent } from '@/lib/billing-format';
 
 type Status = {
   secretKey: { configured: boolean; environment?: string; hint?: string };
   webhookUrl: string | null;
   events: string[];
 };
-type Plan = { code: string; name: string; monthly_price: number | null; pagarme_plan_id: string | null; is_active: boolean };
+type Plan = { code: string; name: string; monthly_price: number | null; pagarme_plan_id: string | null; annual_price: number | null; pagarme_annual_plan_id: string | null; is_active: boolean };
 type Sub = { organization_id: string; plan_code: string | null; status: string; next_billing_at: string | null; card_last_digits: string | null; organizations: { name: string } | null };
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6';
@@ -22,6 +23,7 @@ export default function BillingAdminPage() {
   const [status, setStatus] = useState<Status | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [prices, setPrices] = useState<Record<string, string>>({});
+  const [planIds, setPlanIds] = useState<Record<string, string>>({});
   const [subs, setSubs] = useState<Sub[]>([]);
   const [keyValue, setKeyValue] = useState('');
   const [busy, setBusy] = useState('');
@@ -30,7 +32,7 @@ export default function BillingAdminPage() {
   const loadData = useCallback(async () => {
     const supabase = createClient() as any;
     const [{ data: planRows }, { data: subRows }] = await Promise.all([
-      supabase.from('subscription_plans').select('code,name,monthly_price,pagarme_plan_id,is_active').order('display_order'),
+      supabase.from('subscription_plans').select('code,name,monthly_price,pagarme_plan_id,annual_price,pagarme_annual_plan_id,is_active').order('display_order'),
       supabase.from('billing_subscriptions').select('organization_id,plan_code,status,next_billing_at,card_last_digits,organizations(name)').order('updated_at', { ascending: false }),
     ]);
     const list = (planRows ?? []) as Plan[];
@@ -88,6 +90,26 @@ export default function BillingAdminPage() {
     await loadData();
   }
 
+  async function link(plan: Plan, period: 'monthly' | 'annual') {
+    const field = period === 'annual' ? `${plan.code}:annual` : plan.code;
+    const pagarmePlanId = (planIds[field] ?? '').trim();
+    const { ok, data } = await call(`link-${field}`, '/api/admin/billing/plans', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: plan.code, pagarmePlanId, period }) });
+    if (!ok) { setMessage({ ok: false, text: data?.error ?? 'Falha ao vincular o plano.' }); return; }
+    const price = Number(data.price ?? data.monthlyPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    setMessage({ ok: true, text: `${plan.name} ${period === 'annual' ? 'anual' : 'mensal'} vinculado a ${pagarmePlanId} (${price}/${period === 'annual' ? 'ano' : 'mês'}).` });
+    setPlanIds(current => ({ ...current, [field]: '' }));
+    await loadData();
+  }
+
+  function linkField(plan: Plan, period: 'monthly' | 'annual') {
+    const field = period === 'annual' ? `${plan.code}:annual` : plan.code;
+    return <div key={field} className="flex w-full flex-wrap items-center gap-2 border-t border-slate-200/70 pt-3">
+      <span className="w-40 text-xs text-slate-500">{period === 'annual' ? 'Plano anual (desconto):' : 'Vincular plano mensal:'}</span>
+      <input value={planIds[field] ?? ''} onChange={e => setPlanIds(current => ({ ...current, [field]: e.target.value }))} placeholder="plan_..." spellCheck={false} className={`${input} max-w-[260px] font-mono text-xs`} />
+      <button type="button" onClick={() => void link(plan, period)} disabled={!connected || !(planIds[field] ?? '').trim() || busy !== ''} className="inline-flex items-center gap-1.5 rounded-xl border border-[#004751] px-3 py-2 text-[11px] font-semibold text-[#004751] disabled:opacity-50">{busy === `link-${field}` && <Loader2 size={12} className="animate-spin" />}Vincular</button>
+    </div>;
+  }
+
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#F6F7FB] text-[#2F316B]"><Loader2 className="animate-spin" size={28} /></main>;
   if (!authorized) return <main className="grid min-h-screen place-items-center bg-[#F6F7FB] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><ShieldCheck className="mx-auto text-[#CB0A9F]" size={32} /><h1 className="mt-4 text-xl font-semibold text-[#2F316B]">Acesso restrito</h1><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-[#004751]">Voltar ao Inbox</a></div></main>;
 
@@ -119,11 +141,13 @@ export default function BillingAdminPage() {
       </section>
 
       <section className={card}>
-        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><Receipt size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">3. Preço dos planos</h2><p className="text-xs text-slate-400">Publicar cria o plano na Pagar.me (mensal, cartão de crédito). Mudar o preço cria um plano novo: quem já assina continua no valor antigo.</p></div></div>
+        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><Receipt size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">3. Preço dos planos</h2><p className="text-xs text-slate-400">Já criou o plano na Stone/Pagar.me (Venda por assinatura)? Cole o ID dele (plan_...) e clique em Vincular: o Tendi confere o plano e usa o valor cadastrado lá. Ou digite o valor e clique em Publicar para o Tendi criar o plano. Mudar o preço cria um plano novo: quem já assina continua no valor antigo.</p></div></div>
         <div className="space-y-3">{plans.map(plan => <div key={plan.code} className="flex flex-wrap items-center gap-3 rounded-xl bg-[#FAFBFD] p-3">
-          <div className="min-w-[140px] flex-1"><p className="text-sm font-semibold text-slate-700">{plan.name}</p><p className="text-[11px] text-slate-400">{plan.pagarme_plan_id ? `Publicado · ${plan.pagarme_plan_id}` : 'Ainda não publicado'}{!plan.is_active ? ' · plano inativo' : ''}</p></div>
+          <div className="min-w-[140px] flex-1"><p className="text-sm font-semibold text-slate-700">{plan.name}</p><p className="text-[11px] text-slate-400">{plan.pagarme_plan_id ? `Mensal · ${plan.pagarme_plan_id}` : 'Mensal não vinculado'}{plan.pagarme_annual_plan_id ? ` · Anual · ${plan.pagarme_annual_plan_id} · ${Number(plan.annual_price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/ano${annualDiscountPercent(plan.monthly_price, plan.annual_price) ? ` (${annualDiscountPercent(plan.monthly_price, plan.annual_price)}% off)` : ''}` : ' · Anual não vinculado'}{!plan.is_active ? ' · plano inativo' : ''}</p></div>
           <label className="flex items-center gap-2 text-xs text-slate-500">R$<input inputMode="decimal" value={prices[plan.code] ?? ''} onChange={e => setPrices(current => ({ ...current, [plan.code]: e.target.value }))} placeholder="197,00" className={`${input} w-28`} />/mês</label>
           <button type="button" onClick={() => void publish(plan)} disabled={!connected || !(prices[plan.code] ?? '').trim() || busy !== ''} className="inline-flex items-center gap-1.5 rounded-xl bg-[#004751] px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-50">{busy === `plan-${plan.code}` && <Loader2 size={12} className="animate-spin" />}Publicar na Pagar.me</button>
+          {linkField(plan, 'monthly')}
+          {linkField(plan, 'annual')}
         </div>)}</div>
       </section>
 
