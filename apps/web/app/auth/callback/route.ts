@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { provisionPendingWorkspace } from '@/lib/ensure-workspace';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { activateInvitations } from '@/lib/team-server';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -14,6 +16,13 @@ export async function GET(request: Request) {
       const user = userData.user;
 
       if (user) {
+        // Convite para a equipe: o primeiro acesso ativa o vínculo e leva a pessoa a criar a senha.
+        const serviceClient = createAdminClient();
+        if (serviceClient) {
+          await activateInvitations(serviceClient, user.id).catch(err => console.error('[Equipe] convites não ativados', err instanceof Error ? err.message : err));
+        }
+        if (user.user_metadata?.needs_password) return NextResponse.redirect(new URL('/definir-senha', origin));
+
         const { data: admin } = await supabase
           .from('platform_admins')
           .select('user_id')

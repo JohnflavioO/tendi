@@ -36,3 +36,11 @@
 - Cada resposta grava o custo estimado (`ai_usage_events.cost_usd`) com o preço de tabela do modelo (`platform_settings.ai_pricing`, editável). Super Admin › Consumo da IA mostra uso, custo em R$ e % da mensalidade por empresa, e o custo máximo de cada plano com o limite definido.
 - O cliente vê o uso do mês em Configurações e um aviso no menu a partir de 80%.
 - O atalho "Console Super Admin" no menu do workspace passou a aparecer só para o Super Admin.
+
+## 2026-11-14 — Equipe: convites e papéis
+
+- Papéis: **Dono** (tudo, assinatura, administradores), **Administrador** (equipe, WhatsApp, configurações), **Supervisor** (setores, funil, relatórios; vê a equipe) e **Atendente** (Inbox, contatos, CRM). O menu mostra só o que o papel pode usar e páginas fora do papel voltam para o Inbox. O Super Admin conta como dono em qualquer empresa.
+- Membros são criados e alterados **só pelo servidor** (`/api/team`): o dono gerencia administradores; administradores gerenciam supervisores e atendentes; ninguém altera o próprio papel nem cria outro dono. A regra `memberships_manage` (que deixava um admin mudar qualquer membro pela API) foi removida.
+- Convite: conta nova recebe o e-mail de convite do Supabase e fica "pendente" até abrir o link; no primeiro acesso o vínculo é ativado e a pessoa cria a senha em `/definir-senha`. Quem já tem conta entra direto.
+- Usuários (ativos + pendentes) respeitam `subscription_plans.max_attendants` (Start 4, Pro 10).
+- Ao remover alguém, as conversas atribuídas a essa pessoa voltam para a fila.

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Loader2, Mail, ShieldCheck, UserRound } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { AdminShell } from '@/components/admin/admin-shell';
 
 type Organization = { id: string; name: string };
 
@@ -54,9 +55,8 @@ export default function OrganizationSetupPage() {
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#F7F8FC] text-[#2F316B]"><Loader2 className="animate-spin"/></main>;
 
-  return <main className="min-h-screen bg-[#F7F8FC] px-5 py-10 text-slate-800">
+  return <AdminShell title="Responsável da empresa" width="max-w-3xl">
     <div className="mx-auto max-w-2xl">
-      <a href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-[#2F316B]"><ArrowLeft size={16}/> Voltar às empresas</a>
       <div className="mt-7 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain"/>
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf0fb] text-[#2F316B]"><ShieldCheck size={23}/></div>
         <p className="mt-6 text-xs font-bold uppercase tracking-[.16em] text-[#CB0A9F]">Configuração inicial</p>
@@ -72,5 +72,5 @@ export default function OrganizationSetupPage() {
       </div>
       <p className="mt-4 text-center text-xs text-slate-400">O administrador será vinculado à empresa e à equipe principal de atendimento.</p>
     </div>
-  </main>;
+  </AdminShell>;
 }

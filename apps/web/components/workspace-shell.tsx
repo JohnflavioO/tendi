@@ -4,18 +4,21 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { SidebarFooter } from '@/components/sidebar-footer';
+import { useWorkspaceRole } from '@/lib/use-workspace-role';
+import { areaForPath, canAccess, type Area } from '@/lib/team';
 import {
   Inbox, KanbanSquare, Users, Bot, ChartNoAxesCombined, Settings, ChevronDown,
-  MoreHorizontal, UserRound, RefreshCw, CircleHelp, LogOut, Building2, Menu, X,
+  MoreHorizontal, UserRound, RefreshCw, CircleHelp, LogOut, Building2, Menu, X, UsersRound,
 } from 'lucide-react';
 
-const navigation = [
-  { label: 'Inbox', href: '/inbox', icon: Inbox },
-  { label: 'CRM', href: '/crm', icon: KanbanSquare },
-  { label: 'Contatos', href: '/contatos', icon: Users },
-  { label: 'Chatbots', href: '/chatbots', icon: Bot },
-  { label: 'Relatórios', href: '/relatorios', icon: ChartNoAxesCombined },
-  { label: 'Configurações', href: '/configuracoes', icon: Settings },
+export const WORKSPACE_NAV: Array<{ label: string; href: string; icon: typeof Inbox; area: Area }> = [
+  { label: 'Inbox', href: '/inbox', icon: Inbox, area: 'inbox' },
+  { label: 'CRM', href: '/crm', icon: KanbanSquare, area: 'crm' },
+  { label: 'Contatos', href: '/contatos', icon: Users, area: 'contatos' },
+  { label: 'Chatbots', href: '/chatbots', icon: Bot, area: 'chatbots' },
+  { label: 'Relatórios', href: '/relatorios', icon: ChartNoAxesCombined, area: 'relatorios' },
+  { label: 'Equipe', href: '/equipe', icon: UsersRound, area: 'equipe' },
+  { label: 'Configurações', href: '/configuracoes', icon: Settings, area: 'configuracoes' },
 ];
 
 export function WorkspaceShell({ children, title, description, actions }: {
@@ -47,6 +50,13 @@ export function WorkspaceShell({ children, title, description, actions }: {
     return () => { active = false; };
   }, [supabase]);
 
+  const { role, superAdmin } = useWorkspaceRole(organization?.id);
+  const navigation = WORKSPACE_NAV.filter(item => role === undefined ? item.area === 'inbox' : canAccess(role, item.area));
+  // Página fora do papel da pessoa (ex.: atendente abrindo /configuracoes pelo link): volta para o Inbox.
+  const area = areaForPath(pathname);
+  const blocked = role !== undefined && area !== null && !canAccess(role, area);
+  useEffect(() => { if (blocked) window.location.replace('/inbox'); }, [blocked]);
+
   async function signOut() {
     await supabase.auth.signOut();
     window.location.assign('/login');
@@ -63,10 +73,10 @@ export function WorkspaceShell({ children, title, description, actions }: {
       const active = pathname === href || (href !== '/inbox' && pathname.startsWith(href + '/'));
       return <a key={href} href={href} onClick={()=>setMobileOpen(false)} className={active ? 'flex items-center gap-3 rounded-xl bg-[#F0F0FA] px-3 py-3 text-sm font-semibold text-[#2F316B]' : 'flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-[#2F316B]'}><Icon size={18}/>{label}</a>;
     })}</nav>
-    <SidebarFooter organizationId={organization?.id} onSignOut={signOut}/>
+    <SidebarFooter organizationId={organization?.id} role={role} superAdmin={superAdmin} onSignOut={signOut}/>
   </aside>;
 
-  if (loading) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]">Carregando workspace...</main>;
+  if (loading || blocked) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]">Carregando workspace...</main>;
   if (!organization) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><Building2 className="mx-auto text-[#CB0A9F]" size={30}/><h1 className="mt-3 font-bold text-[#2F316B]">Workspace não encontrado</h1><p className="mt-2 text-sm text-slate-500">Sua conta não possui uma empresa ativa vinculada.</p></div></main>;
 
   return <main className="flex min-h-screen bg-[#F5F6FB] text-slate-800">
@@ -76,7 +86,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
       <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-slate-200/80 bg-white/95 px-5 backdrop-blur md:px-8">
         <div className="flex min-w-0 items-center gap-3"><button onClick={()=>setMobileOpen(true)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Abrir menu"><Menu size={19}/></button><div className="min-w-0"><p className="truncate text-lg font-bold tracking-tight text-[#25275B]">{title}</p><p className="hidden truncate text-xs text-slate-400 sm:block">{description}</p></div></div>
         <div className="relative flex items-center gap-2">{actions}<button onClick={()=>setMenuOpen(!menuOpen)} aria-label="Abrir menu de opções" aria-expanded={menuOpen} className={menuOpen?'rounded-xl bg-[#F0F0FA] p-2.5 text-[#2F316B]':'rounded-xl p-2.5 text-slate-400 transition hover:bg-slate-100 hover:text-[#2F316B]'}><MoreHorizontal size={20}/></button>
-          {menuOpen&&<><button aria-label="Fechar menu" className="fixed inset-0 z-20 cursor-default" onClick={()=>setMenuOpen(false)}/><div className="absolute right-0 top-12 z-30 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10"><div className="border-b border-slate-100 px-3 py-2"><p className="text-xs font-semibold text-[#2F316B]">{organization.name}</p><p className="text-[10px] text-slate-400">Opções do workspace</p></div><a href="/configuracoes" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><UserRound size={15}/>Perfil e configurações</a><button onClick={()=>window.location.reload()} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50"><RefreshCw size={15}/>Atualizar página</button><a href="mailto:suporte@tendi.app" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><CircleHelp size={15}/>Ajuda e suporte</a><button onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-rose-600 hover:bg-rose-50"><LogOut size={15}/>Sair da conta</button></div></>}
+          {menuOpen&&<><button aria-label="Fechar menu" className="fixed inset-0 z-20 cursor-default" onClick={()=>setMenuOpen(false)}/><div className="absolute right-0 top-12 z-30 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10"><div className="border-b border-slate-100 px-3 py-2"><p className="text-xs font-semibold text-[#2F316B]">{organization.name}</p><p className="text-[10px] text-slate-400">Opções do workspace</p></div>{canAccess(role, 'configuracoes')&&<a href="/configuracoes" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><UserRound size={15}/>Perfil e configurações</a>}<button onClick={()=>window.location.reload()} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50"><RefreshCw size={15}/>Atualizar página</button><a href="mailto:suporte@tendi.app" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><CircleHelp size={15}/>Ajuda e suporte</a><button onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-rose-600 hover:bg-rose-50"><LogOut size={15}/>Sair da conta</button></div></>}
         </div>
       </header>
       <div className="mx-auto w-full max-w-[1600px] flex-1 p-5 md:p-8">{children}</div>
