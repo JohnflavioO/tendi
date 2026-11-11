@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { FileText, ImageOff, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { MEDIA_BUCKET } from '@/lib/inbox-attachments';
+import { AudioPlayer } from '@/components/inbox/audio-player';
 import { MEDIA_LABEL, mediaKind, safeMediaUrl } from '@/lib/inbox-utils';
 
 type MediaMessage = { message_type: string; body: string | null; payload: Record<string, unknown> | null };
@@ -61,7 +62,7 @@ export function MessageMedia({ message }: { message: MediaMessage }) {
     } else if (kind === 'video') {
       media = <video controls preload="metadata" src={url} onError={() => setFailed(true)} className="mb-1 max-h-72 w-full max-w-sm rounded-xl" />;
     } else if (kind === 'audio') {
-      media = <audio controls preload="none" src={url} onError={() => setFailed(true)} className="mb-1 h-10 w-64 max-w-full" />;
+      media = <AudioPlayer src={url} onError={() => setFailed(true)} />;
     } else {
       media = <a href={url} target="_blank" rel="noreferrer noopener" className="mb-1 flex items-center gap-3 rounded-xl bg-black/5 px-3 py-2.5 text-xs font-semibold hover:bg-black/10"><FileText size={18} className="shrink-0" /><span className="min-w-0 truncate">{filename ?? 'Documento'}</span><span className="ml-auto shrink-0 text-[10px] font-medium opacity-70">Abrir</span></a>;
     }

@@ -21,3 +21,9 @@ button { cursor: pointer; }
 @keyframes tendi-pop { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
 .animate-fade-up { animation: tendi-fade-up .35s ease-out both; }
 .animate-pop { animation: tendi-pop .16s ease-out both; }
+
+/* Player de áudio do Inbox: segue a cor do balão (currentColor), claro ou escuro. */
+.tendi-audio-range { background: linear-gradient(to right, #CB0A9F var(--progress, 0%), color-mix(in srgb, currentColor 22%, transparent) var(--progress, 0%)); }
+.tendi-audio-range::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; border-radius: 9999px; background: #CB0A9F; border: 2px solid white; box-shadow: 0 1px 3px rgb(0 0 0 / .25); }
+.tendi-audio-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 9999px; background: #CB0A9F; border: 2px solid white; }
+.tendi-audio-rate { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); background: color-mix(in srgb, currentColor 8%, transparent); }

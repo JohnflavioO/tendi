@@ -10,6 +10,8 @@ import { createClient } from '@/lib/supabase/client';
 import { MessageMedia } from '@/components/inbox/message-media';
 import { Composer } from '@/components/inbox/composer';
 import { ContactPanel } from '@/components/inbox/contact-panel';
+import { ConversationList } from '@/components/inbox/conversation-list';
+import { ContactAvatar } from '@/components/inbox/contact-avatar';
 import { SidebarFooter } from '@/components/sidebar-footer';
 import { WORKSPACE_NAV } from '@/components/workspace-shell';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
@@ -60,8 +62,7 @@ export default function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedId, setSelectedId] = useState('');
-  const [filter, setFilter] = useState('Todas');
-  const [search, setSearch] = useState('');
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(true);
@@ -72,6 +73,24 @@ export default function InboxPage() {
   const [agent, setAgent] = useState<{ name: string; is_enabled: boolean } | null>(null);
   const [aiSaving, setAiSaving] = useState(false);
   const selectedRef = useRef('');
+  // Rolagem da conversa: começa no fim e mostra a seta para descer quando a pessoa sobe.
+  const threadRef = useRef<HTMLDivElement>(null);
+  const atBottomRef = useRef(true);
+  const lastCountRef = useRef(0);
+  const [atBottom, setAtBottom] = useState(true);
+  const [newSince, setNewSince] = useState(0);
+  const scrollToBottom = useCallback((smooth = true) => {
+    const element = threadRef.current;
+    if (element) element.scrollTo({ top: element.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+  }, []);
+  const onThreadScroll = () => {
+    const element = threadRef.current;
+    if (!element) return;
+    const near = element.scrollHeight - element.scrollTop - element.clientHeight < 120;
+    atBottomRef.current = near;
+    setAtBottom(near);
+    if (near) setNewSince(0);
+  };
 
   const loadOrganizations = useCallback(async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -181,19 +200,29 @@ export default function InboxPage() {
     void supabase.from('conversations').update({ unread_count: 0 }).eq('id', target.id).eq('organization_id', target.organization_id).then(() => undefined);
   }, [conversations, selectedId, tabVisible, supabase]);
 
+  useEffect(() => { lastCountRef.current = 0; atBottomRef.current = true; setAtBottom(true); setNewSince(0); }, [selectedId]);
+  const threadLength = messages.filter(message => message.conversation_id === selectedId).length;
+  useEffect(() => {
+    const previous = lastCountRef.current;
+    lastCountRef.current = threadLength;
+    if (!threadLength) return;
+    if (previous === 0 || atBottomRef.current) requestAnimationFrame(() => scrollToBottom(previous !== 0));
+    else if (threadLength > previous) setNewSince(count => count + (threadLength - previous));
+  }, [threadLength, selectedId, scrollToBottom]);
+  // Nomes de quem está com cada conversa (aba "Outros").
+  useEffect(() => {
+    const ids = [...new Set(conversations.map(item => item.assigned_to).filter((id): id is string => Boolean(id)))].filter(id => !memberNames[id]);
+    if (!ids.length) return;
+    void supabase.from('profiles').select('id,full_name,email').in('id', ids).then(({ data }: any) => {
+      const next: Record<string, string> = {};
+      for (const row of (data ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>) next[row.id] = (row.full_name || row.email?.split('@')[0] || 'Atendente').split(' ')[0]!;
+      setMemberNames(current => ({ ...current, ...next }));
+    });
+  }, [conversations, memberNames, supabase]);
+
   const selected = conversations.find(item => item.id === selectedId) ?? null;
   const contact = selected?.contacts ?? null;
   const thread = messages.filter(message => message.conversation_id === selectedId);
-  const unreadCount = conversations.filter(item => item.unread_count > 0).length;
-  const openCount = conversations.filter(item => item.status === 'open').length;
-  const filtered = useMemo(() => conversations.filter(item => {
-    const name = item.contacts?.full_name?.toLowerCase() ?? '';
-    const phone = item.contacts?.phone_e164 ?? '';
-    const matchesSearch = name.includes(search.toLowerCase()) || phone.includes(search);
-    const matchesFilter = filter === 'Todas'
-      || (filter === 'Não lidas' ? item.unread_count > 0 : filter === 'Minhas' ? item.assigned_to === userId : item.status === filter);
-    return matchesSearch && matchesFilter;
-  }), [conversations, filter, search, userId]);
   const latestMessage = (conversationId: string) => { const rows = messages.filter(message => message.conversation_id === conversationId); return rows[rows.length - 1]; };
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]"><Loader2 className="animate-spin" /></main>;
@@ -209,27 +238,16 @@ export default function InboxPage() {
     </aside>
 
     <section className={selectedId ? "hidden w-full shrink-0 flex-col border-r border-slate-200/80 bg-white md:flex md:w-[350px]" : "flex w-full shrink-0 flex-col border-r border-slate-200/80 bg-white md:w-[350px]"}>
-      <header className="border-b border-slate-100 px-5 pb-4 pt-5"><div className="flex items-start justify-between"><div><p className="text-xl font-bold tracking-tight text-[#25275B]">Atendimento</p><p className="mt-1 text-xs text-slate-400">{conversations.length} conversas · {unreadCount} não lidas</p></div><button onClick={()=>void loadInbox()} className="rounded-xl border border-slate-200 p-2.5 text-slate-500 transition hover:border-[#CB0A9F]/30 hover:bg-[#FCF5FA] hover:text-[#CB0A9F]" title="Atualizar"><RefreshCw size={16}/></button></div>
-        <div className="mt-4 grid grid-cols-2 gap-2"><div className="rounded-xl bg-[#F5F6FB] px-3 py-2"><p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Abertas</p><p className="mt-0.5 text-lg font-bold text-[#2F316B]">{openCount}</p></div><div className="rounded-xl bg-[#FDF2FA] px-3 py-2"><p className="text-[10px] font-semibold uppercase tracking-wide text-[#B70A90]">Não lidas</p><p className="mt-0.5 text-lg font-bold text-[#CB0A9F]">{unreadCount}</p></div></div>
-      </header>
-      <div className="px-4 pb-3 pt-4"><div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-[#FAFBFD] px-3 py-3 transition focus-within:border-[#7C7EC0] focus-within:ring-2 focus-within:ring-[#2F316B]/5"><Search size={16} className="shrink-0 text-slate-400"/><input placeholder="Buscar nome ou telefone..." value={search} onChange={e=>setSearch(e.target.value)} className="w-full bg-transparent text-xs outline-none focus-visible:outline-none placeholder:text-slate-400"/><SlidersHorizontal size={15} className="text-slate-400"/></div>
-        <div className="mt-3 flex gap-1 overflow-x-auto pb-1">{['Todas','Minhas','Não lidas','open','pending','closed'].map(value=><button key={value} onClick={()=>setFilter(value)} className={filter===value?'whitespace-nowrap rounded-lg bg-[#2F316B] px-3 py-2 text-[11px] font-semibold text-white shadow-sm':'whitespace-nowrap rounded-lg px-3 py-2 text-[11px] font-medium text-slate-500 transition hover:bg-slate-100'}>{value==='open'?'Abertas':value==='pending'?'Pendentes':value==='closed'?'Encerradas':value}</button>)}</div>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">{filtered.map(item=>{const last=latestMessage(item.id);return <button key={item.id} onClick={()=>setSelectedId(item.id)} className={selectedId===item.id?'relative flex w-full gap-3 border-b border-slate-100 bg-[#F6F5FC] px-4 py-4 text-left':'flex w-full gap-3 border-b border-slate-100/80 px-4 py-4 text-left transition hover:bg-slate-50'}>
-        {selectedId===item.id&&<span className="absolute inset-y-0 left-0 w-[3px] bg-[#CB0A9F]"/>}
-        <div className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E9EAF8] to-[#F9E8F5] text-xs font-bold text-[#2F316B]">{initials(item.contacts?.full_name)}{item.unread_count>0&&<span className="absolute -right-1 -top-1 size-3 rounded-full border-2 border-white bg-[#CB0A9F]"/>}</div>
-        <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><b className="truncate text-[13px] font-semibold text-slate-800">{item.contacts?.full_name??'Contato'}</b><span className="shrink-0 text-[10px] text-slate-400">{time(item.last_message_at)||dateLabel(item.last_message_at)}</span></div><p className="mt-1 truncate text-xs text-slate-500">{previewText(last,item.channel)}</p><div className="mt-2 flex items-center gap-2"><span className="rounded-md bg-slate-100 px-2 py-1 text-[9px] font-medium capitalize text-slate-500">{item.teams?.name??item.channel}</span>{item.ai_mode==='on'&&<span className="rounded-md bg-[#FCEAF7] px-2 py-1 text-[9px] font-semibold text-[#B70A90]">✦ IA atendendo</span>}{item.ai_mode==='handoff'&&<span className="rounded-md bg-amber-50 px-2 py-1 text-[9px] font-semibold text-amber-700">Aguardando atendente</span>}{item.unread_count>0&&<span className="ml-auto rounded-full bg-[#CB0A9F] px-2 py-0.5 text-[10px] font-bold text-white">{item.unread_count}</span>}</div></div>
-      </button>})}
-      {!filtered.length&&<div className="px-6 py-12 text-center"><div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-[#F3F4FA] text-slate-400"><MessageCircle size={22}/></div><p className="mt-4 text-sm font-semibold text-slate-700">Nenhuma conversa encontrada</p><p className="mt-1 text-xs leading-5 text-slate-400">Quando houver novos atendimentos, eles aparecerão aqui.</p></div>}</div>
-      <div className="border-t border-slate-100 px-4 py-3 text-[10px] text-slate-400">Atualização em tempo real · Workspace ativo</div>
+      <ConversationList conversations={conversations} userId={userId} selectedId={selectedId} onSelect={setSelectedId} onRefresh={()=>void loadInbox()} preview={id=>previewText(latestMessage(id),'Nova conversa')} memberNames={memberNames}/>
     </section>
 
     <section className={selectedId ? "flex min-w-0 flex-1 flex-col bg-[#F7F8FC]" : "hidden min-w-0 flex-1 flex-col bg-[#F7F8FC] md:flex"}>
-      <header className="flex min-h-[76px] items-center justify-between border-b border-slate-200/80 bg-white px-5"><div className="flex min-w-0 items-center gap-3">{selected&&<button onClick={()=>setSelectedId("")} className="rounded-lg p-2 text-slate-500 hover:bg-slate-50 md:hidden" title="Voltar para conversas"><ArrowLeft size={18}/></button>}<div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E9EAF8] to-[#F9E8F5] text-xs font-bold text-[#2F316B]">{initials(contact?.full_name)}</div><div className="min-w-0"><p className="truncate text-sm font-bold text-[#25275B]">{contact?.full_name??'Selecione uma conversa'}</p><p className="mt-0.5 truncate text-[11px] text-slate-400">{selected?(`${selected.channel} · ${selected.teams?.name??'Sem equipe'}`):'Sua central de relacionamento'}</p></div></div>
+      <header className="flex min-h-[76px] items-center justify-between border-b border-slate-200/80 bg-white px-5"><div className="flex min-w-0 items-center gap-3">{selected&&<button onClick={()=>setSelectedId("")} className="rounded-lg p-2 text-slate-500 hover:bg-slate-50 md:hidden" title="Voltar para conversas"><ArrowLeft size={18}/></button>}<ContactAvatar contactId={selected?.contact_id} name={contact?.full_name} className="size-10 rounded-full text-xs"/><div className="min-w-0"><p className="truncate text-sm font-bold text-[#25275B]">{contact?.full_name??'Selecione uma conversa'}</p><p className="mt-0.5 truncate text-[11px] text-slate-400">{selected?(`${selected.channel} · ${selected.teams?.name??'Sem equipe'}`):'Sua central de relacionamento'}</p></div></div>
         <div className="flex items-center gap-1 text-slate-400">{selected?.contacts?.phone_e164?<a href={`tel:${selected.contacts.phone_e164}`} className="rounded-lg p-2.5 transition hover:bg-slate-50 hover:text-[#004751]" title="Ligar" aria-label="Ligar para o contato"><Phone size={17}/></a>:<span className="cursor-not-allowed rounded-lg p-2.5 opacity-40" title="Contato sem telefone"><Phone size={17}/></span>}<button onClick={()=>setShowDetails(!showDetails)} className="rounded-lg p-2.5 transition hover:bg-slate-50 hover:text-[#004751]" title="Detalhes"><Info size={17}/></button><div className="relative"><button onClick={()=>setConversationMenuOpen(v=>!v)} aria-label="Mais opções da conversa" aria-expanded={conversationMenuOpen} className="rounded-lg p-2.5 transition hover:bg-slate-50 hover:text-[#004751]" title="Mais opções"><MoreHorizontal size={18}/></button>{conversationMenuOpen&&<><button aria-label="Fechar opções" className="fixed inset-0 z-20 cursor-default" onClick={()=>setConversationMenuOpen(false)}/><div className="absolute right-0 top-11 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-xl"><a href="/contatos" className="block rounded-lg px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50">Abrir contatos</a><a href="/crm" className="block rounded-lg px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50">Abrir CRM</a><a href="/configuracoes" className="block rounded-lg px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50">Configurações</a><button onClick={()=>window.location.reload()} className="w-full rounded-lg px-3 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50">Atualizar Inbox</button><a href="mailto:suporte@tendi.app" className="block rounded-lg px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50">Ajuda e suporte</a></div></>}</div></div>
       </header>
       {selected?<><div className="flex items-center justify-between border-b border-slate-200/70 bg-white/70 px-5 py-2.5"><div className="flex items-center gap-2"><span className="size-2 rounded-full bg-emerald-500"/><span className="text-[11px] font-medium text-slate-500">{statusLabel(selected.status)}</span>{agent?.is_enabled&&<AiControl mode={selected.ai_mode??'off'} agentName={agent.name} saving={aiSaving} onChange={mode=>void setAiMode(selected,mode)}/>}</div><div className="flex items-center gap-2 text-[10px] text-slate-400"><Clock3 size={13}/> Última atividade {time(selected.last_message_at)||'—'}</div></div>
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-7 md:px-8">{thread.length?thread.map(message=><div key={message.id} className={message.direction==='inbound'?'flex justify-start':'flex justify-end'}><div className={message.direction==='internal'?'max-w-[78%] rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm':message.direction==='inbound'?'max-w-[78%] rounded-2xl rounded-tl-md border border-slate-100 bg-white px-4 py-3 shadow-[0_3px_12px_rgba(30,40,80,.04)]':'max-w-[78%] rounded-2xl rounded-tr-md bg-[#2F316B] px-4 py-3 text-white shadow-[0_5px_16px_rgba(47,49,107,.12)]'}>{message.direction==='internal'&&<p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">Nota interna</p>}<SenderTag message={message}/><MessageMedia message={message}/><div className={message.direction==='outbound'?'mt-1 flex items-center justify-end gap-1 text-[10px] text-white/60':'mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-400'}>{time(message.created_at)}{message.direction==='outbound'&&(message.delivery_status==='failed'?<span className="font-semibold text-rose-200">Falha ao enviar</span>:message.delivery_status==='queued'?<Clock3 size={13} aria-label="Na fila"/>:message.delivery_status==='read'?<CheckCheck size={13} className="text-sky-300" aria-label="Lida"/>:message.delivery_status==='delivered'?<CheckCheck size={13} aria-label="Entregue"/>:<Check size={13} aria-label="Enviada"/>)}</div></div></div>):<div className="grid h-full place-items-center text-center"><div><div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-white text-[#A6AAC5] shadow-sm"><MessageCircle size={26}/></div><p className="mt-4 text-sm font-semibold text-slate-600">Conversa sem mensagens</p><p className="mt-1 text-xs text-slate-400">As mensagens recebidas aparecerão neste espaço.</p></div></div>}</div>
+        <div className="relative min-h-0 flex-1"><div ref={threadRef} onScroll={onThreadScroll} className="h-full space-y-5 overflow-y-auto px-5 py-7 md:px-8">{thread.length?thread.map(message=><div key={message.id} className={message.direction==='inbound'?'flex justify-start':'flex justify-end'}><div className={message.direction==='internal'?'max-w-[78%] rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm':message.direction==='inbound'?'max-w-[78%] rounded-2xl rounded-tl-md border border-slate-100 bg-white px-4 py-3 shadow-[0_3px_12px_rgba(30,40,80,.04)]':'max-w-[78%] rounded-2xl rounded-tr-md bg-[#2F316B] px-4 py-3 text-white shadow-[0_5px_16px_rgba(47,49,107,.12)]'}>{message.direction==='internal'&&<p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">Nota interna</p>}<SenderTag message={message}/><MessageMedia message={message}/><div className={message.direction==='outbound'?'mt-1 flex items-center justify-end gap-1 text-[10px] text-white/60':'mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-400'}>{time(message.created_at)}{message.direction==='outbound'&&(message.delivery_status==='failed'?<span className="font-semibold text-rose-200">Falha ao enviar</span>:message.delivery_status==='queued'?<Clock3 size={13} aria-label="Na fila"/>:message.delivery_status==='read'?<CheckCheck size={13} className="text-sky-300" aria-label="Lida"/>:message.delivery_status==='delivered'?<CheckCheck size={13} aria-label="Entregue"/>:<Check size={13} aria-label="Enviada"/>)}</div></div></div>):<div className="grid h-full place-items-center text-center"><div><div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-white text-[#A6AAC5] shadow-sm"><MessageCircle size={26}/></div><p className="mt-4 text-sm font-semibold text-slate-600">Conversa sem mensagens</p><p className="mt-1 text-xs text-slate-400">As mensagens recebidas aparecerão neste espaço.</p></div></div>}</div>
+        {!atBottom&&<button type="button" onClick={()=>{scrollToBottom();setNewSince(0);}} aria-label="Ir para a última mensagem" title="Ir para a última mensagem" className="absolute bottom-4 right-5 flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white text-[#1D1F4E] shadow-lg shadow-slate-900/10 transition hover:-translate-y-0.5 hover:bg-slate-50 md:right-8"><ChevronDown size={20}/>{newSince>0&&<span className="absolute -right-1 -top-1 min-w-[20px] rounded-full bg-rose-600 px-1.5 text-[11px] font-bold leading-5 text-white">{newSince}</span>}</button>}</div>
         <Composer conversation={selected} onSent={()=>loadInbox()} onError={setError}/>
       </>:<div className="grid flex-1 place-items-center p-8 text-center"><div className="max-w-sm"><div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-white text-[#B0B5CF] shadow-sm"><MessageCircle size={30}/></div><p className="mt-5 text-base font-bold text-[#2F316B]">Seu atendimento começa aqui</p><p className="mt-2 text-sm leading-6 text-slate-400">Selecione uma conversa na lista para visualizar o histórico e continuar o relacionamento.</p><div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-[10px] font-medium text-slate-500 shadow-sm"><Sparkles size={13} className="text-[#CB0A9F]"/> Central de atendimento Tendi</div></div></div>}
       {error&&<div className="border-t border-red-100 bg-red-50 px-4 py-2 text-xs text-red-700">{error}</div>}
