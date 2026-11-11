@@ -44,7 +44,7 @@ describe('texto', () => {
     const db = make(); const send = okSend();
     const r = await sendWhatsappText(db as any, input({ text: '  Olá! ' }), send as any);
     expect(r.status).toBe(200);
-    expect(send).toHaveBeenCalledWith('/messages/send/text', { sessionId: 'tendi-x-2', to: '5511999990000', text: 'Olá!' }, undefined);
+    expect(send).toHaveBeenCalledWith('/messages/send/text', { sessionId: 'tendi-x-2', to: '5511999990000', text: '*Maria:*\nOlá!' }, undefined);
     expect(db.t.messages[0]).toMatchObject({ direction: 'outbound', message_type: 'text', body: 'Olá!', delivery_status: 'sent', provider_message_id: '3EB0ABC', sender_id: 'u1', provider: 'd-api' });
     expect(db.t.messages[0].payload.sender).toMatchObject({ type: 'human', name: 'Maria' });
     expect(db.t.conversations[0].status).toBe('open');
@@ -81,7 +81,7 @@ describe('anexos', () => {
     const r = await sendWhatsappText(db as any, input({ text: 'Segue a foto', attachment: att() }), send as any, db as any, sign);
     expect(r.status).toBe(200);
     expect(sign).toHaveBeenCalledWith(`${ORG}/${CID}/u1-foto.jpg`);
-    expect(send).toHaveBeenCalledWith('/messages/send/image', { sessionId: 'tendi-x-2', to: '5511999990000', image: `https://signed.example/${ORG}/${CID}/u1-foto.jpg`, caption: 'Segue a foto' }, { timeoutMs: 55_000 });
+    expect(send).toHaveBeenCalledWith('/messages/send/image', { sessionId: 'tendi-x-2', to: '5511999990000', image: `https://signed.example/${ORG}/${CID}/u1-foto.jpg`, caption: '*Maria:*\nSegue a foto' }, { timeoutMs: 55_000 });
     expect(db.t.messages[0]).toMatchObject({ message_type: 'image', body: 'Segue a foto', delivery_status: 'sent' });
     expect(db.t.messages[0].payload.media).toMatchObject({ path: `${ORG}/${CID}/u1-foto.jpg`, mimetype: 'image/jpeg', filename: 'foto.jpg', size: 2048 });
   });
@@ -143,5 +143,22 @@ describe('helpers', () => {
     expect(pickProviderMessageId({ ok: 1 })).toBeNull();
     expect(friendlySendError('Session not found')).toMatch(/Reconecte/);
     expect(friendlySendError('not connected')).toMatch(/desconectado/);
+  });
+});
+
+
+describe('assinatura no WhatsApp', () => {
+  it('assinatura desligada envia o texto puro', async () => {
+    const db = make({ conn: { settings: { signature: { enabled: false } } } }); const send = okSend();
+    await sendWhatsappText(db as any, input({ text: 'Oi' }), send as any);
+    expect((send.mock.calls[0] as any)[1].text).toBe('Oi');
+  });
+
+  it('formato nome e setor usa o setor da conversa; no Inbox o texto fica sem prefixo', async () => {
+    const db = make({ conn: { settings: { signature: { enabled: true, format: 'name_team' } } }, conv: { teams: { name: 'Suporte' } } }); const send = okSend();
+    await sendWhatsappText(db as any, input({ text: 'Olá ...', senderName: 'Ana Souza' }), send as any);
+    expect((send.mock.calls[0] as any)[1].text).toBe('*Ana · Suporte:*\nOlá ...');
+    expect(db.t.messages[0]).toMatchObject({ body: 'Olá ...' });
+    expect(db.t.messages[0].payload.signature).toBe('Ana · Suporte');
   });
 });

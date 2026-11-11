@@ -44,3 +44,9 @@
 - Convite: conta nova recebe o e-mail de convite do Supabase e fica "pendente" até abrir o link; no primeiro acesso o vínculo é ativado e a pessoa cria a senha em `/definir-senha`. Quem já tem conta entra direto.
 - Usuários (ativos + pendentes) respeitam `subscription_plans.max_attendants` (Start 4, Pro 10).
 - Ao remover alguém, as conversas atribuídas a essa pessoa voltam para a fila.
+
+## 2026-11-15 — Assinatura das mensagens no WhatsApp
+
+- O texto enviado ao WhatsApp ganha o nome de quem respondeu em negrito no topo (`*Ana:*`), para atendente e para o agente de IA. No Inbox a mensagem fica sem o prefixo (o Inbox já mostra o remetente) e o nome fica em `payload.signature`.
+- Configuração por workspace em `channel_connections.settings.signature` (Configurações › Assinatura no WhatsApp, só dono/admin): ligada por padrão, formato primeiro nome / nome completo / nome e setor, e opção de mostrar "assistente virtual" junto do nome da IA.
+- O nome do atendente vem do perfil; cada pessoa ajusta o próprio nome pela caixa de mensagem do Inbox. Áudios não levam assinatura (o WhatsApp não aceita legenda em áudio).

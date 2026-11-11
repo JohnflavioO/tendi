@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FileText, Loader2, Paperclip, Send, Smile, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { EmojiPicker } from '@/components/inbox/emoji-picker';
+import { SenderName } from '@/components/inbox/sender-name';
 import { VoiceRecorder, type RecordedAudio } from '@/components/inbox/voice-recorder';
 import {
   ATTACHMENT_ACCEPT, KIND_LABEL, MAX_CAPTION_LENGTH, MEDIA_BUCKET, buildStoragePath, checkFileBeforeUpload,
@@ -113,6 +114,6 @@ export function Composer({ conversation, onSent, onError }: {
         <button disabled={sending || (!draft.trim() && !pending)} className="flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#003B44] disabled:cursor-not-allowed disabled:opacity-40">{sending ? <Loader2 className="animate-spin" size={15} /> : <Send size={15} />}Enviar</button>
       </div>
     </div>
-    <p className="mt-2 px-1 text-[10px] text-slate-400">As respostas saem pelo WhatsApp conectado deste workspace.</p>
+    <SenderName />
   </form>;
 }
