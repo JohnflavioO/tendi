@@ -13,6 +13,7 @@ import { MAX_CAPTION_LENGTH, buildDapiMediaRequest, validateAttachment } from '.
  * mensagem como enviada. A leitura com o cliente do usuário já prova que ele tem acesso.
  *
  * Identificação de quem enviou: payload.sender = { type: 'human' | 'ai' | 'phone', name }.
+ * Quando o atendente envia, a conversa sai do modo IA (ai_mode = 'off'): o humano assumiu.
  *
  * Anexos: o arquivo já está no Storage (enviado pelo navegador). Aqui validamos o caminho,
  * geramos um link temporário assinado (`signUrl`) e pedimos à D-API que envie a mídia.
@@ -172,9 +173,10 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
       // Ex.: o id já existe em outra linha. Mantém a mensagem como enviada, sem o id.
       update = await writeDb.from('messages').update(sentPatch).eq('id', messageRowId);
     }
+    // Atendente respondeu: assume a conversa e a IA para de responder (pode ser religada no Inbox).
     await writeDb
       .from('conversations')
-      .update({ last_message_at: new Date().toISOString(), status: 'open' })
+      .update({ last_message_at: new Date().toISOString(), status: 'open', ai_mode: 'off' })
       .eq('id', conversation.id);
 
     return {

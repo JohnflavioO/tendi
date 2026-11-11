@@ -26,7 +26,12 @@ export type DapiEnvelope = {
   data: Json;
 };
 
-export type ProcessResult = { handled: boolean; reason?: string };
+export type ProcessResult = {
+  handled: boolean;
+  reason?: string;
+  /** Mensagem nova do cliente numa conversa com a IA ligada: o chamador agenda a resposta automática. */
+  aiTrigger?: { organizationId: string; conversationId: string; messageId: string };
+};
 
 export const DAPI_PROVIDER = 'd-api';
 const HISTORY_WINDOW_MS = 10 * 60 * 1000;
@@ -140,13 +145,28 @@ async function ensureContact(db: Db, organizationId: string, phone: string, name
   return { id: (inserted.data as { id: string }).id, created: true };
 }
 
-type ConversationRow = { id: string; status: string; unread_count: number; last_message_at: string | null };
+type ConversationRow = { id: string; status: string; unread_count: number; last_message_at: string | null; ai_mode?: string | null };
+
+/** Conversa nova já nasce com a IA ligada quando o agente da empresa está liberado e configurado para isso. */
+async function initialAiMode(db: Db, organizationId: string): Promise<'on' | 'off'> {
+  try {
+    const result = await db
+      .from('ai_agents')
+      .select('is_enabled,auto_enable_new_conversations')
+      .eq('organization_id', organizationId)
+      .maybeSingle();
+    const agent = result.data as { is_enabled?: boolean; auto_enable_new_conversations?: boolean } | null;
+    return agent?.is_enabled && agent.auto_enable_new_conversations ? 'on' : 'off';
+  } catch {
+    return 'off';
+  }
+}
 
 async function ensureConversation(db: Db, organizationId: string, contactId: string, nowIso: string): Promise<ConversationRow> {
   const existing = must<ConversationRow>(
     await db
       .from('conversations')
-      .select('id,status,unread_count,last_message_at')
+      .select('id,status,unread_count,last_message_at,ai_mode')
       .eq('organization_id', organizationId)
       .eq('contact_id', contactId)
       .eq('channel', 'whatsapp')
@@ -168,8 +188,9 @@ async function ensureConversation(db: Db, organizationId: string, contactId: str
         status: 'open',
         unread_count: 0,
         last_message_at: nowIso,
+        ai_mode: await initialAiMode(db, organizationId),
       })
-      .select('id,status,unread_count,last_message_at')
+      .select('id,status,unread_count,last_message_at,ai_mode')
       .single(),
     'conversations.insert',
   );
@@ -270,6 +291,7 @@ async function handleMessageReceived(
     .select('id');
   if (inserted.error) throw new Error(`messages.insert: ${inserted.error.message}`);
   if (!inserted.data || inserted.data.length === 0) return { handled: true, reason: 'duplicate' };
+  const insertedId = (inserted.data[0] as { id?: string } | undefined)?.id ?? null;
 
   // Atualiza a conversa. Mensagens antigas (sincronização de histórico) não contam como "não lidas".
   const isFresh = Date.now() - Date.parse(sentAt) < HISTORY_WINDOW_MS;
@@ -296,6 +318,11 @@ async function handleMessageReceived(
     } catch (error) {
       console.warn('[D-API webhook] lead não criado', { sessionId, traceId, message: error instanceof Error ? error.message : String(error) });
     }
+  }
+
+  // IA: só responde mensagem nova do cliente (nunca histórico sincronizado nem o que a empresa enviou).
+  if (!fromMe && isFresh && insertedId && conversation.ai_mode === 'on') {
+    return { handled: true, aiTrigger: { organizationId, conversationId: conversation.id, messageId: insertedId } };
   }
   return { handled: true };
 }
