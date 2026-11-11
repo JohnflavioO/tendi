@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { MAX_CAPTION_LENGTH, buildDapiMediaRequest, validateAttachment } from './inbox-attachments';
+import { humanSigner, normalizeSignature, signText } from './signature';
 
 /**
  * Envio de resposta do Inbox pelo WhatsApp (D-API, Fase 4).
@@ -14,6 +15,8 @@ import { MAX_CAPTION_LENGTH, buildDapiMediaRequest, validateAttachment } from '.
  *
  * Identificação de quem enviou: payload.sender = { type: 'human' | 'ai' | 'phone', name }.
  * Quando o atendente envia, a conversa sai do modo IA (ai_mode = 'off'): o humano assumiu.
+ * Assinatura: o texto que vai ao WhatsApp ganha o nome do atendente em negrito ("*Ana:*"), conforme a
+ * configuração do workspace (channel_connections.settings.signature). No Inbox o texto fica sem o prefixo.
  *
  * Anexos: o arquivo já está no Storage (enviado pelo navegador). Aqui validamos o caminho,
  * geramos um link temporário assinado (`signUrl`) e pedimos à D-API que envie a mídia.
@@ -82,7 +85,7 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
 
   const conversationResult = await db
     .from('conversations')
-    .select('id,organization_id,channel,contacts(phone_e164)')
+    .select('id,organization_id,channel,contacts(phone_e164),teams(name)')
     .eq('id', input.conversationId)
     .maybeSingle();
   if (conversationResult.error) return fail(500, 'Não foi possível consultar a conversa.');
@@ -91,6 +94,7 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
     organization_id: string;
     channel: string;
     contacts: { phone_e164: string | null } | Array<{ phone_e164: string | null }> | null;
+    teams?: { name: string } | Array<{ name: string }> | null;
   } | null;
   if (!conversation) return fail(404, 'Conversa não encontrada.');
   if (conversation.channel !== 'whatsapp') return fail(422, 'Esta conversa não é do WhatsApp.');
@@ -101,12 +105,12 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
 
   const connectionResult = await db
     .from('channel_connections')
-    .select('provider_account_id,status')
+    .select('provider_account_id,status,settings')
     .eq('organization_id', conversation.organization_id)
     .eq('channel', 'whatsapp')
     .maybeSingle();
   if (connectionResult.error) return fail(500, 'Não foi possível consultar a conexão do WhatsApp.');
-  const connection = connectionResult.data as { provider_account_id: string | null; status: string } | null;
+  const connection = connectionResult.data as { provider_account_id: string | null; status: string; settings?: unknown } | null;
   if (!connection?.provider_account_id || connection.status !== 'connected') {
     return fail(409, 'O WhatsApp deste workspace não está conectado. Conecte o número em Chatbots.');
   }
@@ -127,9 +131,15 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
   // 1) Registra a mensagem como "queued" para ela aparecer na hora no Inbox.
   const now = new Date().toISOString();
   const senderName = asString(input.senderName) ?? 'Atendente';
+  const signature = normalizeSignature(connection.settings);
+  const team = Array.isArray(conversation.teams) ? conversation.teams[0] : conversation.teams;
+  const signer = signature.enabled ? humanSigner({ name: senderName, team: team?.name, format: signature.format }) : '';
+  // Texto e legenda que vão ao WhatsApp (áudio não tem legenda, então não leva assinatura).
+  const outgoing = text ? signText(text, signer) : text;
   const basePayload = {
     source: 'inbox',
     sender: { type: 'human', name: senderName, user_id: input.userId },
+    ...(signer && text ? { signature: signer } : {}),
     ...(media ? { media: { path: media.path, mimetype: media.mimetype, filename: media.filename, size: media.size, voice: media.voice === true } } : {}),
   };
   const inserted = await writeDb
@@ -154,8 +164,8 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
   // 2) Envia pela D-API.
   try {
     const request = media && mediaUrl
-      ? buildDapiMediaRequest(media, { sessionId: connection.provider_account_id, to: phone, url: mediaUrl, caption: text || null })
-      : { path: '/messages/send/text', body: { sessionId: connection.provider_account_id, to: phone, text } };
+      ? buildDapiMediaRequest(media, { sessionId: connection.provider_account_id, to: phone, url: mediaUrl, caption: outgoing || null })
+      : { path: '/messages/send/text', body: { sessionId: connection.provider_account_id, to: phone, text: outgoing } };
     // Mídia pode demorar mais que texto (a D-API baixa e reenvia o arquivo).
     const response = await send(request.path, request.body, media ? { timeoutMs: 55_000 } : undefined);
     const providerMessageId = pickProviderMessageId(response);

@@ -70,7 +70,7 @@ describe('runAiAutoReply', () => {
     expect(call).toMatchObject({ provider: 'anthropic', model: 'claude-haiku-5-5', apiKey: 'sk-ant-test' });
     expect(call.system).toContain('Clínica Sorriso');
     expect(call.messages).toEqual([{ role: 'user', content: 'Oi' }, { role: 'user', content: 'Quanto custa a limpeza?' }]);
-    expect(send).toHaveBeenCalledWith('/messages/send/text', { sessionId: 'sess-1', to: '5585999990000', text: 'A limpeza custa R$ 150.' });
+    expect(send).toHaveBeenCalledWith('/messages/send/text', { sessionId: 'sess-1', to: '5585999990000', text: '*Bia:*\nA limpeza custa R$ 150.' });
     const sent = db.t.messages.find(m => m.direction === 'outbound')!;
     expect(sent).toMatchObject({ delivery_status: 'sent', provider_message_id: 'WA-1', body: 'A limpeza custa R$ 150.' });
     expect(sent.payload.sender).toEqual({ type: 'ai', name: 'Bia' });
@@ -115,7 +115,7 @@ describe('runAiAutoReply', () => {
   it('marcador de transferência: envia o texto sem o marcador e passa a conversa para um atendente', async () => {
     const { db, run, send } = setup({ reply: `Vou chamar alguém da equipe.\n${HANDOFF_MARKER}` });
     expect(await run()).toEqual({ status: 'handoff' });
-    expect((send.mock.calls[0] as any)[1].text).toBe('Vou chamar alguém da equipe.');
+    expect((send.mock.calls[0] as any)[1].text).toBe('*Bia:*\nVou chamar alguém da equipe.');
     expect(db.t.conversations[0].ai_mode).toBe('handoff');
     expect(db.t.ai_usage_events[0].outcome).toBe('handoff');
   });
@@ -123,7 +123,7 @@ describe('runAiAutoReply', () => {
   it('recusa do modelo vira transferência com a mensagem padrão da empresa', async () => {
     const { db, run, send } = setup({ refused: true, reply: '' });
     expect(await run()).toEqual({ status: 'handoff' });
-    expect((send.mock.calls[0] as any)[1].text).toBe('Já chamo alguém da equipe!');
+    expect((send.mock.calls[0] as any)[1].text).toBe('*Bia:*\nJá chamo alguém da equipe!');
     expect(db.t.conversations[0].ai_mode).toBe('handoff');
   });
 
@@ -221,5 +221,19 @@ describe('limite mensal da empresa', () => {
     await run();
     // claude-haiku-5-5: 900 tokens de entrada a US$ 0,10/M + 40 de saída a US$ 0,50/M
     expect(db.t.ai_usage_events.at(-1)).toMatchObject({ outcome: 'replied', cost_usd: 0.00011 });
+  });
+});
+
+
+describe('assinatura da IA', () => {
+  it('pode mostrar "assistente virtual" ou ser desligada', async () => {
+    const withSuffix = setup();
+    withSuffix.db.t.channel_connections[0]!.settings = { signature: { aiSuffix: true } };
+    await withSuffix.run();
+    expect((withSuffix.send.mock.calls[0] as any)[1].text).toBe('*Bia · assistente virtual:*\nA limpeza custa R$ 150.');
+    const off = setup();
+    off.db.t.channel_connections[0]!.settings = { signature: { enabled: false } };
+    await off.run();
+    expect((off.send.mock.calls[0] as any)[1].text).toBe('A limpeza custa R$ 150.');
   });
 });

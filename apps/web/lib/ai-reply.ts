@@ -7,6 +7,7 @@ import type { ChatTurn, GenerateFn } from './ai-llm';
 import { friendlyAiError } from './ai-llm';
 import { friendlySendError, pickProviderMessageId, type SendFn } from './inbox-send';
 import { isTrialExpired } from './trial';
+import { aiSigner, normalizeSignature, signText } from './signature';
 import { monthStartIso, normalizeLimits, normalizePricing, resolveMonthlyLimit, estimateCostUsd } from './ai-limits';
 
 /**
@@ -244,7 +245,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   const phone = text(contact?.phone_e164).replace(/\D/g, '');
   const connection = await db
     .from('channel_connections')
-    .select('provider_account_id,status')
+    .select('provider_account_id,status,settings')
     .eq('organization_id', organizationId)
     .eq('channel', 'whatsapp')
     .maybeSingle();
@@ -252,7 +253,9 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   if (!/^\d{8,15}$/.test(phone)) return fail('O contato não tem um número de WhatsApp válido.', tokens);
   if (!sessionId || connection.data?.status !== 'connected') return fail('WhatsApp da empresa desconectado.', tokens);
 
-  const basePayload = { source: 'ai', sender: { type: 'ai', name: agent.name }, ai: { provider, model, handoff: parsed.handoff } };
+  const signature = normalizeSignature(connection.data?.settings);
+  const signer = signature.enabled ? aiSigner(agent.name, signature.aiSuffix) : '';
+  const basePayload = { source: 'ai', sender: { type: 'ai', name: agent.name }, ...(signer ? { signature: signer } : {}), ai: { provider, model, handoff: parsed.handoff } };
   const inserted = await db
     .from('messages')
     .insert({
@@ -272,7 +275,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   const rowId = (inserted.data as { id: string }).id;
 
   try {
-    const response = await deps.send('/messages/send/text', { sessionId, to: phone, text: reply });
+    const response = await deps.send('/messages/send/text', { sessionId, to: phone, text: signText(reply, signer) });
     const providerMessageId = pickProviderMessageId(response);
     const patch = { delivery_status: 'sent', sent_at: now().toISOString() };
     const update = await db.from('messages').update(providerMessageId ? { ...patch, provider_message_id: providerMessageId } : patch).eq('id', rowId);
