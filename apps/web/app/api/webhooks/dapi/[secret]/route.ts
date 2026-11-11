@@ -1,10 +1,39 @@
 import { NextResponse } from 'next/server';
 import { timingSafeEqual } from 'node:crypto';
-import { createClient } from '@supabase/supabase-js';
-import { getDapiWebhookSecret } from '@/lib/dapi';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { waitUntil } from '@vercel/functions';
+import { dapiRequest, getDapiWebhookSecret } from '@/lib/dapi';
 import { processDapiEvent } from '@/lib/dapi-webhook';
+import { runAiAutoReply, type AiTrigger } from '@/lib/ai-reply';
+import { generateReply } from '@/lib/ai-llm';
+import { resolveProviderKey } from '@/lib/ai-keys';
 
 export const dynamic = 'force-dynamic';
+// A resposta da IA roda depois do 200 (waitUntil): espera curta + chamada ao modelo + envio.
+export const maxDuration = 60;
+
+type Db = SupabaseClient<any, any, any>;
+
+/** Resposta automática da IA. Nunca derruba o webhook: erros só vão para o log. */
+async function replyWithAi(db: Db, trigger: AiTrigger) {
+  try {
+    const result = await runAiAutoReply(db as any, trigger, {
+      generate: generateReply,
+      resolveKey: provider => resolveProviderKey(db as any, provider),
+      send: (path, body, options) => dapiRequest<unknown>(path, {
+        method: 'POST',
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(options?.timeoutMs ?? 20_000),
+      }),
+    });
+    console.info('[IA] resposta automática', { conversationId: trigger.conversationId, ...result });
+  } catch (error) {
+    console.error('[IA] falha na resposta automática', {
+      conversationId: trigger.conversationId,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
 
 type Context = { params: { secret: string } };
 
@@ -72,7 +101,9 @@ export async function POST(request: Request, { params }: Context) {
   if (!HANDLED_EVENTS.has(event)) return ack({ handled: false, reason: 'event_not_handled' });
 
   try {
-    const result = await processDapiEvent(adminClient(), { event, sessionId, traceId, data });
+    const db = adminClient();
+    const result = await processDapiEvent(db, { event, sessionId, traceId, data });
+    if (result.aiTrigger) waitUntil(replyWithAi(db, result.aiTrigger));
     console.info('[D-API webhook]', {
       event,
       sessionId,

@@ -17,7 +17,7 @@ import { mergeMessages, previewText, statusLabel } from '@/lib/inbox-utils';
 type Org = { id: string; name: string };
 type Contact = { id: string; full_name: string; phone_e164: string | null; email: string | null; tags: string[]; opt_in: boolean };
 type Team = { id: string; name: string; color: string };
-type Conversation = { id: string; organization_id: string; contact_id: string; team_id: string | null; assigned_to: string | null; channel: string; status: string; unread_count: number; last_message_at: string | null; contacts: Contact | null; teams: Team | null };
+type Conversation = { id: string; organization_id: string; contact_id: string; team_id: string | null; assigned_to: string | null; channel: string; status: string; unread_count: number; last_message_at: string | null; ai_mode?: 'off' | 'on' | 'handoff' | null; contacts: Contact | null; teams: Team | null };
 type Message = { id: string; conversation_id: string; direction: 'inbound' | 'outbound' | 'internal'; message_type: string; body: string | null; created_at: string; delivery_status: string; sender_id: string | null; payload: Record<string, unknown> | null };
 
 const nav = [
@@ -49,6 +49,14 @@ function SenderTag({ message }: { message: Message }) {
   return <p className={label.ai ? 'mb-1 text-[10px] font-semibold text-fuchsia-200' : 'mb-1 text-[10px] font-semibold text-white/70'}>{label.ai ? '✦ ' : ''}{label.text}</p>;
 }
 
+// Liga/desliga a IA na conversa. 'handoff' = a IA pediu um atendente humano e parou de responder.
+function AiControl({ mode, agentName, saving, onChange }: { mode: string; agentName: string; saving: boolean; onChange: (mode: 'on' | 'off') => void }) {
+  const base = 'ml-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold transition disabled:opacity-50';
+  if (mode === 'on') return <button disabled={saving} onClick={() => onChange('off')} title="A IA está respondendo esta conversa. Clique para assumir e desligar." className={`${base} bg-[#FCEAF7] text-[#B70A90] hover:bg-[#F8D9EF]`}><Sparkles size={12}/>{agentName} atendendo · Desligar IA</button>;
+  if (mode === 'handoff') return <button disabled={saving} onClick={() => onChange('on')} title="A IA pediu um atendente. Responda o cliente ou devolva a conversa para a IA." className={`${base} bg-amber-50 text-amber-700 hover:bg-amber-100`}><Sparkles size={12}/>IA pediu um atendente · Devolver para a IA</button>;
+  return <button disabled={saving} onClick={() => onChange('on')} title="Deixar o agente de IA responder esta conversa." className={`${base} border border-slate-200 bg-white text-slate-500 hover:border-[#CB0A9F]/30 hover:text-[#B70A90]`}><Sparkles size={12}/>Ligar IA</button>;
+}
+
 export default function InboxPage() {
   const supabase = createClient() as any;
   const [userId, setUserId] = useState('');
@@ -64,6 +72,8 @@ export default function InboxPage() {
   const [showDetails, setShowDetails] = useState(true);
   const [conversationMenuOpen, setConversationMenuOpen] = useState(false);
   const [tabVisible, setTabVisible] = useState(true);
+  const [agent, setAgent] = useState<{ name: string; is_enabled: boolean } | null>(null);
+  const [aiSaving, setAiSaving] = useState(false);
   const selectedRef = useRef('');
 
   const loadOrganizations = useCallback(async () => {
@@ -91,7 +101,7 @@ export default function InboxPage() {
     setError('');
     const { data, error: conversationError } = await supabase
       .from('conversations')
-      .select('id,organization_id,contact_id,team_id,assigned_to,channel,status,unread_count,last_message_at,contacts(id,full_name,phone_e164,email,tags,opt_in),teams(id,name,color)')
+      .select('id,organization_id,contact_id,team_id,assigned_to,channel,status,unread_count,last_message_at,ai_mode,contacts(id,full_name,phone_e164,email,tags,opt_in),teams(id,name,color)')
       .eq('organization_id', organizationId)
       .order('last_message_at', { ascending: false, nullsFirst: false });
     if (conversationError) throw conversationError;
@@ -120,6 +130,22 @@ export default function InboxPage() {
 
   useEffect(() => { void loadOrganizations().catch(err => { setError(err.message); setLoading(false); }); }, [loadOrganizations]);
   useEffect(() => { if (organizationId) void loadInbox().catch(err => setError(err.message)); }, [organizationId, loadInbox]);
+  // Agente de IA da empresa (liberado pelo Super Admin). Sem agente liberado, o controle de IA não aparece.
+  useEffect(() => {
+    if (!organizationId) return;
+    let active = true;
+    void supabase.from('ai_agents').select('name,is_enabled').eq('organization_id', organizationId).maybeSingle()
+      .then(({ data }: any) => { if (active) setAgent(data ? { name: data.name, is_enabled: Boolean(data.is_enabled) } : null); });
+    return () => { active = false; };
+  }, [organizationId, supabase]);
+
+  async function setAiMode(conversation: Conversation, mode: 'on' | 'off') {
+    setAiSaving(true);
+    const { error: updateError } = await supabase.from('conversations').update({ ai_mode: mode }).eq('id', conversation.id).eq('organization_id', conversation.organization_id);
+    setAiSaving(false);
+    if (updateError) { setError(updateError.message); return; }
+    setConversations(current => current.map(item => item.id === conversation.id ? { ...item, ai_mode: mode } : item));
+  }
   useEffect(() => {
     if (!organizationId) return;
     const channel = supabase.channel(`tendi-inbox-${organizationId}`)
@@ -195,7 +221,7 @@ export default function InboxPage() {
       <div className="min-h-0 flex-1 overflow-y-auto">{filtered.map(item=>{const last=latestMessage(item.id);return <button key={item.id} onClick={()=>setSelectedId(item.id)} className={selectedId===item.id?'relative flex w-full gap-3 border-b border-slate-100 bg-[#F6F5FC] px-4 py-4 text-left':'flex w-full gap-3 border-b border-slate-100/80 px-4 py-4 text-left transition hover:bg-slate-50'}>
         {selectedId===item.id&&<span className="absolute inset-y-0 left-0 w-[3px] bg-[#CB0A9F]"/>}
         <div className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E9EAF8] to-[#F9E8F5] text-xs font-bold text-[#2F316B]">{initials(item.contacts?.full_name)}{item.unread_count>0&&<span className="absolute -right-1 -top-1 size-3 rounded-full border-2 border-white bg-[#CB0A9F]"/>}</div>
-        <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><b className="truncate text-[13px] font-semibold text-slate-800">{item.contacts?.full_name??'Contato'}</b><span className="shrink-0 text-[10px] text-slate-400">{time(item.last_message_at)||dateLabel(item.last_message_at)}</span></div><p className="mt-1 truncate text-xs text-slate-500">{previewText(last,item.channel)}</p><div className="mt-2 flex items-center gap-2"><span className="rounded-md bg-slate-100 px-2 py-1 text-[9px] font-medium capitalize text-slate-500">{item.teams?.name??item.channel}</span>{item.unread_count>0&&<span className="ml-auto rounded-full bg-[#CB0A9F] px-2 py-0.5 text-[10px] font-bold text-white">{item.unread_count}</span>}</div></div>
+        <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><b className="truncate text-[13px] font-semibold text-slate-800">{item.contacts?.full_name??'Contato'}</b><span className="shrink-0 text-[10px] text-slate-400">{time(item.last_message_at)||dateLabel(item.last_message_at)}</span></div><p className="mt-1 truncate text-xs text-slate-500">{previewText(last,item.channel)}</p><div className="mt-2 flex items-center gap-2"><span className="rounded-md bg-slate-100 px-2 py-1 text-[9px] font-medium capitalize text-slate-500">{item.teams?.name??item.channel}</span>{item.ai_mode==='on'&&<span className="rounded-md bg-[#FCEAF7] px-2 py-1 text-[9px] font-semibold text-[#B70A90]">✦ IA atendendo</span>}{item.ai_mode==='handoff'&&<span className="rounded-md bg-amber-50 px-2 py-1 text-[9px] font-semibold text-amber-700">Aguardando atendente</span>}{item.unread_count>0&&<span className="ml-auto rounded-full bg-[#CB0A9F] px-2 py-0.5 text-[10px] font-bold text-white">{item.unread_count}</span>}</div></div>
       </button>})}
       {!filtered.length&&<div className="px-6 py-12 text-center"><div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-[#F3F4FA] text-slate-400"><MessageCircle size={22}/></div><p className="mt-4 text-sm font-semibold text-slate-700">Nenhuma conversa encontrada</p><p className="mt-1 text-xs leading-5 text-slate-400">Quando houver novos atendimentos, eles aparecerão aqui.</p></div>}</div>
       <div className="border-t border-slate-100 px-4 py-3 text-[10px] text-slate-400">Atualização em tempo real · Workspace ativo</div>
@@ -205,7 +231,7 @@ export default function InboxPage() {
       <header className="flex min-h-[76px] items-center justify-between border-b border-slate-200/80 bg-white px-5"><div className="flex min-w-0 items-center gap-3">{selected&&<button onClick={()=>setSelectedId("")} className="rounded-lg p-2 text-slate-500 hover:bg-slate-50 md:hidden" title="Voltar para conversas"><ArrowLeft size={18}/></button>}<div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E9EAF8] to-[#F9E8F5] text-xs font-bold text-[#2F316B]">{initials(contact?.full_name)}</div><div className="min-w-0"><p className="truncate text-sm font-bold text-[#25275B]">{contact?.full_name??'Selecione uma conversa'}</p><p className="mt-0.5 truncate text-[11px] text-slate-400">{selected?(`${selected.channel} · ${selected.teams?.name??'Sem equipe'}`):'Sua central de relacionamento'}</p></div></div>
         <div className="flex items-center gap-1 text-slate-400">{selected?.contacts?.phone_e164?<a href={`tel:${selected.contacts.phone_e164}`} className="rounded-lg p-2.5 transition hover:bg-slate-50 hover:text-[#004751]" title="Ligar" aria-label="Ligar para o contato"><Phone size={17}/></a>:<span className="cursor-not-allowed rounded-lg p-2.5 opacity-40" title="Contato sem telefone"><Phone size={17}/></span>}<button onClick={()=>setShowDetails(!showDetails)} className="rounded-lg p-2.5 transition hover:bg-slate-50 hover:text-[#004751]" title="Detalhes"><Info size={17}/></button><div className="relative"><button onClick={()=>setConversationMenuOpen(v=>!v)} aria-label="Mais opções da conversa" aria-expanded={conversationMenuOpen} className="rounded-lg p-2.5 transition hover:bg-slate-50 hover:text-[#004751]" title="Mais opções"><MoreHorizontal size={18}/></button>{conversationMenuOpen&&<><button aria-label="Fechar opções" className="fixed inset-0 z-20 cursor-default" onClick={()=>setConversationMenuOpen(false)}/><div className="absolute right-0 top-11 z-30 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-xl"><a href="/contatos" className="block rounded-lg px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50">Abrir contatos</a><a href="/crm" className="block rounded-lg px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50">Abrir CRM</a><a href="/configuracoes" className="block rounded-lg px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50">Configurações</a><button onClick={()=>window.location.reload()} className="w-full rounded-lg px-3 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50">Atualizar Inbox</button><a href="mailto:suporte@tendi.app" className="block rounded-lg px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50">Ajuda e suporte</a></div></>}</div></div>
       </header>
-      {selected?<><div className="flex items-center justify-between border-b border-slate-200/70 bg-white/70 px-5 py-2.5"><div className="flex items-center gap-2"><span className="size-2 rounded-full bg-emerald-500"/><span className="text-[11px] font-medium text-slate-500">{statusLabel(selected.status)}</span></div><div className="flex items-center gap-2 text-[10px] text-slate-400"><Clock3 size={13}/> Última atividade {time(selected.last_message_at)||'—'}</div></div>
+      {selected?<><div className="flex items-center justify-between border-b border-slate-200/70 bg-white/70 px-5 py-2.5"><div className="flex items-center gap-2"><span className="size-2 rounded-full bg-emerald-500"/><span className="text-[11px] font-medium text-slate-500">{statusLabel(selected.status)}</span>{agent?.is_enabled&&<AiControl mode={selected.ai_mode??'off'} agentName={agent.name} saving={aiSaving} onChange={mode=>void setAiMode(selected,mode)}/>}</div><div className="flex items-center gap-2 text-[10px] text-slate-400"><Clock3 size={13}/> Última atividade {time(selected.last_message_at)||'—'}</div></div>
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-7 md:px-8">{thread.length?thread.map(message=><div key={message.id} className={message.direction==='inbound'?'flex justify-start':'flex justify-end'}><div className={message.direction==='internal'?'max-w-[78%] rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm':message.direction==='inbound'?'max-w-[78%] rounded-2xl rounded-tl-md border border-slate-100 bg-white px-4 py-3 shadow-[0_3px_12px_rgba(30,40,80,.04)]':'max-w-[78%] rounded-2xl rounded-tr-md bg-[#2F316B] px-4 py-3 text-white shadow-[0_5px_16px_rgba(47,49,107,.12)]'}>{message.direction==='internal'&&<p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">Nota interna</p>}<SenderTag message={message}/><MessageMedia message={message}/><div className={message.direction==='outbound'?'mt-1 flex items-center justify-end gap-1 text-[10px] text-white/60':'mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-400'}>{time(message.created_at)}{message.direction==='outbound'&&(message.delivery_status==='failed'?<span className="font-semibold text-rose-200">Falha ao enviar</span>:message.delivery_status==='queued'?<Clock3 size={13} aria-label="Na fila"/>:message.delivery_status==='read'?<CheckCheck size={13} className="text-sky-300" aria-label="Lida"/>:message.delivery_status==='delivered'?<CheckCheck size={13} aria-label="Entregue"/>:<Check size={13} aria-label="Enviada"/>)}</div></div></div>):<div className="grid h-full place-items-center text-center"><div><div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-white text-[#A6AAC5] shadow-sm"><MessageCircle size={26}/></div><p className="mt-4 text-sm font-semibold text-slate-600">Conversa sem mensagens</p><p className="mt-1 text-xs text-slate-400">As mensagens recebidas aparecerão neste espaço.</p></div></div>}</div>
         <Composer conversation={selected} onSent={()=>loadInbox()} onError={setError}/>
       </>:<div className="grid flex-1 place-items-center p-8 text-center"><div className="max-w-sm"><div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-white text-[#B0B5CF] shadow-sm"><MessageCircle size={30}/></div><p className="mt-5 text-base font-bold text-[#2F316B]">Seu atendimento começa aqui</p><p className="mt-2 text-sm leading-6 text-slate-400">Selecione uma conversa na lista para visualizar o histórico e continuar o relacionamento.</p><div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-[10px] font-medium text-slate-500 shadow-sm"><Sparkles size={13} className="text-[#CB0A9F]"/> Central de atendimento Tendi</div></div></div>}

@@ -5,7 +5,7 @@ import { jidToPhone, mapMessageType, parseTimestamp, processDapiEvent } from './
 type Row = Record<string, any>;
 const UNIQUE: Record<string, string[]> = { contacts: ['organization_id', 'phone_e164'], messages: ['provider', 'provider_message_id'] };
 class FakeDb {
-  t: Record<string, Row[]> = { channel_connections: [], contacts: [], conversations: [], messages: [], crm_pipelines: [], crm_stages: [], opportunities: [] };
+  t: Record<string, Row[]> = { channel_connections: [], contacts: [], conversations: [], messages: [], crm_pipelines: [], crm_stages: [], opportunities: [], ai_agents: [] };
   n = 0;
   failTables = new Set<string>();
   from(table: string) { return new Query(this, table); }
@@ -224,5 +224,33 @@ describe('helpers', () => {
     expect(mapMessageType('ptt')).toBe('audio');
     expect(mapMessageType('poll')).toBe('text');
     expect(Date.parse(parseTimestamp(1769295092))).toBe(1769295092000);
+  });
+});
+
+describe('agente de IA', () => {
+  it('conversa nova nasce com a IA ligada quando o agente está liberado com ligação automática, e pede a resposta', async () => {
+    const { db, run } = setup();
+    db.t.ai_agents.push({ organization_id: 'org1', is_enabled: true, auto_enable_new_conversations: true });
+    const result = await run(envelope('messages.received', text('M1', 'Oi')));
+    expect(db.t.conversations[0].ai_mode).toBe('on');
+    expect(result.aiTrigger).toEqual({ organizationId: 'org1', conversationId: db.t.conversations[0].id, messageId: db.t.messages[0].id });
+  });
+
+  it('sem ligação automática a conversa nasce sem IA e não dispara resposta', async () => {
+    const { db, run } = setup();
+    db.t.ai_agents.push({ organization_id: 'org1', is_enabled: true, auto_enable_new_conversations: false });
+    const result = await run(envelope('messages.received', text('M1', 'Oi')));
+    expect(db.t.conversations[0].ai_mode).toBe('off');
+    expect(result.aiTrigger).toBeUndefined();
+  });
+
+  it('não dispara para mensagem enviada pela empresa, histórico antigo nem mensagem repetida', async () => {
+    const { db, run } = setup();
+    db.t.ai_agents.push({ organization_id: 'org1', is_enabled: true, auto_enable_new_conversations: true });
+    await run(envelope('messages.received', text('M1', 'Oi')));
+    const fromMe = await run(envelope('messages.received', text('M2', 'Resposta', { fromMe: true })));
+    const old = await run(envelope('messages.received', text('M3', 'Antiga', { timestamp: Date.now() - 60 * 60 * 1000 })));
+    const repeated = await run(envelope('messages.received', text('M1', 'Oi')));
+    expect([fromMe.aiTrigger, old.aiTrigger, repeated.aiTrigger]).toEqual([undefined, undefined, undefined]);
   });
 });

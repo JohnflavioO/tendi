@@ -5,6 +5,9 @@ import { ArrowLeft, Bot, CircleCheck, CircleX, Loader2, Save, ShieldCheck, Spark
 import { createClient } from '@/lib/supabase/client';
 import { BusinessEditor, EMPTY_PROFILE, type BusinessData } from '@/components/ai/business-editor';
 import { AI_PROVIDERS, AI_TONES, buildSystemPrompt, type AiProvider, type AiTone } from '@/lib/ai-agent';
+import type { KeyStatus } from '@/lib/ai-keys';
+
+type KeyMap = Record<AiProvider, KeyStatus>;
 
 type Org = { id: string; name: string; plan_code: string };
 type AgentForm = {
@@ -45,7 +48,7 @@ export default function AdminAiPage() {
   const [summaries, setSummaries] = useState<Record<string, { is_enabled: boolean }>>({});
   const [selectedId, setSelectedId] = useState('');
   const [global, setGlobal] = useState<GlobalAi>(DEFAULT_GLOBAL);
-  const [keys, setKeys] = useState<Record<string, boolean> | null>(null);
+  const [keys, setKeys] = useState<KeyMap | null>(null);
   const [agent, setAgent] = useState<AgentForm>(DEFAULT_AGENT);
   const [agentLoading, setAgentLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -118,7 +121,7 @@ export default function AdminAiPage() {
 
   const effectiveProvider: AiProvider = agent.provider || global.provider;
   const effectiveModel = agent.model.trim() || global.models[effectiveProvider];
-  const providerReady = keys ? Boolean(keys[effectiveProvider]) : null;
+  const providerReady = keys ? Boolean(keys[effectiveProvider]?.configured) : null;
 
   const promptPreview = useMemo(() => {
     if (!org) return '';
@@ -174,6 +177,7 @@ export default function AdminAiPage() {
   if (!authorized) return <main className="grid min-h-screen place-items-center bg-[#F6F7FB] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><ShieldCheck className="mx-auto text-[#CB0A9F]" size={32} /><h1 className="mt-4 text-xl font-semibold text-[#2F316B]">Acesso restrito</h1><p className="mt-2 text-sm text-slate-500">Esta área é exclusiva do Super Admin da plataforma.</p><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-[#004751]">Voltar ao Inbox</a></div></main>;
 
   const planIncludesAi = org ? planAi[org.plan_code] !== false : true;
+  const keysMissing = keys !== null && !AI_PROVIDERS.some(provider => keys[provider.value]?.configured);
 
   return <main className="min-h-screen bg-[#F6F7FB] text-slate-800">
     <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -184,16 +188,17 @@ export default function AdminAiPage() {
     <div className="mx-auto max-w-6xl space-y-6 px-6 py-8">
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{error}</p>}
       {notice && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700">{notice}</p>}
+      {keysMissing && <p className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-800"><TriangleAlert size={16} className="mt-0.5 shrink-0" />Nenhum provedor de IA conectado. Cole a chave de API abaixo para os agentes começarem a responder.</p>}
 
       <section className={cardClass}>
-        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><Sparkles size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Provedor de IA (padrão da plataforma)</h2><p className="text-xs text-slate-400">Cada empresa pode usar outro provedor ou modelo no próprio agente. As chaves de API ficam só nas variáveis de ambiente do servidor (Vercel).</p></div></div>
+        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><Sparkles size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Provedor de IA (padrão da plataforma)</h2><p className="text-xs text-slate-400">Conecte a IA colando a chave de API do provedor. Ela fica criptografada no cofre do Supabase e nunca volta para o navegador. Cada empresa pode usar outro provedor ou modelo no próprio agente.</p></div></div>
         <div className="grid gap-4 md:grid-cols-3">
           <label className={labelClass}>Provedor padrão<select value={global.provider} onChange={e => setGlobal(current => ({ ...current, provider: e.target.value as AiProvider }))} className={inputClass}>{AI_PROVIDERS.map(provider => <option key={provider.value} value={provider.value}>{provider.label}</option>)}</select></label>
           <label className={labelClass}>Modelo padrão do Claude<input value={global.models.anthropic} onChange={e => setGlobal(current => ({ ...current, models: { ...current.models, anthropic: e.target.value } }))} className={inputClass} placeholder="claude-haiku-5-5" /></label>
           <label className={labelClass}>Modelo padrão da OpenAI<input value={global.models.openai} onChange={e => setGlobal(current => ({ ...current, models: { ...current.models, openai: e.target.value } }))} className={inputClass} placeholder="Informe o nome do modelo" /></label>
         </div>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          {AI_PROVIDERS.map(provider => <span key={provider.value} className={keys?.[provider.value] ? 'inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-700' : 'inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-semibold text-slate-500'}>{keys?.[provider.value] ? <CircleCheck size={13} /> : <CircleX size={13} />}{provider.label}: {keys === null ? 'não foi possível verificar' : keys[provider.value] ? `chave ${provider.envKey} configurada` : `falta ${provider.envKey} na Vercel`}</span>)}
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          {AI_PROVIDERS.map(provider => <ProviderKeyCard key={provider.value} provider={provider.value} label={provider.label} status={keys?.[provider.value] ?? null} model={global.models[provider.value]} onChange={setKeys} />)}
         </div>
         <button type="button" onClick={() => void saveGlobal()} disabled={saving} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Salvar configuração global</button>
       </section>
@@ -226,7 +231,7 @@ export default function AdminAiPage() {
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.is_enabled} onChange={e => setField('is_enabled', e.target.checked)} />Agente liberado para esta empresa (os atendentes poderão ligar a IA nas conversas)</label>
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.auto_enable_new_conversations} onChange={e => setField('auto_enable_new_conversations', e.target.checked)} />Ligar a IA automaticamente em conversas novas</label>
               </div>
-              <p className="mt-4 rounded-xl bg-[#FAFBFD] p-3 text-xs text-slate-500">Vai usar: <b className="text-slate-700">{AI_PROVIDERS.find(provider => provider.value === effectiveProvider)?.label}</b> · modelo <b className="text-slate-700">{effectiveModel || 'não definido (informe o modelo padrão acima)'}</b>{providerReady === false && <span className="ml-1 font-semibold text-rose-600">· falta a chave de API deste provedor na Vercel</span>}</p>
+              <p className="mt-4 rounded-xl bg-[#FAFBFD] p-3 text-xs text-slate-500">Vai usar: <b className="text-slate-700">{AI_PROVIDERS.find(provider => provider.value === effectiveProvider)?.label}</b> · modelo <b className="text-slate-700">{effectiveModel || 'não definido (informe o modelo padrão acima)'}</b>{providerReady === false && <span className="ml-1 font-semibold text-rose-600">· este provedor não está conectado (cole a chave acima)</span>}</p>
               <button type="button" onClick={() => void saveAgent()} disabled={saving} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Salvar agente</button>
             </>}
           </section>
@@ -242,4 +247,73 @@ export default function AdminAiPage() {
       </section>
     </div>
   </main>;
+}
+
+function ProviderKeyCard({ provider, label, status, model, onChange }: {
+  provider: AiProvider;
+  label: string;
+  status: KeyStatus | null;
+  model: string;
+  onChange: (keys: KeyMap) => void;
+}) {
+  const [value, setValue] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState<'' | 'save' | 'remove' | 'test'>('');
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const configured = Boolean(status?.configured);
+
+  async function save() {
+    setBusy('save'); setMessage(null);
+    const response = await fetch('/api/admin/ai/keys', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider, apiKey: value }) }).catch(() => null);
+    const data = await response?.json().catch(() => null);
+    setBusy('');
+    if (!response?.ok) { setMessage({ ok: false, text: data?.error ?? 'Não foi possível salvar a chave.' }); return; }
+    setValue(''); setEditing(false);
+    if (data?.keys) onChange(data.keys);
+    setMessage({ ok: true, text: 'Chave salva. Use "Testar conexão" para confirmar.' });
+  }
+
+  async function remove() {
+    if (!window.confirm(`Remover a chave de ${label} cadastrada no painel? Os agentes que usam este provedor param de responder (a menos que exista a variável de ambiente).`)) return;
+    setBusy('remove'); setMessage(null);
+    const response = await fetch(`/api/admin/ai/keys?provider=${provider}`, { method: 'DELETE' }).catch(() => null);
+    const data = await response?.json().catch(() => null);
+    setBusy('');
+    if (!response?.ok) { setMessage({ ok: false, text: data?.error ?? 'Não foi possível remover a chave.' }); return; }
+    if (data?.keys) onChange(data.keys);
+    setMessage({ ok: true, text: 'Chave removida do painel.' });
+  }
+
+  async function test() {
+    setBusy('test'); setMessage(null);
+    const response = await fetch('/api/admin/ai/test', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider, model }) }).catch(() => null);
+    const data = await response?.json().catch(() => null);
+    setBusy('');
+    if (data?.ok) setMessage({ ok: true, text: `Conectado: o modelo ${model} respondeu em ${((data.latencyMs ?? 0) / 1000).toFixed(1)} s.` });
+    else setMessage({ ok: false, text: data?.error ?? 'Falha ao testar a conexão.' });
+  }
+
+  const sourceText = status?.source === 'painel'
+    ? `Chave cadastrada no painel (termina em …${status.hint ?? ''})`
+    : status?.source === 'ambiente'
+      ? `Usando a variável de ambiente do servidor (termina em …${status.hint ?? ''})`
+      : status === null ? 'Não foi possível verificar' : 'Não conectado';
+
+  return <div className="rounded-xl border border-slate-200 bg-[#FAFBFD] p-4">
+    <div className="flex items-center justify-between gap-2">
+      <p className="text-xs font-bold text-[#2F316B]">{label}</p>
+      <span className={configured ? 'inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700' : 'inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500'}>{configured ? <CircleCheck size={12} /> : <CircleX size={12} />}{configured ? 'Conectado' : 'Desconectado'}</span>
+    </div>
+    <p className="mt-1 text-[11px] text-slate-500">{sourceText}</p>
+    {(editing || !configured) ? <div className="mt-3 flex gap-2">
+      <input type="password" autoComplete="off" spellCheck={false} value={value} onChange={e => setValue(e.target.value)} placeholder={provider === 'anthropic' ? 'sk-ant-...' : 'sk-...'} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#A7A8D0]" />
+      <button type="button" onClick={() => void save()} disabled={!value.trim() || busy !== ''} className="inline-flex items-center gap-1.5 rounded-xl bg-[#004751] px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-50">{busy === 'save' && <Loader2 size={12} className="animate-spin" />}Salvar</button>
+      {editing && <button type="button" onClick={() => { setEditing(false); setValue(''); }} className="rounded-xl px-2 text-[11px] text-slate-500">Cancelar</button>}
+    </div> : <div className="mt-3 flex flex-wrap gap-2">
+      <button type="button" onClick={() => void test()} disabled={busy !== '' || !model.trim()} title={model.trim() ? '' : 'Informe o modelo padrão acima'} className="inline-flex items-center gap-1.5 rounded-xl bg-[#2F316B] px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-50">{busy === 'test' && <Loader2 size={12} className="animate-spin" />}Testar conexão</button>
+      <button type="button" onClick={() => setEditing(true)} disabled={busy !== ''} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-slate-600">Trocar chave</button>
+      {status?.source === 'painel' && <button type="button" onClick={() => void remove()} disabled={busy !== ''} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-semibold text-rose-600 hover:bg-rose-50">{busy === 'remove' && <Loader2 size={12} className="animate-spin" />}Remover</button>}
+    </div>}
+    {message && <p className={message.ok ? 'mt-2 text-[11px] text-emerald-700' : 'mt-2 text-[11px] text-rose-600'}>{message.text}</p>}
+  </div>;
 }
