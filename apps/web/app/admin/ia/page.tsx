@@ -19,6 +19,7 @@ type AgentForm = {
   provider: '' | AiProvider;
   model: string;
   auto_enable_new_conversations: boolean;
+  monthly_reply_limit: string;
 };
 type GlobalAi = { provider: AiProvider; models: Record<AiProvider, string> };
 
@@ -31,6 +32,7 @@ const DEFAULT_AGENT: AgentForm = {
   provider: '',
   model: '',
   auto_enable_new_conversations: false,
+  monthly_reply_limit: '',
 };
 const DEFAULT_GLOBAL: GlobalAi = { provider: 'anthropic', models: { anthropic: 'claude-haiku-5-5', openai: '' } };
 
@@ -109,6 +111,7 @@ export default function AdminAiPage() {
         provider: data.provider === 'anthropic' || data.provider === 'openai' ? data.provider : '',
         model: data.model ?? '',
         auto_enable_new_conversations: Boolean(data.auto_enable_new_conversations),
+        monthly_reply_limit: data.monthly_reply_limit ? String(data.monthly_reply_limit) : '',
       } : DEFAULT_AGENT);
       setAgentLoading(false);
     })();
@@ -166,6 +169,7 @@ export default function AdminAiPage() {
       provider: agent.provider || null,
       model: agent.model.trim() || null,
       auto_enable_new_conversations: agent.auto_enable_new_conversations,
+      monthly_reply_limit: agent.monthly_reply_limit.trim() ? Number(agent.monthly_reply_limit.replace(/\D/g, '')) || null : null,
     }, { onConflict: 'organization_id' });
     setSaving(false);
     if (saveError) { setError(saveError.message); return; }
@@ -182,7 +186,7 @@ export default function AdminAiPage() {
   return <main className="min-h-screen bg-[#F6F7FB] text-slate-800">
     <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
       <div className="flex items-center gap-3"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain" /><div className="border-l border-slate-200 pl-3"><p className="text-xs font-semibold uppercase tracking-[.16em] text-[#CB0A9F]">Super Admin</p><h1 className="text-sm font-bold text-[#25275B]">Agentes de IA</h1></div></div>
-      <a href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-[#004751]"><ArrowLeft size={16} /> Voltar ao painel</a>
+      <div className="flex items-center gap-5"><a href="/admin/ia/consumo" className="text-sm font-semibold text-[#004751]">Consumo e limites</a><a href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-[#004751]"><ArrowLeft size={16} /> Voltar ao painel</a></div>
     </div></header>
 
     <div className="mx-auto max-w-6xl space-y-6 px-6 py-8">
@@ -230,6 +234,7 @@ export default function AdminAiPage() {
               <div className="mt-3 space-y-2">
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.is_enabled} onChange={e => setField('is_enabled', e.target.checked)} />Agente liberado para esta empresa (os atendentes poderão ligar a IA nas conversas)</label>
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.auto_enable_new_conversations} onChange={e => setField('auto_enable_new_conversations', e.target.checked)} />Ligar a IA automaticamente em conversas novas</label>
+                <label className={`${labelClass} max-w-sm pt-2`}>Limite mensal desta empresa (respostas da IA)<input inputMode="numeric" value={agent.monthly_reply_limit} onChange={e => setField('monthly_reply_limit', e.target.value.replace(/\D/g, ''))} className={inputClass} placeholder="Vazio = limite do plano" /><span className="mt-1 block text-[11px] font-normal text-slate-400">Use só para liberar mais (ou menos) que o plano para este cliente. Acompanhe em <a href="/admin/ia/consumo" className="font-semibold text-[#004751] underline">Consumo e limites</a>.</span></label>
               </div>
               <p className="mt-4 rounded-xl bg-[#FAFBFD] p-3 text-xs text-slate-500">Vai usar: <b className="text-slate-700">{AI_PROVIDERS.find(provider => provider.value === effectiveProvider)?.label}</b> · modelo <b className="text-slate-700">{effectiveModel || 'não definido (informe o modelo padrão acima)'}</b>{providerReady === false && <span className="ml-1 font-semibold text-rose-600">· este provedor não está conectado (cole a chave acima)</span>}</p>
               <button type="button" onClick={() => void saveAgent()} disabled={saving} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Salvar agente</button>

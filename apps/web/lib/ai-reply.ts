@@ -7,6 +7,7 @@ import type { ChatTurn, GenerateFn } from './ai-llm';
 import { friendlyAiError } from './ai-llm';
 import { friendlySendError, pickProviderMessageId, type SendFn } from './inbox-send';
 import { isTrialExpired } from './trial';
+import { monthStartIso, normalizeLimits, normalizePricing, resolveMonthlyLimit, estimateCostUsd } from './ai-limits';
 
 /**
  * Resposta automática do agente de IA no WhatsApp.
@@ -113,19 +114,22 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
 
   // 3) Agente liberado, plano com IA e empresa em dia.
   const [agentResult, orgResult] = await Promise.all([
-    db.from('ai_agents').select('name,is_enabled,niche,tone,system_instructions,provider,model').eq('organization_id', organizationId).maybeSingle(),
+    db.from('ai_agents').select('name,is_enabled,niche,tone,system_instructions,provider,model,monthly_reply_limit').eq('organization_id', organizationId).maybeSingle(),
     db.from('organizations').select('name,status,plan_code,trial_ends_at').eq('id', organizationId).maybeSingle(),
   ]);
-  const agent = agentResult.data as { name: string; is_enabled: boolean; niche: string; tone: string; system_instructions: string; provider: string | null; model: string | null } | null;
+  const agent = agentResult.data as { name: string; is_enabled: boolean; niche: string; tone: string; system_instructions: string; provider: string | null; model: string | null; monthly_reply_limit?: number | null } | null;
   const org = orgResult.data as { name: string; status: string; plan_code: string | null; trial_ends_at: string | null } | null;
   if (!agent?.is_enabled) return { status: 'skipped', reason: 'agent_disabled' };
   if (!org) return { status: 'skipped', reason: 'organization_not_found' };
   if (isTrialExpired(org, now()) || ['suspended', 'canceled', 'cancelled', 'inactive'].includes(org.status)) {
     return { status: 'skipped', reason: 'organization_inactive' };
   }
+  let planLimit: number | null = null;
   if (org.plan_code) {
-    const plan = await db.from('subscription_plans').select('ai_enabled').eq('code', org.plan_code).maybeSingle();
-    if ((plan.data as { ai_enabled: boolean } | null)?.ai_enabled === false) return { status: 'skipped', reason: 'plan_without_ai' };
+    const plan = await db.from('subscription_plans').select('ai_enabled,ai_monthly_replies').eq('code', org.plan_code).maybeSingle();
+    const planRow = plan.data as { ai_enabled: boolean; ai_monthly_replies?: number | null } | null;
+    if (planRow?.ai_enabled === false) return { status: 'skipped', reason: 'plan_without_ai' };
+    planLimit = planRow?.ai_monthly_replies ?? null;
   }
 
   // 4) Trava: só um processamento por mensagem.
@@ -152,9 +156,31 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     return { status: 'handoff', reason: 'daily_limit' };
   }
 
-  // 6) Provedor, modelo e chave.
-  const settings = await db.from('platform_settings').select('value').eq('key', 'ai').maybeSingle();
-  const global = isRecord(settings.data?.value) ? (settings.data.value as Json) : {};
+  // 6) Limite mensal da empresa (a IA é paga pela plataforma: protege a margem de cada plano).
+  const settingRows = await db.from('platform_settings').select('key,value').in('key', ['ai', 'ai_limits', 'ai_pricing']);
+  const settingOf = (key: string) => ((settingRows.data ?? []) as Array<{ key: string; value: unknown }>).find(row => row.key === key)?.value;
+  const monthlyLimit = resolveMonthlyLimit({
+    agentLimit: agent.monthly_reply_limit ?? null,
+    planLimit,
+    isTrial: org.status === 'trial',
+    settings: normalizeLimits(settingOf('ai_limits')),
+  });
+  const monthUsed = await db
+    .from('ai_usage_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', organizationId)
+    .in('outcome', ['replied', 'handoff'])
+    .gte('created_at', monthStartIso(now()));
+  if ((monthUsed.count ?? 0) >= monthlyLimit) {
+    await db.from('conversations').update({ ai_mode: 'handoff' }).eq('id', conversationId);
+    await logUsage(db, { ...usage, outcome: 'limit', error: `Limite mensal de ${monthlyLimit} respostas da IA atingido.` });
+    return { status: 'handoff', reason: 'monthly_limit' };
+  }
+  const pricing = normalizePricing(settingOf('ai_pricing'));
+
+  // 7) Provedor, modelo e chave.
+  const aiSetting = settingOf('ai');
+  const global = isRecord(aiSetting) ? (aiSetting as Json) : {};
   const globalProvider: AiProvider = global.provider === 'openai' ? 'openai' : 'anthropic';
   const provider: AiProvider = agent.provider === 'openai' || agent.provider === 'anthropic' ? agent.provider : globalProvider;
   const models = isRecord(global.models) ? global.models : {};
@@ -167,7 +193,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   const apiKey = await deps.resolveKey(provider);
   if (!apiKey) return fail(`Chave de API do provedor ${provider} não configurada.`);
 
-  // 7) Contexto: informações do negócio, base de conhecimento e histórico.
+  // 8) Contexto: informações do negócio, base de conhecimento e histórico.
   const [profileResult, knowledgeResult, historyResult] = await Promise.all([
     db.from('ai_business_profiles').select('*').eq('organization_id', organizationId).maybeSingle(),
     db.from('ai_knowledge_items').select('title,content,is_active').eq('organization_id', organizationId).eq('is_active', true).order('created_at'),
@@ -196,20 +222,24 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   });
   const history = [...((historyResult.data ?? []) as Array<{ direction: string; message_type: string; body: string | null }>)].reverse();
 
-  // 8) Chamada ao modelo.
+  // 9) Chamada ao modelo.
   let generated;
   try {
     generated = await deps.generate({ provider, model, apiKey, system, messages: toChatTurns(history) });
   } catch (error) {
     return fail(friendlyAiError(error));
   }
-  const tokens = { input_tokens: generated.inputTokens, output_tokens: generated.outputTokens };
+  const tokens = {
+    input_tokens: generated.inputTokens,
+    output_tokens: generated.outputTokens,
+    cost_usd: estimateCostUsd(pricing, model, generated.inputTokens, generated.outputTokens),
+  };
   const parsed = generated.refused ? { text: '', handoff: true } : splitHandoff(generated.text);
   const handoffMessage = text(profile.handoff_message).trim() || 'Vou chamar um atendente da nossa equipe para continuar com você. Só um instante!';
   const reply = parsed.text || (parsed.handoff ? handoffMessage : '');
   if (!reply) return fail('O modelo devolveu uma resposta vazia.', tokens);
 
-  // 9) Envio pelo WhatsApp.
+  // 10) Envio pelo WhatsApp.
   const contact = Array.isArray(conversation.contacts) ? conversation.contacts[0] : conversation.contacts;
   const phone = text(contact?.phone_e164).replace(/\D/g, '');
   const connection = await db

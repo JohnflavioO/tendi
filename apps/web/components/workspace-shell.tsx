@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { TrialNotice } from '@/components/trial-notice';
+import { SidebarFooter } from '@/components/sidebar-footer';
 import {
   Inbox, KanbanSquare, Users, Bot, ChartNoAxesCombined, Settings, ChevronDown,
   MoreHorizontal, UserRound, RefreshCw, CircleHelp, LogOut, Building2, Menu, X,
@@ -63,11 +63,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
       const active = pathname === href || (href !== '/inbox' && pathname.startsWith(href + '/'));
       return <a key={href} href={href} onClick={()=>setMobileOpen(false)} className={active ? 'flex items-center gap-3 rounded-xl bg-[#F0F0FA] px-3 py-3 text-sm font-semibold text-[#2F316B]' : 'flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-[#2F316B]'}><Icon size={18}/>{label}</a>;
     })}</nav>
-    <div className="mt-auto space-y-2">
-      <TrialNotice organizationId={organization?.id}/>
-      <a href="/admin" className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-[#2F316B] hover:bg-slate-50"><span className="flex size-5 items-center justify-center rounded-full bg-[#CB0A9F] text-[10px] text-white">S</span>Console Super Admin</a>
-      <button onClick={signOut} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs text-slate-500 hover:bg-slate-50">Sair da conta</button>
-    </div>
+    <SidebarFooter organizationId={organization?.id} onSignOut={signOut}/>
   </aside>;
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]">Carregando workspace...</main>;

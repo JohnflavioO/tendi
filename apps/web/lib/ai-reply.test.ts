@@ -184,3 +184,42 @@ describe('funções auxiliares', () => {
     expect(supportsEffort('claude-haiku-4-5')).toBe(false);
   });
 });
+
+describe('limite mensal da empresa', () => {
+  const fill = (db: any, n: number, organizationId = 'org1') => {
+    for (let i = 0; i < n; i++) db.t.ai_usage_events.push({ organization_id: organizationId, conversation_id: `outra-${i}`, outcome: 'replied', created_at: '2026-11-05T12:00:00.000Z' });
+  };
+
+  it('ao atingir o limite do plano, não chama o modelo e passa a conversa para um atendente', async () => {
+    const { db, run, generate } = setup();
+    db.t.subscription_plans[0]!.ai_monthly_replies = 3;
+    fill(db, 3);
+    expect(await run()).toEqual({ status: 'handoff', reason: 'monthly_limit' });
+    expect(generate).not.toHaveBeenCalled();
+    expect(db.t.conversations[0].ai_mode).toBe('handoff');
+    expect(db.t.ai_usage_events.at(-1)).toMatchObject({ outcome: 'limit', organization_id: 'org1' });
+  });
+
+  it('uso do mês anterior e de outras empresas não conta', async () => {
+    const { db, run } = setup();
+    db.t.subscription_plans[0]!.ai_monthly_replies = 3;
+    fill(db, 5, 'org2');
+    for (let i = 0; i < 5; i++) db.t.ai_usage_events.push({ organization_id: 'org1', outcome: 'replied', created_at: '2026-10-20T12:00:00.000Z' });
+    expect((await run()).status).toBe('replied');
+  });
+
+  it('exceção da empresa vale mais que o plano', async () => {
+    const { db, run } = setup();
+    db.t.subscription_plans[0]!.ai_monthly_replies = 3;
+    db.t.ai_agents[0]!.monthly_reply_limit = 10;
+    fill(db, 5);
+    expect((await run()).status).toBe('replied');
+  });
+
+  it('registra o custo estimado da resposta', async () => {
+    const { db, run } = setup();
+    await run();
+    // claude-haiku-5-5: 900 tokens de entrada a US$ 0,10/M + 40 de saída a US$ 0,50/M
+    expect(db.t.ai_usage_events.at(-1)).toMatchObject({ outcome: 'replied', cost_usd: 0.00011 });
+  });
+});
