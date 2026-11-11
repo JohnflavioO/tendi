@@ -37,7 +37,7 @@ export function TrialNotice({ organizationId }: { organizationId?: string | null
     <div role="status" className={`rounded-xl border p-3 text-xs ${urgent ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
       <p className="flex items-center gap-2 font-semibold"><Clock3 size={14}/>Teste gratuito</p>
       <p className="mt-1">{message}</p>
-      <a href="mailto:suporte@tendi.app?subject=Quero%20assinar%20o%20Tendi" className="mt-2 inline-block font-semibold underline">Falar sobre a assinatura</a>
+      <a href={`/assinatura?organization=${organizationId}`} className="mt-2 inline-block font-semibold underline">Assinar agora</a>
     </div>
   );
 }

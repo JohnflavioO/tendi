@@ -17,4 +17,14 @@
 - Garantias: responde apenas à última mensagem da conversa; trava por mensagem (`conversations.ai_replied_to_message_id`) contra reentrega do webhook; limite de 40 respostas por conversa em 24 h; quando o atendente responde pelo Inbox a IA desliga (`ai_mode = 'off'`).
 - Transferência: o marcador `[[TRANSFERIR_ATENDENTE]]` ou uma recusa do modelo levam a conversa para `ai_mode = 'handoff'`.
 - Todo uso fica em `ai_usage_events` (tokens e resultado), base para limites por plano e cobrança.
-- Pagamento das assinaturas: **InfinitePay** (próxima etapa).
+- Pagamento das assinaturas: ver a decisão de 2026-11-12 (Pagar.me).
+
+## 2026-11-12 — Assinaturas pela Pagar.me
+
+- A InfinitePay foi descartada: a API de checkout dela não faz cobrança recorrente nem integra os "Planos e Recorrência" (sem webhook), então o Tendi não saberia quem pagou.
+- **Pagar.me (API v5)**: o Super Admin cola a chave secreta em Super Admin › Pagamentos (fica no Supabase Vault; `PAGARME_SECRET_KEY` vale como alternativa), publica o preço de cada plano (cria o plano mensal na Pagar.me) e cadastra o webhook com a URL exibida na tela.
+- O cliente assina em `/assinatura`: o servidor cria um link de pagamento do tipo `subscription` (checkout hospedado pela Pagar.me, só cartão de crédito) com `customer.code` = id da empresa. O Tendi nunca recebe dados de cartão.
+- Webhook (`/api/webhooks/pagarme/<segredo>`): sem assinatura digital na Pagar.me, então o segredo vai na URL e o estado verdadeiro é sempre buscado na API (`GET /subscriptions/{id}`). Eventos são idempotentes (`billing_events`).
+- Regras: assinatura ativa libera a empresa no plano pago; cobrança recusada = "pagamento pendente" (acesso continua enquanto a Pagar.me tenta de novo); cancelada = empresa suspensa. Teste vencido ou empresa suspensa levam a `/assinatura`.
+- Segurança: um gatilho no banco impede que usuários alterem `status`, `plan_code` e datas do teste da própria empresa; só o Super Admin e o servidor alteram.
+- Troca de plano e cancelamento pelo cliente ficam com o suporte nesta etapa.
