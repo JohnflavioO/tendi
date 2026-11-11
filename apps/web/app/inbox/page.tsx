@@ -11,6 +11,9 @@ import { MessageMedia } from '@/components/inbox/message-media';
 import { Composer } from '@/components/inbox/composer';
 import { ContactPanel } from '@/components/inbox/contact-panel';
 import { SidebarFooter } from '@/components/sidebar-footer';
+import { WORKSPACE_NAV } from '@/components/workspace-shell';
+import { useWorkspaceRole } from '@/lib/use-workspace-role';
+import { canAccess } from '@/lib/team';
 import { provisionPendingWorkspace } from '@/lib/ensure-workspace';
 import { mergeMessages, previewText, statusLabel } from '@/lib/inbox-utils';
 
@@ -20,14 +23,6 @@ type Team = { id: string; name: string; color: string };
 type Conversation = { id: string; organization_id: string; contact_id: string; team_id: string | null; assigned_to: string | null; channel: string; status: string; unread_count: number; last_message_at: string | null; ai_mode?: 'off' | 'on' | 'handoff' | null; contacts: Contact | null; teams: Team | null };
 type Message = { id: string; conversation_id: string; direction: 'inbound' | 'outbound' | 'internal'; message_type: string; body: string | null; created_at: string; delivery_status: string; sender_id: string | null; payload: Record<string, unknown> | null };
 
-const nav = [
-  ['Inbox', Inbox, '/inbox'],
-  ['CRM', KanbanSquare, '/crm'],
-  ['Contatos', Users, '/contatos'],
-  ['Chatbots', Bot, '/chatbots'],
-  ['Relatórios', ChartNoAxesCombined, '/relatorios'],
-  ['Configurações', Settings, '/configuracoes'],
-] as const;
 const time = (value?: string | null) => value ? new Date(value).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
 const initials = (value?: string | null) => (value || 'C').split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase();
 const dateLabel = (value?: string | null) => value ? new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
@@ -72,6 +67,8 @@ export default function InboxPage() {
   const [showDetails, setShowDetails] = useState(true);
   const [conversationMenuOpen, setConversationMenuOpen] = useState(false);
   const [tabVisible, setTabVisible] = useState(true);
+  const { role, superAdmin } = useWorkspaceRole(organizationId);
+  const nav = WORKSPACE_NAV.filter(item => role === undefined ? item.area === 'inbox' : canAccess(role, item.area)).map(item => [item.label, item.icon, item.href] as const);
   const [agent, setAgent] = useState<{ name: string; is_enabled: boolean } | null>(null);
   const [aiSaving, setAiSaving] = useState(false);
   const selectedRef = useRef('');
@@ -208,7 +205,7 @@ export default function InboxPage() {
       <label className="mb-7 block px-2"><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</span><div className="relative"><select value={organizationId} onChange={e=>setOrganizationId(e.target.value)} className="w-full appearance-none rounded-xl border border-slate-200 bg-[#FAFBFD] p-3 pr-8 text-sm font-semibold text-[#2F316B] outline-none focus:border-[#004751]">{organizations.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-3.5 text-slate-400" size={16}/></div></label>
       <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</p>
       <nav className="space-y-1">{nav.map(([label,Icon,url])=><a key={label} href={url} className={label==='Inbox'?'group flex items-center gap-3 rounded-xl bg-[#F0F0FA] px-3 py-3 text-sm font-semibold text-[#2F316B] shadow-sm shadow-indigo-950/[.03]':'group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-[#2F316B]'}><Icon size={18}/>{label}{label==='Inbox'&&<span className="ml-auto rounded-full bg-[#CB0A9F] px-2 py-0.5 text-[10px] font-bold text-white">{conversations.length}</span>}</a>)}</nav>
-      <SidebarFooter organizationId={organizationId}/>
+      <SidebarFooter organizationId={organizationId} role={role} superAdmin={superAdmin}/>
     </aside>
 
     <section className={selectedId ? "hidden w-full shrink-0 flex-col border-r border-slate-200/80 bg-white md:flex md:w-[350px]" : "flex w-full shrink-0 flex-col border-r border-slate-200/80 bg-white md:w-[350px]"}>

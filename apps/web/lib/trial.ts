@@ -63,6 +63,7 @@ export function shouldBlockAccess(organizations: TrialOrganization[], now: Date 
 export function isTrialExemptPath(pathname: string): boolean {
   return pathname === '/teste-encerrado' ||
     pathname === '/assinatura' ||
+    pathname === '/definir-senha' ||
     pathname.startsWith('/api/billing/') ||
     pathname === '/login' ||
     pathname === '/register' ||

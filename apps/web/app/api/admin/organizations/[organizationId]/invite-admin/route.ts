@@ -48,7 +48,7 @@ export async function POST(request: Request, { params }: { params: { organizatio
       const { data: team } = await adminClient.from('teams').select('id').eq('organization_id', organization.id).limit(1).maybeSingle();
       if (team) {
         const { error: teamError } = await adminClient.from('team_members').insert({
-          organization_id: organization.id, team_id: team.id, user_id: existingProfile.id, team_role: 'admin',
+          organization_id: organization.id, team_id: team.id, user_id: existingProfile.id, team_role: 'leader',
         });
         if (teamError && !teamError.message.toLowerCase().includes('duplicate')) throw teamError;
       }
@@ -70,7 +70,7 @@ export async function POST(request: Request, { params }: { params: { organizatio
     const { data: team } = await adminClient.from('teams').select('id').eq('organization_id', organization.id).limit(1).maybeSingle();
     if (team) {
       const { error: teamError } = await adminClient.from('team_members').insert({
-        organization_id: organization.id, team_id: team.id, user_id: invitedUserId, team_role: 'admin',
+        organization_id: organization.id, team_id: team.id, user_id: invitedUserId, team_role: 'leader',
       });
       if (teamError) throw teamError;
     }
