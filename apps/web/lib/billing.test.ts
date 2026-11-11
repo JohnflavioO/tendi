@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildCheckoutPayload, buildPlanPayload, extractSubscriptionId, nextBillingStatus, processPagarmeEvent, readSubscription } from './billing';
+import { buildCheckoutPayload, buildPlanPayload, extractSubscriptionId, nextBillingStatus, processPagarmeEvent, readPlanPrice, readSubscription } from './billing';
 import { pagarmeBaseUrl, toCents, validateSecretKey } from './pagarme';
 import { isOrganizationBlocked, shouldBlockAccess } from './trial';
 
 type Row = Record<string, any>;
 const UNIQUE: Record<string, string> = { billing_events: 'id' };
 class FakeDb {
-  t: Record<string, Row[]> = { organizations: [], subscription_plans: [], billing_subscriptions: [], billing_events: [] };
+  t: Record<string, Row[]> = { organizations: [], subscription_plans: [], billing_subscriptions: [], billing_events: [], profiles: [], organization_memberships: [] };
   from(table: string) { return new Query(this, table); }
 }
 class Query {
@@ -17,6 +17,8 @@ class Query {
   update(patch: Row) { this.mode = 'update'; this.payload = patch; return this; }
   upsert(row: Row, opts: { onConflict: string }) { this.mode = 'upsert'; this.payload = row; this.conflict = opts.onConflict; return this; }
   eq(c: string, v: any) { this.preds.push(r => r[c] === v); return this; }
+  in(c: string, v: any[]) { this.preds.push(r => v.includes(r[c])); return this; }
+  limit() { return this; }
   private run(): any {
     const rows = this.db.t[this.table]!;
     if (this.mode === 'insert') {
@@ -172,5 +174,32 @@ describe('bloqueio de acesso', () => {
     expect(shouldBlockAccess([{ status: 'suspended' }, { status: 'active' }], now)).toBe(false);
     expect(shouldBlockAccess([{ status: 'suspended' }], now)).toBe(true);
     expect(shouldBlockAccess([], now)).toBe(false);
+  });
+});
+
+describe('links manuais e planos já existentes', () => {
+  it('assinatura sem customer.code é ligada à empresa pelo e-mail do dono', async () => {
+    const { db, send } = setup(subscription({ customer: { id: 'cus_9', email: 'Dono@Clinica.com' } }));
+    db.t.profiles.push({ id: 'u1', email: 'dono@clinica.com' });
+    db.t.organization_memberships.push({ user_id: 'u1', organization_id: ORG, role: 'owner', status: 'active' });
+    expect((await send('hook_1', 'subscription.created')).body).toMatchObject({ status: 'active' });
+    expect(db.t.organizations[0]).toMatchObject({ status: 'active', plan_code: 'tendi_start' });
+  });
+
+  it('e-mail ligado a mais de uma empresa não é adivinhado', async () => {
+    const { db, send } = setup(subscription({ customer: { id: 'cus_9', email: 'dono@clinica.com' } }));
+    db.t.profiles.push({ id: 'u1', email: 'dono@clinica.com' });
+    db.t.organization_memberships.push(
+      { user_id: 'u1', organization_id: ORG, role: 'owner', status: 'active' },
+      { user_id: 'u1', organization_id: '22222222-2222-4222-8222-222222222222', role: 'admin', status: 'active' },
+    );
+    expect((await send('hook_1', 'subscription.created')).body).toMatchObject({ reason: 'subscription_without_organization' });
+    expect(db.t.organizations[0]!.status).toBe('trial');
+  });
+
+  it('readPlanPrice lê o valor e exige plano ativo e mensal', () => {
+    expect(readPlanPrice({ status: 'active', interval: 'month', interval_count: 1, items: [{ quantity: 1, pricing_scheme: { price: 28900 } }] })).toEqual({ ok: true, monthlyPrice: 289 });
+    expect(readPlanPrice({ status: 'inactive', items: [] })).toMatchObject({ ok: false });
+    expect(readPlanPrice({ status: 'active', interval: 'year', interval_count: 1, items: [{ pricing_scheme: { price: 100 } }] })).toMatchObject({ ok: false });
   });
 });

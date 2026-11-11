@@ -22,6 +22,7 @@ export default function BillingAdminPage() {
   const [status, setStatus] = useState<Status | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [prices, setPrices] = useState<Record<string, string>>({});
+  const [planIds, setPlanIds] = useState<Record<string, string>>({});
   const [subs, setSubs] = useState<Sub[]>([]);
   const [keyValue, setKeyValue] = useState('');
   const [busy, setBusy] = useState('');
@@ -88,6 +89,15 @@ export default function BillingAdminPage() {
     await loadData();
   }
 
+  async function link(plan: Plan) {
+    const pagarmePlanId = (planIds[plan.code] ?? '').trim();
+    const { ok, data } = await call(`link-${plan.code}`, '/api/admin/billing/plans', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: plan.code, pagarmePlanId }) });
+    if (!ok) { setMessage({ ok: false, text: data?.error ?? 'Falha ao vincular o plano.' }); return; }
+    setMessage({ ok: true, text: `${plan.name} vinculado a ${pagarmePlanId} (${Number(data.monthlyPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês).` });
+    setPlanIds(current => ({ ...current, [plan.code]: '' }));
+    await loadData();
+  }
+
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#F6F7FB] text-[#2F316B]"><Loader2 className="animate-spin" size={28} /></main>;
   if (!authorized) return <main className="grid min-h-screen place-items-center bg-[#F6F7FB] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><ShieldCheck className="mx-auto text-[#CB0A9F]" size={32} /><h1 className="mt-4 text-xl font-semibold text-[#2F316B]">Acesso restrito</h1><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-[#004751]">Voltar ao Inbox</a></div></main>;
 
@@ -119,11 +129,12 @@ export default function BillingAdminPage() {
       </section>
 
       <section className={card}>
-        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><Receipt size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">3. Preço dos planos</h2><p className="text-xs text-slate-400">Publicar cria o plano na Pagar.me (mensal, cartão de crédito). Mudar o preço cria um plano novo: quem já assina continua no valor antigo.</p></div></div>
+        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><Receipt size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">3. Preço dos planos</h2><p className="text-xs text-slate-400">Já criou o plano na Stone/Pagar.me (Venda por assinatura)? Cole o ID dele (plan_...) e clique em Vincular: o Tendi confere o plano e usa o valor cadastrado lá. Ou digite o valor e clique em Publicar para o Tendi criar o plano. Mudar o preço cria um plano novo: quem já assina continua no valor antigo.</p></div></div>
         <div className="space-y-3">{plans.map(plan => <div key={plan.code} className="flex flex-wrap items-center gap-3 rounded-xl bg-[#FAFBFD] p-3">
           <div className="min-w-[140px] flex-1"><p className="text-sm font-semibold text-slate-700">{plan.name}</p><p className="text-[11px] text-slate-400">{plan.pagarme_plan_id ? `Publicado · ${plan.pagarme_plan_id}` : 'Ainda não publicado'}{!plan.is_active ? ' · plano inativo' : ''}</p></div>
           <label className="flex items-center gap-2 text-xs text-slate-500">R$<input inputMode="decimal" value={prices[plan.code] ?? ''} onChange={e => setPrices(current => ({ ...current, [plan.code]: e.target.value }))} placeholder="197,00" className={`${input} w-28`} />/mês</label>
           <button type="button" onClick={() => void publish(plan)} disabled={!connected || !(prices[plan.code] ?? '').trim() || busy !== ''} className="inline-flex items-center gap-1.5 rounded-xl bg-[#004751] px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-50">{busy === `plan-${plan.code}` && <Loader2 size={12} className="animate-spin" />}Publicar na Pagar.me</button>
+          <div className="flex w-full items-center gap-2 border-t border-slate-200/70 pt-3"><span className="text-xs text-slate-500">ou vincular plano existente:</span><input value={planIds[plan.code] ?? ''} onChange={e => setPlanIds(current => ({ ...current, [plan.code]: e.target.value }))} placeholder="plan_..." spellCheck={false} className={`${input} max-w-[260px] font-mono text-xs`} /><button type="button" onClick={() => void link(plan)} disabled={!connected || !(planIds[plan.code] ?? '').trim() || busy !== ''} className="inline-flex items-center gap-1.5 rounded-xl border border-[#004751] px-3 py-2 text-[11px] font-semibold text-[#004751] disabled:opacity-50">{busy === `link-${plan.code}` && <Loader2 size={12} className="animate-spin" />}Vincular</button></div>
         </div>)}</div>
       </section>
 
