@@ -5,8 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { isRole, type Role } from '@/lib/team';
 
 /**
- * Papel do usuário logado na empresa (Super Admin conta como dono).
- * undefined = ainda carregando; null = sem vínculo ativo.
+ * Papel do usuário logado na empresa e se ele é Super Admin da plataforma.
+ * role: undefined = ainda carregando; null = sem vínculo ativo (caso do Super Admin nas empresas dos clientes).
  */
 export function useWorkspaceRole(organizationId?: string | null): { role: Role | null | undefined; superAdmin: boolean } {
   const [state, setState] = useState<{ role: Role | null | undefined; superAdmin: boolean }>({ role: undefined, superAdmin: false });
@@ -23,8 +23,9 @@ export function useWorkspaceRole(organizationId?: string | null): { role: Role |
         supabase.from('organization_memberships').select('role,status').eq('organization_id', organizationId).eq('user_id', auth.user.id).maybeSingle(),
       ]);
       if (!active) return;
-      if (admin) setState({ role: 'owner', superAdmin: true });
-      else setState({ role: membership?.status === 'active' && isRole(membership.role) ? membership.role : null, superAdmin: false });
+      // O papel vem só do vínculo com a empresa. Ser Super Admin não dá papel de dono:
+      // ele administra a conta pelo Console e não entra nos atendimentos.
+      setState({ role: membership?.status === 'active' && isRole(membership.role) ? membership.role : null, superAdmin: Boolean(admin) });
     })().catch(() => { if (active) setState({ role: null, superAdmin: false }); });
     return () => { active = false; };
   }, [organizationId]);

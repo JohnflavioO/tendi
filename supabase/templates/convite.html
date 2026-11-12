@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>Você foi convidado para o Tendi</title>
+<title>Convite para o Tendi</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F5F6FB;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Você foi convidado para acessar um workspace no Tendi.</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Você recebeu um convite para acessar o Tendi. Aceite para criar a sua senha.</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F5F6FB;">
   <tr>
     <td align="center" style="padding:32px 16px;">
@@ -19,13 +19,13 @@
         </tr>
         <tr>
           <td style="background-color:#FFFFFF;border:1px solid #E2E8F0;border-radius:16px;padding:36px 32px;">
-            <h1 style="margin:0 0 16px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;line-height:30px;font-weight:700;color:#25275B;">Você foi convidado para o Tendi</h1>
-            <p style="margin:0 0 16px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:24px;color:#475569;">Olá! Você recebeu um convite para acessar um workspace no Tendi, a plataforma de atendimento e gestão comercial da sua equipe.</p>
-            <p style="margin:0 0 16px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:24px;color:#475569;">Aceite o convite para definir sua senha e entrar.</p>
+            <h1 style="margin:0 0 16px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;line-height:30px;font-weight:700;color:#25275B;">{{ if .Data.organization_name }}Convite para acessar {{ .Data.organization_name }}{{ else }}Você foi convidado para o Tendi{{ end }}</h1>
+            <p style="margin:0 0 16px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:24px;color:#475569;">Olá{{ if .Data.full_name }}, {{ .Data.full_name }}{{ end }}! {{ if .Data.organization_name }}Você foi convidado para {{ if .Data.invite_role }}administrar a conta da empresa{{ else }}fazer parte da equipe da empresa{{ end }} <strong style="color:#25275B;">{{ .Data.organization_name }}</strong> no Tendi, a plataforma de atendimento e gestão comercial.{{ else }}Você recebeu um convite para acessar um workspace no Tendi, a plataforma de atendimento e gestão comercial da sua equipe.{{ end }}</p>
+            <p style="margin:0 0 16px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:24px;color:#475569;">{{ if .Data.invite_role }}Como administrador, você conecta o WhatsApp da empresa, convida a equipe e acompanha os atendimentos. {{ end }}Aceite o convite para criar a sua senha. O acesso é individual: depois, entre sempre com este e-mail.</p>
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px 0;">
               <tr>
                 <td align="center" bgcolor="#004751" style="border-radius:12px;">
-                  <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:12px;">Aceitar convite</a>
+                  <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:12px;">Aceitar convite e criar senha</a>
                 </td>
               </tr>
             </table>

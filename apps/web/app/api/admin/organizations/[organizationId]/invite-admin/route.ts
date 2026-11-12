@@ -56,7 +56,9 @@ export async function POST(request: Request, { params }: { params: { organizatio
     }
 
     const { data: invite, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: fullName },
+      // needs_password: o primeiro acesso leva a pessoa a criar a senha (sem isso ela não consegue entrar de novo).
+      // organization_name e invite_role aparecem no e-mail de convite e na tela de boas-vindas.
+      data: { full_name: fullName, needs_password: true, organization_name: organization.name, invite_role: 'administrador' },
       redirectTo: new URL('/auth/callback', request.url).toString(),
     });
     if (inviteError) throw inviteError;
