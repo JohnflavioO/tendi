@@ -99,14 +99,24 @@ export default function InboxPage() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) { window.location.assign('/login'); return; }
     setUserId(auth.user.id);
-    const { data, error: orgError } = await supabase.from('organizations').select('id,name').order('name');
-    if (orgError) throw orgError;
-    let list = (data ?? []) as Org[];
-    // Conta confirmada sem empresa: conclui a criação do workspace iniciada no cadastro.
-    if (!list.length && await provisionPendingWorkspace(supabase, auth.user)) {
-      const retry = await supabase.from('organizations').select('id,name').order('name');
-      if (retry.error) throw retry.error;
-      list = (retry.data ?? []) as Org[];
+    // O Inbox só lista empresas em que a pessoa tem vínculo ativo. O Super Admin enxerga o cadastro
+    // de todas as empresas, mas não entra nos atendimentos delas.
+    const memberOrganizations = async (): Promise<Org[]> => {
+      const [orgs, memberships] = await Promise.all([
+        supabase.from('organizations').select('id,name').order('name'),
+        supabase.from('organization_memberships').select('organization_id').eq('user_id', auth.user.id).eq('status', 'active'),
+      ]);
+      if (orgs.error) throw orgs.error;
+      if (memberships.error) throw memberships.error;
+      const mine = new Set(((memberships.data ?? []) as Array<{ organization_id: string }>).map(row => row.organization_id));
+      return ((orgs.data ?? []) as Org[]).filter(org => mine.has(org.id));
+    };
+    let list = await memberOrganizations();
+    if (!list.length) {
+      const { data: platformAdmin } = await supabase.from('platform_admins').select('user_id').eq('user_id', auth.user.id).maybeSingle();
+      if (platformAdmin) { window.location.replace('/admin'); return; }
+      // Conta confirmada sem empresa: conclui a criação do workspace iniciada no cadastro.
+      if (await provisionPendingWorkspace(supabase, auth.user)) list = await memberOrganizations();
     }
     setOrganizations(list);
     const requestedId = new URLSearchParams(window.location.search).get('organization');

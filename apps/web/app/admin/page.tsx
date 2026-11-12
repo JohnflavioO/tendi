@@ -78,15 +78,15 @@ export default function AdminPage() {
     setAuthorized(true);
     setFirstName(String(auth.user.user_metadata?.full_name ?? auth.user.email ?? '').split(/[\s@]/)[0] ?? '');
 
-    const [orgRes, planRes, subRes, usageRes, memberRes, eventRes, convRes, contactRes, pricingRes, billingStatus, aiStatus] = await Promise.all([
+    const [orgRes, planRes, subRes, usageRes, memberRes, eventRes, totalsRes, pricingRes, billingStatus, aiStatus] = await Promise.all([
       supabase.from('organizations').select('id,name,slug,status,plan_code,created_at,trial_ends_at').order('created_at', { ascending: false }),
       supabase.from('subscription_plans').select('code,name,monthly_price,annual_price,pagarme_plan_id').order('display_order'),
       supabase.from('billing_subscriptions').select('organization_id,status,plan_code,billing_period'),
       supabase.rpc('ai_usage_by_organization', { p_since: monthStartIso() }),
       supabase.from('organization_memberships').select('organization_id').in('status', ['active', 'invited']),
       supabase.from('billing_events').select('id,type,organization_id,received_at').not('organization_id', 'is', null).order('received_at', { ascending: false }).limit(8),
-      supabase.from('conversations').select('id', { count: 'exact', head: true }),
-      supabase.from('contacts').select('id', { count: 'exact', head: true }),
+      // Só os totais: o Super Admin não lê conversas nem contatos das empresas.
+      supabase.rpc('platform_usage_totals'),
       supabase.from('platform_settings').select('value').eq('key', 'ai_pricing').maybeSingle(),
       fetch('/api/admin/billing').then(r => (r.ok ? r.json() : null)).catch(() => null),
       fetch('/api/admin/ai/status').then(r => (r.ok ? r.json() : null)).catch(() => null),
@@ -99,7 +99,8 @@ export default function AdminPage() {
     setUsage(((usageRes.data ?? []) as any[]).map(row => ({ organization_id: row.organization_id, replies: Number(row.replies), cost_usd: Number(row.cost_usd) })));
     setMembers(((memberRes.data ?? []) as Array<{ organization_id: string }>).reduce<Record<string, number>>((acc, row) => ({ ...acc, [row.organization_id]: (acc[row.organization_id] ?? 0) + 1 }), {}));
     setEvents((eventRes.data ?? []) as BillingEvent[]);
-    setCounts({ conversations: convRes.count ?? 0, contacts: contactRes.count ?? 0 });
+    const totals = Array.isArray(totalsRes.data) ? totalsRes.data[0] : totalsRes.data;
+    setCounts({ conversations: Number(totals?.conversations ?? 0), contacts: Number(totals?.contacts ?? 0) });
     setUsdBrl(normalizePricing(pricingRes.data?.value).usdBrl);
     const keys = aiStatus?.keys as Record<string, { configured?: boolean } | boolean> | undefined;
     setSetup({

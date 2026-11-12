@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client';
 /** Primeiro acesso de quem foi convidado para uma equipe: cria a senha e entra no Inbox. */
 export default function SetPasswordPage() {
   const [name, setName] = useState('');
+  const [company, setCompany] = useState('');
+  const [asAdmin, setAsAdmin] = useState(false);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [saving, setSaving] = useState(false);
@@ -18,6 +20,8 @@ export default function SetPasswordPage() {
       const { data } = await supabase.auth.getUser();
       if (!data.user) { window.location.assign('/login'); return; }
       setName(String(data.user.user_metadata?.full_name ?? '').split(' ')[0] ?? '');
+      setCompany(String(data.user.user_metadata?.organization_name ?? '').trim());
+      setAsAdmin(Boolean(data.user.user_metadata?.invite_role));
     })();
   }, []);
 
@@ -40,7 +44,7 @@ export default function SetPasswordPage() {
       <img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain" />
       <span className="mt-6 flex size-12 items-center justify-center rounded-2xl bg-[#E8F4F2] text-[#004751]"><KeyRound size={22} /></span>
       <h1 className="mt-4 text-2xl font-bold text-[#25275B]">{name ? `Boas-vindas, ${name}!` : 'Boas-vindas!'}</h1>
-      <p className="mt-2 text-sm leading-6 text-slate-500">Você foi convidado(a) para a equipe no Tendi. Crie a sua senha para entrar sempre que precisar.</p>
+      <p className="mt-2 text-sm leading-6 text-slate-500">{company ? <>Você foi convidado(a) para {asAdmin ? 'administrar a conta da empresa' : 'a equipe da empresa'} <strong className="text-[#25275B]">{company}</strong> no Tendi.</> : 'Você foi convidado(a) para a equipe no Tendi.'} Crie a sua senha para entrar sempre que precisar.</p>
       <label className="mt-6 block text-sm font-semibold text-slate-700">Nova senha<input required type="password" autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} className={field} placeholder="Mínimo de 8 caracteres" /></label>
       <label className="mt-4 block text-sm font-semibold text-slate-700">Confirme a senha<input required type="password" autoComplete="new-password" value={confirm} onChange={e => setConfirm(e.target.value)} className={field} /></label>
       {error && <p role="alert" className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
