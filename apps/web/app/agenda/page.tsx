@@ -35,6 +35,7 @@ export default function AgendaPage() {
   const [now, setNow] = useState(() => new Date());
   const { role } = useWorkspaceRole(organization?.id);
   const canManage = canAccess(role, 'configuracoes');
+  const canManageOrganization = canAccess(role, 'assinatura');
 
   const timeZone = organization?.timezone || DEFAULT_TIME_ZONE;
   const segment = isSegment(organization?.business_segment) ? organization!.business_segment as keyof typeof SEGMENT_INFO : 'other';
@@ -71,7 +72,7 @@ export default function AgendaPage() {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) { window.location.assign('/login'); return; }
       const [orgs, memberships] = await Promise.all([
-        supabase.from('organizations').select('id,name,timezone,business_segment').order('name'),
+        supabase.from('organizations').select('id,name,timezone,business_segment,agenda_settings').order('name'),
         supabase.from('organization_memberships').select('organization_id').eq('user_id', auth.user.id).eq('status', 'active'),
       ]);
       if (!active) return;
@@ -108,7 +109,7 @@ export default function AgendaPage() {
     setRefreshing(true);
     setError('');
     try {
-      const { data: org } = await supabase.from('organizations').select('id,name,timezone,business_segment').eq('id', organization.id).maybeSingle();
+      const { data: org } = await supabase.from('organizations').select('id,name,timezone,business_segment,agenda_settings').eq('id', organization.id).maybeSingle();
       if (org) setOrganization(org as AgendaOrganization);
       await Promise.all([loadSetup(organization.id), loadDay(organization.id, day, timeZone)]);
     } catch (err) { setError(agendaError(err)); } finally { setRefreshing(false); }
@@ -121,6 +122,7 @@ export default function AgendaPage() {
   const dayAppointments = appointments.filter(item => shownIds.has(item.professional_id));
   const summary = daySummary(dayAppointments);
   const hasPrices = dayAppointments.some(item => item.price_cents !== null);
+  const rescheduleRequests = dayAppointments.filter(item => item.reminder_reply === 'reschedule' && item.status === 'scheduled').length;
   const setupMissing = !activeProfessionals.length || !services.some(service => service.is_active);
   const firstOpen = shown.find(item => shiftsFor(hours, item.id, day ? weekdayOf(day) : 0).length) ?? shown[0];
 
@@ -161,7 +163,7 @@ export default function AgendaPage() {
           {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
           {tab === 'settings' ? (
-            <AgendaSettings organization={organization} professionals={professionals} services={services} hours={hours} canManage={canManage} professionalLabel={professionalLabel} onChanged={refresh} />
+            <AgendaSettings organization={organization} professionals={professionals} services={services} hours={hours} canManage={canManage} canManageOrganization={canManageOrganization} professionalLabel={professionalLabel} onChanged={refresh} />
           ) : setupMissing ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
               <CalendarDays className="mx-auto text-[#CB0A9F]" size={30} />
@@ -178,6 +180,7 @@ export default function AgendaPage() {
                   <Stat label="Confirmados" value={summary.confirmed} tone="text-emerald-700" />
                   <Stat label="Atendidos" value={summary.completed} />
                   <Stat label="Faltas" value={summary.noShow} tone={summary.noShow ? 'text-rose-700' : undefined} />
+                  {rescheduleRequests > 0 && <Stat label="Pediram para remarcar" value={rescheduleRequests} tone="text-amber-700" />}
                   {hasPrices && <Stat label="Previsto no dia" value={formatPrice(summary.expectedCents)} detail={summary.receivedCents ? `${formatPrice(summary.receivedCents)} já atendido` : undefined} />}
                 </div>
               </div>

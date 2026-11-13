@@ -37,6 +37,7 @@ function senderLabel(message: Message): { text: string; ai: boolean } | null {
   const raw = message.payload && typeof message.payload === 'object' ? (message.payload as Record<string, unknown>).sender : null;
   const sender = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
   const name = typeof sender?.name === 'string' && sender.name.trim() ? sender.name.trim() : null;
+  if (sender?.type === 'system') return { text: `${name ?? 'Mensagem automática'} · Automático`, ai: false };
   if (sender?.type === 'ai') return { text: `${name ?? 'Assistente'} · Agente de IA`, ai: true };
   if (sender?.type === 'phone' || (!sender && !message.sender_id)) return { text: 'Enviada pelo celular da empresa', ai: false };
   return { text: `${name ?? 'Atendente'} · Atendente`, ai: false };

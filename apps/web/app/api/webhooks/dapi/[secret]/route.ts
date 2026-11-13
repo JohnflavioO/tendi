@@ -3,7 +3,8 @@ import { timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { waitUntil } from '@vercel/functions';
 import { dapiRequest, getDapiWebhookSecret } from '@/lib/dapi';
-import { processDapiEvent } from '@/lib/dapi-webhook';
+import { processDapiEvent, type ProcessResult } from '@/lib/dapi-webhook';
+import { handleReminderReply } from '@/lib/agenda-reminders-server';
 import { runAiAutoReply, type AiTrigger } from '@/lib/ai-reply';
 import { generateReply } from '@/lib/ai-llm';
 import { resolveProviderKey } from '@/lib/ai-keys';
@@ -13,6 +14,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 type Db = SupabaseClient<any, any, any>;
+type ReminderCandidate = NonNullable<ProcessResult['reminderReply']>;
 
 /** Resposta automática da IA. Nunca derruba o webhook: erros só vão para o log. */
 async function replyWithAi(db: Db, trigger: AiTrigger) {
@@ -33,6 +35,28 @@ async function replyWithAi(db: Db, trigger: AiTrigger) {
       message: error instanceof Error ? error.message : String(error),
     });
   }
+}
+
+/**
+ * Depois de gravar a mensagem do cliente: primeiro vê se ela responde a um lembrete da agenda
+ * (confirma ou pede para remarcar). Se responder, a agenda é atualizada e a IA não entra;
+ * caso contrário, segue a resposta automática da IA quando ela estiver ligada na conversa.
+ */
+async function afterMessage(db: Db, reminderReply: ReminderCandidate | undefined, aiTrigger: AiTrigger | undefined) {
+  if (reminderReply) {
+    try {
+      const outcome = await handleReminderReply(db as any, reminderReply, {
+        send: (path, body) => dapiRequest<unknown>(path, { method: 'POST', body: JSON.stringify(body), signal: AbortSignal.timeout(20_000) }),
+      });
+      if (outcome.handled) {
+        console.info('[Agenda] resposta ao lembrete', { conversationId: reminderReply.conversationId, action: outcome.action, appointmentId: outcome.appointmentId });
+        return;
+      }
+    } catch (error) {
+      console.error('[Agenda] falha ao tratar resposta ao lembrete', { conversationId: reminderReply.conversationId, message: error instanceof Error ? error.message : String(error) });
+    }
+  }
+  if (aiTrigger) await replyWithAi(db, aiTrigger);
 }
 
 type Context = { params: { secret: string } };
@@ -103,7 +127,7 @@ export async function POST(request: Request, { params }: Context) {
   try {
     const db = adminClient();
     const result = await processDapiEvent(db, { event, sessionId, traceId, data });
-    if (result.aiTrigger) waitUntil(replyWithAi(db, result.aiTrigger));
+    if (result.reminderReply || result.aiTrigger) waitUntil(afterMessage(db, result.reminderReply, result.aiTrigger));
     console.info('[D-API webhook]', {
       event,
       sessionId,
