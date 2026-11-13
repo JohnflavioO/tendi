@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { randomBytes } from 'node:crypto';
 import { createClient } from '@/lib/supabase/server';
 import { instagramDialogUrl } from '@/lib/meta';
-import { getMetaAppId, isMetaConfigured } from '@/lib/meta-client';
+import { getInstagramAppId, isInstagramConfigured } from '@/lib/meta-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +15,7 @@ const STATE_COOKIE = 'tendi_ig_oauth_state';
  * entra direto com a conta do Instagram que vai atender pelo Tendi.
  */
 export async function GET(request: Request) {
-  if (!isMetaConfigured()) return NextResponse.json({ error: 'O app da Meta ainda não foi configurado no servidor.' }, { status: 503 });
+  if (!isInstagramConfigured()) return NextResponse.json({ error: 'O login do Instagram ainda não foi configurado no servidor.' }, { status: 503 });
 
   const organizationId = new URL(request.url).searchParams.get('organizationId') ?? '';
   if (!UUID_RE.test(organizationId)) return NextResponse.json({ error: 'Empresa inválida.' }, { status: 400 });
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
   const state = randomBytes(16).toString('hex');
   const redirectUri = new URL('/api/meta/instagram/oauth/callback', request.url).toString();
-  const response = NextResponse.redirect(instagramDialogUrl({ appId: getMetaAppId(), redirectUri, state }));
+  const response = NextResponse.redirect(instagramDialogUrl({ appId: getInstagramAppId(), redirectUri, state }));
   response.cookies.set(STATE_COOKIE, JSON.stringify({ state, organizationId }), { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600, path: '/' });
   return response;
 }

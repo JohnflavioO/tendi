@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { instagramAccessTokenParams, instagramLongLivedTokenParams } from '@/lib/meta';
-import { exchangeInstagramCode, exchangeInstagramLongLivedToken, getInstagramAccount, getMetaAppId, getMetaAppSecret } from '@/lib/meta-client';
+import { exchangeInstagramCode, exchangeInstagramLongLivedToken, getInstagramAccount, getInstagramAppId, getInstagramAppSecret } from '@/lib/meta-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,8 +54,8 @@ export async function GET(request: Request) {
   if (!admin) return clearState(NextResponse.redirect(backToChannels(request, organizationId, { igError: 'servidor_sem_credenciais' })));
 
   try {
-    const appId = getMetaAppId();
-    const appSecret = getMetaAppSecret();
+    const appId = getInstagramAppId();
+    const appSecret = getInstagramAppSecret();
     const redirectUri = new URL('/api/meta/instagram/oauth/callback', request.url).toString();
     const exchanged = await exchangeInstagramCode(instagramAccessTokenParams({ appId, appSecret, redirectUri, code }));
     const longLivedToken = await exchangeInstagramLongLivedToken(instagramLongLivedTokenParams({ appSecret, shortLivedToken: exchanged.accessToken }));

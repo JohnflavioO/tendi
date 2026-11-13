@@ -23,8 +23,16 @@ Em **Login do Facebook para Empresas → Configurações**:
 
 - **URIs de redirecionamento OAuth válidos**: `https://SEU-APP/api/meta/oauth/callback`
 
-O Instagram não usa essa tela — o endereço de retorno dele é configurado só no app (não precisa
-cadastrar na Meta), e é `https://SEU-APP/api/meta/instagram/oauth/callback`.
+## 2.1. Login do Instagram (credenciais próprias!)
+
+O Instagram **não usa o ID/chave do topo do painel** nem a tela de Login do Facebook — ele tem
+login e credenciais próprios. Usar o ID errado dá o erro "Invalid platform app".
+
+Vá em **Instagram → API setup with Instagram login** (ou "Configuração da API com login do
+Instagram") → seção **Business login settings** (ou "Configurações de login comercial"). Lá tem:
+
+- **Instagram App ID** e **Instagram App Secret** — diferentes do ID/chave do app. Anote os dois.
+- **Redirecionamentos OAuth / Callback URLs**: adicione `https://SEU-APP/api/meta/instagram/oauth/callback`.
 
 ## 3. Webhook
 
@@ -39,12 +47,16 @@ Repita em cada um dos dois casos de uso (Messenger e Instagram), na aba **Webhoo
 
 | Variável | Valor |
 | --- | --- |
-| `META_APP_ID` | ID do app (passo 1) |
-| `META_APP_SECRET` | Chave secreta do app (passo 1) |
-| `META_WEBHOOK_VERIFY_TOKEN` | O token de verificação que você inventou no passo 3 |
+| `META_APP_ID` | ID do app, do topo do painel (passo 1) — usado só pelo Messenger |
+| `META_APP_SECRET` | Chave secreta do app, do topo do painel (passo 1) — usado só pelo Messenger |
+| `META_INSTAGRAM_APP_ID` | Instagram App ID (passo 2.1) — usado só pelo Instagram |
+| `META_INSTAGRAM_APP_SECRET` | Instagram App Secret (passo 2.1) — usado só pelo Instagram |
+| `META_WEBHOOK_VERIFY_TOKEN` | O token de verificação que você inventou no passo 3 (os dois produtos usam o mesmo) |
 
-Sem essas três, a tela de Conexões mostra que o canal ainda não foi configurado. Depois de criar
-ou alterar, é preciso um **novo deploy** para elas valerem — salvar na Vercel não é suficiente.
+Sem as credenciais de um produto, a tela de Conexões mostra que aquele botão ainda não foi
+configurado (os dois são independentes: dá para ativar o Messenger antes do Instagram, ou
+vice-versa). Depois de criar ou alterar uma variável, é preciso um **novo deploy** para ela
+valer — salvar na Vercel não é suficiente.
 
 ## 5. Revisão do app (App Review)
 
@@ -79,3 +91,7 @@ do Tendi.
 - **Este fluxo não foi testado por nós contra a API real da Meta** antes de vocês tentarem — ele
   segue a documentação oficial, mas a Meta muda esses detalhes com frequência. Se algo não bater
   com o que a tela da Meta pedir, me avise com a mensagem de erro exata.
+- **Live mode:** alguns recursos do Instagram só funcionam com o app publicado ("Live"), mesmo
+  para o próprio dono testando. Se o login funcionar mas as mensagens não chegarem, veja em
+  **Publicar** se o app precisa ser colocado no ar (isso não libera para o público, você controla
+  quem usa pelas Funções do app).

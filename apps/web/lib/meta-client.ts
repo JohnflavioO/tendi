@@ -2,7 +2,11 @@ import { metaGraphUrl } from './meta';
 
 /**
  * Credenciais do app da Meta (Instagram/Messenger) e chamadas às duas APIs.
- * META_APP_ID/META_APP_SECRET são o app único do Tendi cadastrado no Meta for Developers.
+ * META_APP_ID/META_APP_SECRET são o app do Tendi cadastrado no Meta for Developers, usados pelo
+ * login do Messenger (Facebook). O login do Instagram usa um ID e uma chave PRÓPRIOS — a Meta os
+ * mostra em "Instagram → API setup with Instagram login → Business login settings", diferentes
+ * do ID/chave do topo do painel. Por isso META_INSTAGRAM_APP_ID/META_INSTAGRAM_APP_SECRET existem
+ * à parte: usar o ID do Facebook no login do Instagram dá o erro "Invalid platform app".
  * O token de cada página/conta fica no Vault (migration dos canais), nunca aqui.
  *
  * Messenger fala com graph.facebook.com, usando o token da PÁGINA do Facebook.
@@ -44,9 +48,26 @@ export function getMetaWebhookVerifyToken(): string {
   return value;
 }
 
-/** O app da Meta já foi cadastrado nas variáveis de ambiente do servidor? */
-export function isMetaConfigured(): boolean {
+export function getInstagramAppId(): string {
+  const value = process.env.META_INSTAGRAM_APP_ID?.trim();
+  if (!value) throw new Error('META_INSTAGRAM_APP_ID não está configurada no servidor.');
+  return value;
+}
+
+export function getInstagramAppSecret(): string {
+  const value = process.env.META_INSTAGRAM_APP_SECRET?.trim();
+  if (!value) throw new Error('META_INSTAGRAM_APP_SECRET não está configurada no servidor.');
+  return value;
+}
+
+/** Messenger está pronto para conectar (ID/chave do app principal + token do webhook). */
+export function isMessengerConfigured(): boolean {
   return Boolean(process.env.META_APP_ID?.trim() && process.env.META_APP_SECRET?.trim() && process.env.META_WEBHOOK_VERIFY_TOKEN?.trim());
+}
+
+/** Instagram está pronto para conectar (ID/chave PRÓPRIOS do login do Instagram + token do webhook). */
+export function isInstagramConfigured(): boolean {
+  return Boolean(process.env.META_INSTAGRAM_APP_ID?.trim() && process.env.META_INSTAGRAM_APP_SECRET?.trim() && process.env.META_WEBHOOK_VERIFY_TOKEN?.trim());
 }
 
 async function parseMetaResponse(response: Response): Promise<unknown> {
