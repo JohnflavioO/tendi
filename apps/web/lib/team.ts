@@ -20,10 +20,11 @@ export const ROLE_INFO: Record<Role, { label: string; description: string }> = {
   agent: { label: 'Atendente', description: 'Atende no Inbox e cuida de contatos e oportunidades.' },
 };
 
-export type Area = 'inbox' | 'crm' | 'contatos' | 'chatbots' | 'relatorios' | 'configuracoes' | 'equipe' | 'assinatura';
+export type Area = 'inbox' | 'agenda' | 'crm' | 'contatos' | 'chatbots' | 'relatorios' | 'configuracoes' | 'equipe' | 'assinatura';
 
 const AREA_MIN_ROLE: Record<Area, Role> = {
   inbox: 'agent',
+  agenda: 'agent',
   crm: 'agent',
   contatos: 'agent',
   relatorios: 'manager',

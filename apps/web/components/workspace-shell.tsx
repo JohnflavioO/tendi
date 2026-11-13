@@ -7,12 +7,13 @@ import { SidebarFooter } from '@/components/sidebar-footer';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
 import { areaForPath, canAccessArea, type Area } from '@/lib/team';
 import {
-  Inbox, KanbanSquare, Users, Bot, ChartNoAxesCombined, Settings, ChevronDown,
+  Inbox, CalendarDays, KanbanSquare, Users, Bot, ChartNoAxesCombined, Settings, ChevronDown,
   MoreHorizontal, UserRound, RefreshCw, CircleHelp, LogOut, Building2, Menu, X, UsersRound,
 } from 'lucide-react';
 
 export const WORKSPACE_NAV: Array<{ label: string; href: string; icon: typeof Inbox; area: Area }> = [
   { label: 'Inbox', href: '/inbox', icon: Inbox, area: 'inbox' },
+  { label: 'Agenda', href: '/agenda', icon: CalendarDays, area: 'agenda' },
   { label: 'CRM', href: '/crm', icon: KanbanSquare, area: 'crm' },
   { label: 'Contatos', href: '/contatos', icon: Users, area: 'contatos' },
   { label: 'Chatbots', href: '/chatbots', icon: Bot, area: 'chatbots' },

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SUPER_ADMIN_AREAS, canAccessArea, type Area } from './team';
 
-const ATTENDANCE: Area[] = ['inbox', 'crm', 'contatos', 'relatorios'];
+const ATTENDANCE: Area[] = ['inbox', 'agenda', 'crm', 'contatos', 'relatorios'];
 const CONFIG: Area[] = ['chatbots', 'configuracoes', 'equipe', 'assinatura'];
 
 describe('escopo do Super Admin nas empresas dos clientes', () => {
