@@ -24,7 +24,7 @@ export function SidebarFooter({ organizationId, role, superAdmin, onSignOut }: {
     {canAccess(role, 'assinatura') && <a href={organizationId ? `/assinatura?organization=${organizationId}` : '/assinatura'} className={link}><CreditCard size={15} className="text-[#004751]" />Plano e assinatura</a>}
     <a href="/" target="_blank" rel="noopener" className={link}><ExternalLink size={15} className="text-[#004751]" />Ver site do Tendi</a>
     {superAdmin && <a href="/admin" className={link}><ShieldCheck size={15} className="text-[#CB0A9F]" />Console Super Admin</a>}
-    {role && !superAdmin && <p className="px-2 text-[10px] text-slate-400">Você entrou como <b className="text-slate-500">{ROLE_INFO[role].label}</b></p>}
+    {role && !superAdmin && <p className="px-2 text-[10px] text-slate-400">Logado como <b className="text-slate-500">{ROLE_INFO[role].label}</b></p>}
     {onSignOut
       ? <button onClick={onSignOut} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs text-slate-500 transition hover:bg-slate-50">Sair da conta</button>
       : <form action="/auth/signout" method="post"><button className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs text-slate-500 transition hover:bg-slate-50">Sair da conta</button></form>}
