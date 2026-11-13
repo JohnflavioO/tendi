@@ -30,12 +30,15 @@ export function verifyMetaSignature(rawBody: string, signatureHeader: string | n
 }
 
 /**
- * O Messenger e o Instagram usam dois logins DIFERENTES, em hosts diferentes — a Meta separou
- * os dois produtos. Messenger continua pelo login do Facebook (uma página do Facebook);
- * Instagram tem login próprio, direto pela conta do Instagram, sem passar por nenhuma página.
+ * Mensagens e Instagram agora entram pelo MESMO login (Login do Facebook para Empresas) e pelo
+ * mesmo app (META_APP_ID/META_APP_SECRET) — a Meta aposentou o login próprio do Instagram
+ * ("API setup with Instagram login") para apps criados recentemente; eles só têm a "API setup
+ * with Unified login". A diferença entre os dois agora é só o parâmetro `config_id`: ele aponta
+ * para uma "Configuração de login" cadastrada no painel da Meta (Instagram → API setup with
+ * Unified login → Criar nova configuração), que já embute os ativos (Página + conta do Instagram)
+ * e as permissões — por isso não mandamos mais `scope` no login do Instagram.
  */
 export const MESSENGER_OAUTH_SCOPES = ['pages_show_list', 'pages_messaging', 'pages_manage_metadata'];
-export const INSTAGRAM_OAUTH_SCOPES = ['instagram_business_basic', 'instagram_business_manage_messages'];
 
 /** Login do Facebook (Messenger): escolhe entre as páginas que a pessoa administra. */
 export function messengerDialogUrl(input: { appId: string; redirectUri: string; state: string }): string {
@@ -48,14 +51,14 @@ export function messengerDialogUrl(input: { appId: string; redirectUri: string; 
   return url.toString();
 }
 
-/** Login do Instagram: autoriza direto a conta profissional do Instagram, sem página. */
-export function instagramDialogUrl(input: { appId: string; redirectUri: string; state: string }): string {
-  const url = new URL('https://www.instagram.com/oauth/authorize');
+/** Login do Instagram (Unified login): mesma tela do Facebook, autorizando a configuração indicada por `configId`. */
+export function instagramDialogUrl(input: { appId: string; redirectUri: string; state: string; configId: string }): string {
+  const url = new URL(`https://www.facebook.com/${META_GRAPH_VERSION}/dialog/oauth`);
   url.searchParams.set('client_id', input.appId);
   url.searchParams.set('redirect_uri', input.redirectUri);
   url.searchParams.set('state', input.state);
   url.searchParams.set('response_type', 'code');
-  url.searchParams.set('scope', INSTAGRAM_OAUTH_SCOPES.join(','));
+  url.searchParams.set('config_id', input.configId);
   return url.toString();
 }
 
@@ -119,16 +122,4 @@ export function metaAccessTokenParams(input: { appId: string; appSecret: string;
 /** Parâmetros para trocar um token de usuário do Facebook de curta duração por um de longa duração (~60 dias). */
 export function metaLongLivedTokenParams(input: { appId: string; appSecret: string; shortLivedToken: string }): Record<string, string> {
   return { grant_type: 'fb_exchange_token', client_id: input.appId, client_secret: input.appSecret, fb_exchange_token: input.shortLivedToken };
-}
-
-/** Parâmetros da troca do código do Instagram por um token de curta duração (api.instagram.com/oauth/access_token). */
-export function instagramAccessTokenParams(input: { appId: string; appSecret: string; redirectUri: string; code: string }): Record<string, string> {
-  // O código que volta na URL às vezes vem com um "#_" colado no fim; isso derruba a troca.
-  const code = input.code.replace(/#_$/, '');
-  return { client_id: input.appId, client_secret: input.appSecret, grant_type: 'authorization_code', redirect_uri: input.redirectUri, code };
-}
-
-/** Parâmetros para trocar o token de curta duração do Instagram por um de longa duração (~60 dias). */
-export function instagramLongLivedTokenParams(input: { appSecret: string; shortLivedToken: string }): Record<string, string> {
-  return { grant_type: 'ig_exchange_token', client_secret: input.appSecret, access_token: input.shortLivedToken };
 }

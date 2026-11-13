@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { instagramAccessTokenParams, instagramLongLivedTokenParams } from '@/lib/meta';
-import { exchangeInstagramCode, exchangeInstagramLongLivedToken, getInstagramAccount, getInstagramAppId, getInstagramAppSecret } from '@/lib/meta-client';
+import { metaAccessTokenParams } from '@/lib/meta';
+import { getInstagramAccount, getMetaAppId, getMetaAppSecret, metaGet } from '@/lib/meta-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,9 +27,10 @@ async function upsertInstagramConnection(admin: NonNullable<ReturnType<typeof cr
 
 /**
  * GET /api/meta/instagram/oauth/callback
- * O Instagram volta para cá já com o código. Diferente do Messenger, aqui não há página para
- * escolher: a conta autorizada é sempre a mesma que fez o login, então a conexão é concluída
- * direto, sem etapa de escolha.
+ * O Instagram volta para cá já com o código, trocado na Graph API do Facebook (o mesmo app do
+ * Messenger). A Configuração de login (config_id) já restringe o login a uma Página + conta do
+ * Instagram só, então não há etapa de escolha como no Messenger: buscamos direto a conta
+ * vinculada e guardamos o token DA PÁGINA (é ele que autoriza enviar mensagens pelo Instagram).
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -54,19 +55,21 @@ export async function GET(request: Request) {
   if (!admin) return clearState(NextResponse.redirect(backToChannels(request, organizationId, { igError: 'servidor_sem_credenciais' })));
 
   try {
-    const appId = getInstagramAppId();
-    const appSecret = getInstagramAppSecret();
+    const appId = getMetaAppId();
+    const appSecret = getMetaAppSecret();
     const redirectUri = new URL('/api/meta/instagram/oauth/callback', request.url).toString();
-    const exchanged = await exchangeInstagramCode(instagramAccessTokenParams({ appId, appSecret, redirectUri, code }));
-    const longLivedToken = await exchangeInstagramLongLivedToken(instagramLongLivedTokenParams({ appSecret, shortLivedToken: exchanged.accessToken }));
-    const account = await getInstagramAccount(longLivedToken);
+    const exchanged = await metaGet('/oauth/access_token', metaAccessTokenParams({ appId, appSecret, redirectUri, code })) as { access_token?: string };
+    const userToken = exchanged.access_token;
+    if (!userToken) throw new Error('A Meta não devolveu um token de acesso.');
+
+    const account = await getInstagramAccount(userToken);
 
     const connectionId = await upsertInstagramConnection(admin, {
       organizationId,
       providerAccountId: account.id,
       displayName: account.username ? `@${account.username}` : 'Instagram',
     });
-    await admin.rpc('set_channel_secret', { p_connection_id: connectionId, p_value: longLivedToken });
+    await admin.rpc('set_channel_secret', { p_connection_id: connectionId, p_value: account.pageAccessToken });
 
     return clearState(NextResponse.redirect(backToChannels(request, organizationId, { igConnected: account.username ?? '1' })));
   } catch (error) {
