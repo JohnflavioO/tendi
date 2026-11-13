@@ -48,7 +48,7 @@ app** (cadastradas em **Funções do app** no painel da Meta) conseguem conectar
 qualquer cliente conectar, é preciso solicitar à Meta a revisão das permissões:
 
 - `pages_show_list`, `pages_messaging`, `pages_manage_metadata`
-- `instagram_basic`, `instagram_manage_messages`
+- `instagram_business_basic`, `instagram_business_manage_messages`
 
 A revisão pede um vídeo mostrando o uso de cada permissão e pode levar alguns dias.
 

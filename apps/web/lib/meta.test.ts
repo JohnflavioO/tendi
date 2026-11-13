@@ -45,7 +45,7 @@ describe('diálogo de login da Meta', () => {
     expect(url.searchParams.get('client_id')).toBe('123');
     expect(url.searchParams.get('redirect_uri')).toBe('https://app.tendi.com.br/api/meta/oauth/callback');
     expect(url.searchParams.get('state')).toBe('abc');
-    expect(url.searchParams.get('scope')).toContain('instagram_manage_messages');
+    expect(url.searchParams.get('scope')).toContain('instagram_business_manage_messages');
   });
 });
 

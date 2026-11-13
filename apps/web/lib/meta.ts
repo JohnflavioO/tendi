@@ -29,8 +29,12 @@ export function verifyMetaSignature(rawBody: string, signatureHeader: string | n
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-/** Escopos pedidos no login da Meta: só o que é preciso para listar páginas e enviar/receber mensagens. */
-export const META_OAUTH_SCOPES = ['pages_show_list', 'pages_messaging', 'pages_manage_metadata', 'instagram_basic', 'instagram_manage_messages'];
+/**
+ * Escopos pedidos no login da Meta: só o que é preciso para listar páginas e enviar/receber
+ * mensagens. Os nomes `instagram_business_basic`/`instagram_business_manage_messages`
+ * substituíram os antigos `instagram_basic`/`instagram_manage_messages`.
+ */
+export const META_OAUTH_SCOPES = ['pages_show_list', 'pages_messaging', 'pages_manage_metadata', 'instagram_business_basic', 'instagram_business_manage_messages'];
 
 /** Autorização do usuário (tela de login/consentimento da Meta). Host diferente do da Graph API. */
 export function metaDialogUrl(input: { appId: string; redirectUri: string; state: string }): string {
