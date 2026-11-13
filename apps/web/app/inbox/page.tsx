@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search, ArrowLeft, MessageCircle, Users, KanbanSquare, ChartNoAxesCombined,
-  Settings, Inbox, Bot, ChevronDown, Phone, Info, Check, CheckCheck, Loader2,
+  Settings, Inbox, Bot, ChevronDown, Phone, Info, Check, CheckCheck,
   Building2, X, RefreshCw, SlidersHorizontal, Sparkles, MoreHorizontal, Clock3,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -13,6 +13,7 @@ import { isViewableImage } from '@/lib/inbox-media';
 import { Composer } from '@/components/inbox/composer';
 import { ContactPanel } from '@/components/inbox/contact-panel';
 import { ConversationList } from '@/components/inbox/conversation-list';
+import { BrandLoader } from '@/components/brand-loader';
 import { ContactAvatar } from '@/components/inbox/contact-avatar';
 import { SidebarFooter } from '@/components/sidebar-footer';
 import { WORKSPACE_NAV } from '@/components/workspace-shell';
@@ -244,7 +245,7 @@ export default function InboxPage() {
     .map(item => ({ id: item.id, name: item.contacts?.full_name || item.contacts?.phone_e164 || 'Contato', phone: item.contacts?.phone_e164 ?? null }));
   const latestMessage = (conversationId: string) => { const rows = messages.filter(message => message.conversation_id === conversationId); return rows[rows.length - 1]; };
 
-  if (loading) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]"><Loader2 className="animate-spin" /></main>;
+  if (loading) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]"><BrandLoader size={56} /></main>;
   if (!organizations.length) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] p-6"><div className="max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm"><Building2 className="mx-auto text-[#CB0A9F]" size={34}/><h1 className="mt-4 text-xl font-bold text-[#2F316B]">Nenhuma empresa vinculada</h1><p className="mt-2 text-sm leading-6 text-slate-500">Sua conta ainda não pertence a uma organização. Peça ao Super Admin para criar uma empresa e associar seu usuário.</p>{error&&<p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">Não foi possível criar seu workspace: {error}</p>}<form action="/auth/signout" method="post"><button className="mt-5 rounded-xl bg-[#004751] px-4 py-2.5 text-sm font-semibold text-white">Sair</button></form></div></main>;
 
   const supportOrganization = organizations.find(org => org.id === organizationId);
