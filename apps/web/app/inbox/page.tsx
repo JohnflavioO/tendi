@@ -19,6 +19,8 @@ import { WORKSPACE_NAV } from '@/components/workspace-shell';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
 import { canAccess } from '@/lib/team';
 import { provisionPendingWorkspace } from '@/lib/ensure-workspace';
+import { requestedOrganizationId, resolveCurrentOrganization, withOrganization } from '@/lib/current-organization';
+import { SupportBanner } from '@/components/support-banner';
 import { mergeMessages, previewText, statusLabel } from '@/lib/inbox-utils';
 
 type Org = { id: string; name: string };
@@ -72,8 +74,8 @@ export default function InboxPage() {
   const [conversationMenuOpen, setConversationMenuOpen] = useState(false);
   const [tabVisible, setTabVisible] = useState(true);
   const [viewerImageId, setViewerImageId] = useState('');
-  const { role, superAdmin } = useWorkspaceRole(organizationId);
-  const nav = WORKSPACE_NAV.filter(item => role === undefined ? item.area === 'inbox' : canAccess(role, item.area)).map(item => [item.label, item.icon, item.href] as const);
+  const { role, superAdmin, supportUntil } = useWorkspaceRole(organizationId);
+  const nav = WORKSPACE_NAV.filter(item => role === undefined ? item.area === 'inbox' : canAccess(role, item.area)).map(item => [item.label, item.icon, withOrganization(item.href, organizationId)] as const);
   const [agent, setAgent] = useState<{ name: string; is_enabled: boolean } | null>(null);
   const [aiSaving, setAiSaving] = useState(false);
   const selectedRef = useRef('');
@@ -100,27 +102,20 @@ export default function InboxPage() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) { window.location.assign('/login'); return; }
     setUserId(auth.user.id);
-    // O Inbox só lista empresas em que a pessoa tem vínculo ativo. O Super Admin enxerga o cadastro
-    // de todas as empresas, mas não entra nos atendimentos delas.
-    const memberOrganizations = async (): Promise<Org[]> => {
-      const [orgs, memberships] = await Promise.all([
-        supabase.from('organizations').select('id,name').order('name'),
-        supabase.from('organization_memberships').select('organization_id').eq('user_id', auth.user.id).eq('status', 'active'),
-      ]);
-      if (orgs.error) throw orgs.error;
-      if (memberships.error) throw memberships.error;
-      const mine = new Set(((memberships.data ?? []) as Array<{ organization_id: string }>).map(row => row.organization_id));
-      return ((orgs.data ?? []) as Org[]).filter(org => mine.has(org.id));
-    };
-    let list = await memberOrganizations();
-    if (!list.length) {
+    // O Inbox só lista empresas em que a pessoa trabalha: vínculo ativo ou acesso de suporte liberado
+    // pelo cliente. O Super Admin enxerga o cadastro de todas, mas não entra nos atendimentos delas.
+    const requestedId = requestedOrganizationId();
+    const workOrganizations = async (): Promise<Org[]> => (await resolveCurrentOrganization<Org>(supabase, auth.user.id, 'id,name', requestedId)).accessible;
+    let list = await workOrganizations();
+    const requestedWithoutAccess = Boolean(requestedId) && !list.some(org => org.id === requestedId);
+    if (!list.length || requestedWithoutAccess) {
       const { data: platformAdmin } = await supabase.from('platform_admins').select('user_id').eq('user_id', auth.user.id).maybeSingle();
-      if (platformAdmin) { window.location.replace('/admin'); return; }
+      // Super Admin abrindo a empresa de um cliente sem acesso liberado: vai para a ficha dela no Console.
+      if (platformAdmin && (requestedWithoutAccess || !list.length)) { window.location.replace(requestedWithoutAccess ? `/admin/organizations/${requestedId}` : '/admin'); return; }
       // Conta confirmada sem empresa: conclui a criação do workspace iniciada no cadastro.
-      if (await provisionPendingWorkspace(supabase, auth.user)) list = await memberOrganizations();
+      if (!list.length && await provisionPendingWorkspace(supabase, auth.user)) list = await workOrganizations();
     }
     setOrganizations(list);
-    const requestedId = new URLSearchParams(window.location.search).get('organization');
     const requestedOrganization = requestedId && list.some(org => org.id === requestedId) ? requestedId : '';
     setOrganizationId(current => current || requestedOrganization || list[0]?.id || '');
     setLoading(false);
@@ -252,7 +247,11 @@ export default function InboxPage() {
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]"><Loader2 className="animate-spin" /></main>;
   if (!organizations.length) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] p-6"><div className="max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm"><Building2 className="mx-auto text-[#CB0A9F]" size={34}/><h1 className="mt-4 text-xl font-bold text-[#2F316B]">Nenhuma empresa vinculada</h1><p className="mt-2 text-sm leading-6 text-slate-500">Sua conta ainda não pertence a uma organização. Peça ao Super Admin para criar uma empresa e associar seu usuário.</p>{error&&<p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">Não foi possível criar seu workspace: {error}</p>}<form action="/auth/signout" method="post"><button className="mt-5 rounded-xl bg-[#004751] px-4 py-2.5 text-sm font-semibold text-white">Sair</button></form></div></main>;
 
-  return <main className="flex h-screen min-h-[620px] overflow-hidden bg-[#F4F6FB] text-slate-800">
+  const supportOrganization = organizations.find(org => org.id === organizationId);
+
+  return <div className="flex h-screen min-h-[620px] flex-col">
+    {supportOrganization && <SupportBanner organizationId={supportOrganization.id} organizationName={supportOrganization.name} supportUntil={supportUntil}/>}
+    <main className="flex min-h-0 flex-1 overflow-hidden bg-[#F4F6FB] text-slate-800">
     <aside className="hidden w-[218px] shrink-0 flex-col border-r border-slate-200/80 bg-white px-3 py-5 lg:flex">
       <div className="mb-8 flex items-center px-3"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain"/></div>
       <label className="mb-7 block px-2"><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</span><div className="relative"><select value={organizationId} onChange={e=>setOrganizationId(e.target.value)} className="w-full appearance-none rounded-xl border border-slate-200 bg-[#FAFBFD] p-3 pr-8 text-sm font-semibold text-[#2F316B] outline-none focus:border-[#004751]">{organizations.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-3.5 text-slate-400" size={16}/></div></label>
@@ -280,5 +279,6 @@ export default function InboxPage() {
     {viewerImageId&&viewerImages.some(image=>image.id===viewerImageId)&&<ImageViewer images={viewerImages} startId={viewerImageId} senderName={viewerSenderName} targets={forwardTargets} onClose={()=>setViewerImageId('')} onForwarded={()=>{void loadInbox().catch(err=>setError(err.message));}}/>}
 
     {showDetails&&selected&&<aside className="hidden w-[280px] shrink-0 overflow-y-auto border-l border-slate-200/80 bg-white xl:block"><ContactPanel conversation={selected} userId={userId} onChanged={()=>{void loadInbox().catch(err=>setError(err.message));}} onClose={()=>setShowDetails(false)}/></aside>}
-  </main>;
+  </main>
+  </div>;
 }

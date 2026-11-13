@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { SidebarFooter } from '@/components/sidebar-footer';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
+import { requestedOrganizationId, resolveCurrentOrganization, withOrganization } from '@/lib/current-organization';
+import { SupportBanner } from '@/components/support-banner';
 import { areaForPath, canAccessArea, type Area } from '@/lib/team';
 import {
   Inbox, CalendarDays, KanbanSquare, Users, Bot, ChartNoAxesCombined, Settings, ChevronDown,
@@ -40,18 +42,17 @@ export function WorkspaceShell({ children, title, description, actions }: {
     async function load() {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) { window.location.assign('/login'); return; }
-      const { data: orgs } = await supabase.from('organizations').select('id,name').order('name');
+      // A empresa pedida no endereço; senão, a primeira em que a pessoa trabalha (vínculo ou suporte liberado).
+      const current = await resolveCurrentOrganization<{id:string;name:string}>(supabase, auth.user.id, 'id,name', requestedOrganizationId()).catch(() => null);
       if (!active) return;
-      const requestedId = new URLSearchParams(window.location.search).get('organization');
-      const selected = orgs?.find((item: {id:string}) => item.id === requestedId) ?? orgs?.[0];
-      if (selected) setOrganization(selected);
+      if (current?.organization) setOrganization(current.organization);
       setLoading(false);
     }
     void load();
     return () => { active = false; };
   }, [supabase]);
 
-  const { role, superAdmin } = useWorkspaceRole(organization?.id);
+  const { role, superAdmin, supportUntil } = useWorkspaceRole(organization?.id);
   const navigation = WORKSPACE_NAV.filter(item => role === undefined ? false : canAccessArea(role, superAdmin, item.area));
   // Página fora do papel da pessoa (ex.: atendente abrindo /configuracoes pelo link): volta para o Inbox.
   // Super Admin sem vínculo com a empresa não abre áreas de atendimento: volta para o Console.
@@ -66,7 +67,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
   }
 
   const sidebar = <aside className="flex h-full w-[238px] shrink-0 flex-col border-r border-slate-200 bg-white px-4 py-5">
-    <a href={consoleOnly ? '/admin' : '/inbox'} className="mb-8 flex items-center px-2"><img src="/brand/Logo%20Tendi.png" alt="Tendi" className="h-9 w-auto object-contain"/></a>
+    <a href={consoleOnly ? '/admin' : withOrganization('/inbox', organization?.id)} className="mb-8 flex items-center px-2"><img src="/brand/Logo%20Tendi.png" alt="Tendi" className="h-9 w-auto object-contain"/></a>
     <div className="mb-6 rounded-xl border border-slate-200 bg-[#FAFBFD] p-3">
       <span className="mb-2 block text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</span>
       <div className="flex items-center gap-2 text-sm font-semibold text-[#2F316B]"><Building2 size={16}/><span className="truncate">{organization?.name ?? 'Carregando...'}</span><ChevronDown size={14} className="ml-auto text-slate-400"/></div>
@@ -74,7 +75,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
     <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</p>
     <nav className="space-y-1">{navigation.map(({label,href,icon:Icon})=>{
       const active = pathname === href || (href !== '/inbox' && pathname.startsWith(href + '/'));
-      return <a key={href} href={href} onClick={()=>setMobileOpen(false)} className={active ? 'flex items-center gap-3 rounded-xl bg-[#F0F0FA] px-3 py-3 text-sm font-semibold text-[#2F316B]' : 'flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-[#2F316B]'}><Icon size={18}/>{label}</a>;
+      return <a key={href} href={withOrganization(href, organization?.id)} onClick={()=>setMobileOpen(false)} className={active ? 'flex items-center gap-3 rounded-xl bg-[#F0F0FA] px-3 py-3 text-sm font-semibold text-[#2F316B]' : 'flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-[#2F316B]'}><Icon size={18}/>{label}</a>;
     })}</nav>
     <SidebarFooter organizationId={organization?.id} role={role} superAdmin={superAdmin} onSignOut={signOut}/>
   </aside>;
@@ -86,6 +87,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
     <div className="hidden lg:flex">{sidebar}</div>
     {mobileOpen && <div className="fixed inset-0 z-40 flex lg:hidden"><button aria-label="Fechar menu" className="absolute inset-0 bg-slate-950/30" onClick={()=>setMobileOpen(false)}/><div className="relative z-10">{sidebar}<button onClick={()=>setMobileOpen(false)} className="absolute right-3 top-3 rounded-lg p-2 text-slate-500"><X size={18}/></button></div></div>}
     <section className="flex min-w-0 flex-1 flex-col">
+      <SupportBanner organizationId={organization.id} organizationName={organization.name} supportUntil={supportUntil}/>
       <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-slate-200/80 bg-white/95 px-5 backdrop-blur md:px-8">
         <div className="flex min-w-0 items-center gap-3"><button onClick={()=>setMobileOpen(true)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Abrir menu"><Menu size={19}/></button><div className="min-w-0"><p className="truncate text-lg font-bold tracking-tight text-[#25275B]">{title}</p><p className="hidden truncate text-xs text-slate-400 sm:block">{description}</p></div></div>
         <div className="relative flex items-center gap-2">{actions}<button onClick={()=>setMenuOpen(!menuOpen)} aria-label="Abrir menu de opções" aria-expanded={menuOpen} className={menuOpen?'rounded-xl bg-[#F0F0FA] p-2.5 text-[#2F316B]':'rounded-xl p-2.5 text-slate-400 transition hover:bg-slate-100 hover:text-[#2F316B]'}><MoreHorizontal size={20}/></button>

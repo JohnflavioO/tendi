@@ -16,6 +16,7 @@ import {
   APPOINTMENT_COLUMNS, shiftsFor, type AgendaOrganization, type Appointment, type HoursRow, type Professional, type Service,
 } from '@/components/agenda/types';
 import { weekdayOf } from '@/lib/agenda';
+import { requestedOrganizationId, resolveCurrentOrganization } from '@/lib/current-organization';
 
 export default function AgendaPage() {
   const supabase = useMemo(() => createClient() as any, []);
@@ -71,15 +72,10 @@ export default function AgendaPage() {
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) { window.location.assign('/login'); return; }
-      const [orgs, memberships] = await Promise.all([
-        supabase.from('organizations').select('id,name,timezone,business_segment,agenda_settings').order('name'),
-        supabase.from('organization_memberships').select('organization_id').eq('user_id', auth.user.id).eq('status', 'active'),
-      ]);
+      // Empresas em que a pessoa trabalha: vínculo ativo ou acesso de suporte liberado pelo cliente.
+      const requested = requestedOrganizationId();
+      const { accessible: list } = await resolveCurrentOrganization<AgendaOrganization>(supabase, auth.user.id, 'id,name,timezone,business_segment,agenda_settings', requested);
       if (!active) return;
-      if (orgs.error) throw new Error(orgs.error.message);
-      const mine = new Set(((memberships.data ?? []) as Array<{ organization_id: string }>).map(row => row.organization_id));
-      const list = ((orgs.data ?? []) as AgendaOrganization[]).filter(org => mine.has(org.id));
-      const requested = new URLSearchParams(window.location.search).get('organization');
       const selected = list.find(org => org.id === requested) ?? list[0] ?? null;
       if (!selected) { setLoading(false); return; }
       setUserId(auth.user.id);
