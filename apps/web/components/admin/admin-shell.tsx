@@ -151,7 +151,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
     ...ALL_ITEMS.map(item => ({ id: item.href, label: item.label, hint: item.hint ?? '', href: item.href, icon: item.icon, keywords: item.label.toLowerCase() })),
     { id: 'site', label: 'Ver site do Tendi', hint: 'Abrir a página pública', href: '/', icon: ExternalLink, keywords: 'site landing página' },
     ...companies.flatMap(org => [
-      { id: `ws-${org.id}`, label: org.name, hint: 'Abrir workspace', href: `/inbox?organization=${org.id}`, icon: Building2, keywords: `${org.name.toLowerCase()} workspace inbox` },
+      { id: `ws-${org.id}`, label: org.name, hint: 'Ficha da empresa', href: `/admin/organizations/${org.id}`, icon: Building2, keywords: `${org.name.toLowerCase()} empresa cliente ficha bloquear suporte` },
       { id: `setup-${org.id}`, label: `${org.name}: administrador`, hint: 'Convidar o responsável', href: `/admin/organizations/${org.id}/setup`, icon: Bot, keywords: `${org.name.toLowerCase()} gerenciar configurar admin` },
     ]),
   ], [companies]);
