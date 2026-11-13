@@ -34,6 +34,8 @@ export type SignFn = (path: string) => Promise<string | null>;
 
 export const MAX_TEXT_LENGTH = 4096;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Canais em que o Inbox já consegue enviar a resposta do atendente. Instagram/Messenger ainda não. */
+const SENDABLE_CHANNELS = ['whatsapp', 'webchat'];
 
 const isRecord = (value: unknown): value is Json =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -97,45 +99,55 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
     teams?: { name: string } | Array<{ name: string }> | null;
   } | null;
   if (!conversation) return fail(404, 'Conversa não encontrada.');
-  if (conversation.channel !== 'whatsapp') return fail(422, 'Esta conversa não é do WhatsApp.');
+  if (!SENDABLE_CHANNELS.includes(conversation.channel)) return fail(422, 'Este canal ainda não está disponível para envio.');
+  const isWebchat = conversation.channel === 'webchat';
 
-  const contact = Array.isArray(conversation.contacts) ? conversation.contacts[0] : conversation.contacts;
-  const phone = (contact?.phone_e164 ?? '').replace(/\D/g, '');
-  if (!/^\d{8,15}$/.test(phone)) return fail(422, 'O contato não tem um número de WhatsApp válido.');
+  // WhatsApp precisa de telefone e de uma conexão ativa; Webchat não (a conversa já existe no banco).
+  let phone = '';
+  let connection: { provider_account_id: string | null; status: string; settings?: unknown } | null = null;
+  if (!isWebchat) {
+    const contact = Array.isArray(conversation.contacts) ? conversation.contacts[0] : conversation.contacts;
+    phone = (contact?.phone_e164 ?? '').replace(/\D/g, '');
+    if (!/^\d{8,15}$/.test(phone)) return fail(422, 'O contato não tem um número de WhatsApp válido.');
 
-  const connectionResult = await db
-    .from('channel_connections')
-    .select('provider_account_id,status,settings')
-    .eq('organization_id', conversation.organization_id)
-    .eq('channel', 'whatsapp')
-    .maybeSingle();
-  if (connectionResult.error) return fail(500, 'Não foi possível consultar a conexão do WhatsApp.');
-  const connection = connectionResult.data as { provider_account_id: string | null; status: string; settings?: unknown } | null;
-  if (!connection?.provider_account_id || connection.status !== 'connected') {
-    return fail(409, 'O WhatsApp deste workspace não está conectado. Conecte o número em Chatbots.');
+    const connectionResult = await db
+      .from('channel_connections')
+      .select('provider_account_id,status,settings')
+      .eq('organization_id', conversation.organization_id)
+      .eq('channel', 'whatsapp')
+      .maybeSingle();
+    if (connectionResult.error) return fail(500, 'Não foi possível consultar a conexão do WhatsApp.');
+    connection = connectionResult.data as { provider_account_id: string | null; status: string; settings?: unknown } | null;
+    if (!connection?.provider_account_id || connection.status !== 'connected') {
+      return fail(409, 'O WhatsApp deste workspace não está conectado. Conecte o número em Chatbots.');
+    }
   }
 
-  // Anexo: valida o caminho (precisa estar na pasta desta empresa e conversa) e gera o link temporário.
+  // Anexo: valida o caminho (precisa estar na pasta desta empresa e conversa) e gera o link temporário
+  // (só para o WhatsApp: é o endereço de onde a D-API baixa o arquivo. O Webchat lê direto do Storage.)
   let attachment: ReturnType<typeof validateAttachment> | null = null;
   let mediaUrl: string | null = null;
   if (hasAttachment) {
     attachment = validateAttachment(input.attachment, conversation.organization_id, conversation.id);
     if (!attachment.ok) return fail(400, attachment.error);
     if (attachment.value.kind === 'audio' && text) return fail(400, 'Áudio não aceita legenda. Envie o texto em outra mensagem.');
-    if (!signUrl) return fail(500, 'Envio de anexos não está configurado no servidor.');
-    mediaUrl = await signUrl(attachment.value.path).catch(() => null);
-    if (!mediaUrl) return fail(400, 'O arquivo não foi encontrado no armazenamento. Anexe novamente.');
+    if (!isWebchat) {
+      if (!signUrl) return fail(500, 'Envio de anexos não está configurado no servidor.');
+      mediaUrl = await signUrl(attachment.value.path).catch(() => null);
+      if (!mediaUrl) return fail(400, 'O arquivo não foi encontrado no armazenamento. Anexe novamente.');
+    }
   }
   const media = attachment?.ok ? attachment.value : null;
 
   // 1) Registra a mensagem como "queued" para ela aparecer na hora no Inbox.
   const now = new Date().toISOString();
   const senderName = asString(input.senderName) ?? 'Atendente';
-  const signature = normalizeSignature(connection.settings);
+  const signature = isWebchat ? null : normalizeSignature(connection?.settings);
   const team = Array.isArray(conversation.teams) ? conversation.teams[0] : conversation.teams;
-  const signer = signature.enabled ? humanSigner({ name: senderName, team: team?.name, format: signature.format }) : '';
-  // Texto e legenda que vão ao WhatsApp (áudio não tem legenda, então não leva assinatura).
-  const outgoing = text ? signText(text, signer) : text;
+  const signer = signature?.enabled ? humanSigner({ name: senderName, team: team?.name, format: signature.format }) : '';
+  // Texto e legenda que vão ao WhatsApp (áudio não tem legenda, então não leva assinatura). O Webchat
+  // não leva assinatura no texto: quem está respondendo já aparece identificado na própria tela.
+  const outgoing = !isWebchat && text ? signText(text, signer) : text;
   const basePayload = {
     source: 'inbox',
     sender: { type: 'human', name: senderName, user_id: input.userId },
@@ -152,7 +164,7 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
       body: text || null,
       delivery_status: 'queued',
       sender_id: input.userId,
-      provider: 'd-api',
+      provider: isWebchat ? 'webchat' : 'd-api',
       sent_at: now,
       payload: basePayload,
     })
@@ -161,11 +173,22 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
   if (inserted.error || !inserted.data) return fail(500, 'Não foi possível registrar a mensagem.');
   const messageRowId = (inserted.data as { id: string }).id;
 
-  // 2) Envia pela D-API.
+  // 2) Entrega. Webchat só marca como enviado: quem lê é o navegador do visitante, pela
+  // rota /api/webchat/messages, não há provedor externo para chamar.
+  if (isWebchat) {
+    await writeDb.from('messages').update({ delivery_status: 'sent', sent_at: new Date().toISOString() }).eq('id', messageRowId);
+    await writeDb
+      .from('conversations')
+      .update({ last_message_at: new Date().toISOString(), status: 'open', ai_mode: 'off' })
+      .eq('id', conversation.id);
+    return { status: 200, body: { success: true, messageId: messageRowId, delivery_status: 'sent' } };
+  }
+
+  const providerAccountId = connection!.provider_account_id as string;
   try {
     const request = media && mediaUrl
-      ? buildDapiMediaRequest(media, { sessionId: connection.provider_account_id, to: phone, url: mediaUrl, caption: outgoing || null })
-      : { path: '/messages/send/text', body: { sessionId: connection.provider_account_id, to: phone, text: outgoing } };
+      ? buildDapiMediaRequest(media, { sessionId: providerAccountId, to: phone, url: mediaUrl, caption: outgoing || null })
+      : { path: '/messages/send/text', body: { sessionId: providerAccountId, to: phone, text: outgoing } };
     // Mídia pode demorar mais que texto (a D-API baixa e reenvia o arquivo).
     const response = await send(request.path, request.body, media ? { timeoutMs: 55_000 } : undefined);
     const providerMessageId = pickProviderMessageId(response);

@@ -151,7 +151,7 @@ export async function ensureContact(db: Db, organizationId: string, phone: strin
 type ConversationRow = { id: string; status: string; unread_count: number; last_message_at: string | null; ai_mode?: string | null };
 
 /** Conversa nova já nasce com a IA ligada quando o agente da empresa está liberado e configurado para isso. */
-async function initialAiMode(db: Db, organizationId: string): Promise<'on' | 'off'> {
+export async function initialAiMode(db: Db, organizationId: string): Promise<'on' | 'off'> {
   try {
     const result = await db
       .from('ai_agents')

@@ -9,6 +9,11 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/api/webhooks/')) return NextResponse.next({ request });
   // Agendador (lembretes da agenda): também sem sessão; a rota valida o segredo do cabeçalho Authorization.
   if (request.nextUrl.pathname.startsWith('/api/cron/')) return NextResponse.next({ request });
+  // Webchat: o visitante do site do cliente nunca faz login no Tendi. O script público e as
+  // rotas que ele chama (token próprio, validado dentro de cada rota) precisam ficar fora do login.
+  if (request.nextUrl.pathname === '/webchat.js' || request.nextUrl.pathname.startsWith('/api/webchat/')) {
+    return NextResponse.next({ request });
+  }
   // Link de confirmação que caiu na página inicial (ex.: redirect fora da lista permitida
   // do Supabase): encaminha o código para o callback, que conclui o login e o cadastro.
   if (request.nextUrl.pathname === '/' && request.nextUrl.searchParams.has('code')) {

@@ -147,6 +147,32 @@ describe('helpers', () => {
 });
 
 
+describe('envio no Webchat', () => {
+  it('envia sem telefone nem conexão, e nunca chama o provedor externo', async () => {
+    const db = make({ conn: null, conv: { channel: 'webchat', contacts: { phone_e164: null } } });
+    const send = vi.fn();
+    const r = await sendWhatsappText(db as any, input({ text: 'Olá!' }), send as any);
+    expect(r.status).toBe(200);
+    expect(send).not.toHaveBeenCalled();
+    expect(db.t.messages[0]).toMatchObject({ direction: 'outbound', body: 'Olá!', delivery_status: 'sent', provider: 'webchat', sender_id: 'u1' });
+    expect(db.t.conversations[0].status).toBe('open');
+  });
+
+  it('não assina o texto (sem conexão/settings de assinatura)', async () => {
+    const db = make({ conn: null, conv: { channel: 'webchat', contacts: { phone_e164: null } } });
+    await sendWhatsappText(db as any, input({ text: 'Olá!', senderName: 'Ana' }), vi.fn() as any);
+    expect(db.t.messages[0].body).toBe('Olá!');
+    expect(db.t.messages[0].payload.signature).toBeUndefined();
+  });
+
+  it('envia anexo sem precisar de signUrl', async () => {
+    const db = make({ conn: null, conv: { channel: 'webchat', contacts: { phone_e164: null } } });
+    const r = await sendWhatsappText(db as any, input({ attachment: att() }), vi.fn() as any);
+    expect(r.status).toBe(200);
+    expect(db.t.messages[0]).toMatchObject({ message_type: 'image', provider: 'webchat', delivery_status: 'sent' });
+  });
+});
+
 describe('assinatura no WhatsApp', () => {
   it('assinatura desligada envia o texto puro', async () => {
     const db = make({ conn: { settings: { signature: { enabled: false } } } }); const send = okSend();
