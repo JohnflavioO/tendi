@@ -30,20 +30,32 @@ export function verifyMetaSignature(rawBody: string, signatureHeader: string | n
 }
 
 /**
- * Escopos pedidos no login da Meta: só o que é preciso para listar páginas e enviar/receber
- * mensagens. Os nomes `instagram_business_basic`/`instagram_business_manage_messages`
- * substituíram os antigos `instagram_basic`/`instagram_manage_messages`.
+ * O Messenger e o Instagram usam dois logins DIFERENTES, em hosts diferentes — a Meta separou
+ * os dois produtos. Messenger continua pelo login do Facebook (uma página do Facebook);
+ * Instagram tem login próprio, direto pela conta do Instagram, sem passar por nenhuma página.
  */
-export const META_OAUTH_SCOPES = ['pages_show_list', 'pages_messaging', 'pages_manage_metadata', 'instagram_business_basic', 'instagram_business_manage_messages'];
+export const MESSENGER_OAUTH_SCOPES = ['pages_show_list', 'pages_messaging', 'pages_manage_metadata'];
+export const INSTAGRAM_OAUTH_SCOPES = ['instagram_business_basic', 'instagram_business_manage_messages'];
 
-/** Autorização do usuário (tela de login/consentimento da Meta). Host diferente do da Graph API. */
-export function metaDialogUrl(input: { appId: string; redirectUri: string; state: string }): string {
+/** Login do Facebook (Messenger): escolhe entre as páginas que a pessoa administra. */
+export function messengerDialogUrl(input: { appId: string; redirectUri: string; state: string }): string {
   const url = new URL(`https://www.facebook.com/${META_GRAPH_VERSION}/dialog/oauth`);
   url.searchParams.set('client_id', input.appId);
   url.searchParams.set('redirect_uri', input.redirectUri);
   url.searchParams.set('state', input.state);
   url.searchParams.set('response_type', 'code');
-  url.searchParams.set('scope', META_OAUTH_SCOPES.join(','));
+  url.searchParams.set('scope', MESSENGER_OAUTH_SCOPES.join(','));
+  return url.toString();
+}
+
+/** Login do Instagram: autoriza direto a conta profissional do Instagram, sem página. */
+export function instagramDialogUrl(input: { appId: string; redirectUri: string; state: string }): string {
+  const url = new URL('https://www.instagram.com/oauth/authorize');
+  url.searchParams.set('client_id', input.appId);
+  url.searchParams.set('redirect_uri', input.redirectUri);
+  url.searchParams.set('state', input.state);
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('scope', INSTAGRAM_OAUTH_SCOPES.join(','));
   return url.toString();
 }
 
@@ -99,12 +111,24 @@ export function parseMetaWebhookBody(body: unknown): MetaMessageEvent[] {
   return events;
 }
 
-/** Parâmetros usados na troca de código por token (dialog/oauth -> oauth/access_token). */
+/** Parâmetros usados na troca de código por token (dialog/oauth -> oauth/access_token) do Facebook. */
 export function metaAccessTokenParams(input: { appId: string; appSecret: string; redirectUri: string; code: string }): Record<string, string> {
   return { client_id: input.appId, client_secret: input.appSecret, redirect_uri: input.redirectUri, code: input.code };
 }
 
-/** Parâmetros para trocar um token de usuário de curta duração por um de longa duração (~60 dias). */
+/** Parâmetros para trocar um token de usuário do Facebook de curta duração por um de longa duração (~60 dias). */
 export function metaLongLivedTokenParams(input: { appId: string; appSecret: string; shortLivedToken: string }): Record<string, string> {
   return { grant_type: 'fb_exchange_token', client_id: input.appId, client_secret: input.appSecret, fb_exchange_token: input.shortLivedToken };
+}
+
+/** Parâmetros da troca do código do Instagram por um token de curta duração (api.instagram.com/oauth/access_token). */
+export function instagramAccessTokenParams(input: { appId: string; appSecret: string; redirectUri: string; code: string }): Record<string, string> {
+  // O código que volta na URL às vezes vem com um "#_" colado no fim; isso derruba a troca.
+  const code = input.code.replace(/#_$/, '');
+  return { client_id: input.appId, client_secret: input.appSecret, grant_type: 'authorization_code', redirect_uri: input.redirectUri, code };
+}
+
+/** Parâmetros para trocar o token de curta duração do Instagram por um de longa duração (~60 dias). */
+export function instagramLongLivedTokenParams(input: { appSecret: string; shortLivedToken: string }): Record<string, string> {
+  return { grant_type: 'ig_exchange_token', client_secret: input.appSecret, access_token: input.shortLivedToken };
 }
