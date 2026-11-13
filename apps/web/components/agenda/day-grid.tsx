@@ -93,17 +93,18 @@ export function DayGrid({ day, timeZone, professionals, hours, appointments, now
                 {mine.map(({ appointment, start, end }) => {
                   const info = STATUS_INFO[appointment.status] ?? STATUS_INFO.scheduled;
                   const blockHeight = Math.max(24, (end - start) * PX_PER_MINUTE - 2);
+                  const wantsReschedule = appointment.reminder_reply === 'reschedule' && appointment.status === 'scheduled';
                   return (
                     <button
                       key={appointment.id}
                       type="button"
                       onClick={() => onOpen(appointment)}
-                      title={`${formatMinutes(start)}–${formatMinutes(end)} · ${appointment.customer_name} · ${info.label}`}
-                      className={`absolute inset-x-1 overflow-hidden rounded-lg border px-2 py-1 text-left shadow-sm transition hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#CB0A9F] ${info.tone}`}
+                      title={`${formatMinutes(start)}–${formatMinutes(end)} · ${appointment.customer_name} · ${wantsReschedule ? 'Pediu para remarcar' : info.label}`}
+                      className={`absolute inset-x-1 overflow-hidden rounded-lg border px-2 py-1 text-left shadow-sm transition hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#CB0A9F] ${wantsReschedule ? 'border-amber-300 bg-amber-50 text-amber-900' : info.tone}`}
                       style={{ top: (start - from) * PX_PER_MINUTE + 1, height: blockHeight, borderLeftWidth: 4, borderLeftColor: professional.color }}
                     >
                       <span className="block truncate text-[11px] font-bold leading-4">{formatMinutes(start)} {appointment.customer_name}</span>
-                      {blockHeight >= 40 && <span className="block truncate text-[10px] leading-4 opacity-80">{appointment.service_name ?? 'Atendimento'} · {info.label}</span>}
+                      {blockHeight >= 40 && <span className="block truncate text-[10px] leading-4 opacity-80">{appointment.service_name ?? 'Atendimento'} · {wantsReschedule ? 'Pediu para remarcar' : info.label}</span>}
                     </button>
                   );
                 })}

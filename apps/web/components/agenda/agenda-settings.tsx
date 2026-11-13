@@ -7,6 +7,7 @@ import {
   DEFAULT_WEEK_HOURS, PROFESSIONAL_COLORS, SEGMENTS, SEGMENT_INFO, WEEKDAY_LABELS, formatDuration, formatPrice, isSegment,
   minutesOf, parsePrice, type Segment,
 } from '@/lib/agenda';
+import { ReminderSettingsCard } from '@/components/agenda/reminder-settings';
 import { fieldClass, labelClass, type AgendaOrganization, type HoursRow, type Professional, type Service } from '@/components/agenda/types';
 
 const timeClass = 'w-[104px] rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none focus:border-[#7C7EC0]';
@@ -27,12 +28,14 @@ function toDayForm(rows: HoursRow[]): DayForm {
 }
 
 /** Configuração da agenda: segmento, profissionais com horários e serviços. */
-export function AgendaSettings({ organization, professionals, services, hours, canManage, professionalLabel, onChanged }: {
+export function AgendaSettings({ organization, professionals, services, hours, canManage, canManageOrganization, professionalLabel, onChanged }: {
   organization: AgendaOrganization;
   professionals: Professional[];
   services: Service[];
   hours: HoursRow[];
   canManage: boolean;
+  /** Dono ou administrador: pode alterar dados da empresa (segmento e lembretes). */
+  canManageOrganization: boolean;
   professionalLabel: string;
   onChanged: () => Promise<void> | void;
 }) {
@@ -238,6 +241,8 @@ export function AgendaSettings({ organization, professionals, services, hours, c
           <button disabled={!canManage || busy === 'service'} className={primaryButton}>{busy === 'service' ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}Adicionar</button>
         </form>
       </section>
+
+      <ReminderSettingsCard key={JSON.stringify(organization.agenda_settings ?? null)} organization={organization} canManage={canManageOrganization} professionalLabel={professionalLabel} onChanged={onChanged} />
     </div>
   );
 }

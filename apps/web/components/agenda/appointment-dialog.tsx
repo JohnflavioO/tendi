@@ -148,6 +148,10 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
       notes: notes.trim() || null,
       price_cents: priceCents,
       ...(status === 'confirmed' && editing?.status !== 'confirmed' ? { confirmed_at: new Date().toISOString() } : {}),
+      // Mudou o dia ou o horário: o lembrete antigo não vale mais, então um novo será enviado.
+      ...(editing && Date.parse(editing.starts_at) !== startsAt.getTime()
+        ? { reminder_sent_at: null, reminder_status: null, reminder_error: null, reminder_reply: null, reschedule_requested_at: null }
+        : {}),
     };
 
     setSaving(true);
@@ -177,6 +181,15 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
         </header>
 
         <form onSubmit={event => { event.preventDefault(); void save(); }} className="space-y-4 px-5 py-4">
+          {editing?.reminder_reply === 'reschedule' && editing.status === 'scheduled' && (
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">O cliente respondeu ao lembrete pedindo para remarcar. Escolha um novo dia ou horário e salve, ou cancele o agendamento.</p>
+          )}
+          {editing?.reminder_status === 'sent' && editing.reminder_reply !== 'reschedule' && editing.reminder_sent_at && (
+            <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">Lembrete enviado por WhatsApp em {new Date(editing.reminder_sent_at).toLocaleString('pt-BR', { timeZone, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}{editing.reminder_reply === 'confirmed' ? ' · o cliente confirmou' : ' · aguardando resposta'}.</p>
+          )}
+          {editing?.reminder_status === 'failed' && (
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-800">O lembrete automático não foi enviado{editing.reminder_error ? `: ${editing.reminder_error}` : '.'} Vale avisar o cliente pela conversa.</p>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="relative">
               <label htmlFor="appointment-name" className={labelClass}>{customerLabel}</label>

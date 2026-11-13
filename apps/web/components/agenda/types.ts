@@ -1,7 +1,7 @@
 import type { AppointmentStatus, Interval } from '@/lib/agenda';
 import { minutesOf } from '@/lib/agenda';
 
-export type AgendaOrganization = { id: string; name: string; timezone: string; business_segment: string | null };
+export type AgendaOrganization = { id: string; name: string; timezone: string; business_segment: string | null; agenda_settings: unknown };
 export type Professional = { id: string; name: string; color: string; is_active: boolean; position: number };
 export type Service = { id: string; name: string; duration_minutes: number; price_cents: number | null; is_active: boolean };
 export type HoursRow = { id?: string; professional_id: string; weekday: number; starts: string; ends: string };
@@ -19,9 +19,14 @@ export type Appointment = {
   notes: string | null;
   price_cents: number | null;
   source: string;
+  reminder_status: 'sent' | 'failed' | null;
+  reminder_sent_at: string | null;
+  reminder_error: string | null;
+  reminder_reply: 'confirmed' | 'reschedule' | null;
+  reschedule_requested_at: string | null;
 };
 
-export const APPOINTMENT_COLUMNS = 'id,professional_id,service_id,contact_id,customer_name,customer_phone,service_name,starts_at,ends_at,status,notes,price_cents,source';
+export const APPOINTMENT_COLUMNS = 'id,professional_id,service_id,contact_id,customer_name,customer_phone,service_name,starts_at,ends_at,status,notes,price_cents,source,reminder_status,reminder_sent_at,reminder_error,reminder_reply,reschedule_requested_at';
 
 /** Turnos de atendimento de um profissional num dia da semana, em minutos do dia. */
 export function shiftsFor(hours: HoursRow[], professionalId: string, weekday: number): Interval[] {
