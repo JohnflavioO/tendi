@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { randomBytes } from 'node:crypto';
 import { createClient } from '@/lib/supabase/server';
 import { messengerDialogUrl } from '@/lib/meta';
-import { getMetaAppId, isMetaConfigured } from '@/lib/meta-client';
+import { getMetaAppId, isMessengerConfigured } from '@/lib/meta-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +15,7 @@ const STATE_COOKIE = 'tendi_meta_oauth_state';
  * httpOnly de 10 minutos; a Meta devolve o mesmo valor no /callback, e conferimos os dois.
  */
 export async function GET(request: Request) {
-  if (!isMetaConfigured()) return NextResponse.json({ error: 'O app da Meta ainda não foi configurado no servidor.' }, { status: 503 });
+  if (!isMessengerConfigured()) return NextResponse.json({ error: 'O app da Meta ainda não foi configurado no servidor.' }, { status: 503 });
 
   const organizationId = new URL(request.url).searchParams.get('organizationId') ?? '';
   if (!UUID_RE.test(organizationId)) return NextResponse.json({ error: 'Empresa inválida.' }, { status: 400 });
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   if (!auth.user) return NextResponse.json({ error: 'Faça login para continuar.' }, { status: 401 });
   const { data: membership } = await (supabase as any).from('organization_memberships').select('role').eq('organization_id', organizationId).eq('user_id', auth.user.id).eq('status', 'active').maybeSingle();
   if (!membership || !['owner', 'admin'].includes(membership.role)) {
-    return NextResponse.json({ error: 'Somente o dono ou um administrador pode conectar o Instagram/Messenger.' }, { status: 403 });
+    return NextResponse.json({ error: 'Somente o dono ou um administrador pode conectar o Messenger.' }, { status: 403 });
   }
 
   const state = randomBytes(16).toString('hex');

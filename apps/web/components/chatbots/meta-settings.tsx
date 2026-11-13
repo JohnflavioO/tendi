@@ -32,7 +32,7 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
   canManage: boolean;
   onChanged: () => Promise<void> | void;
 }) {
-  const [configured, setConfigured] = useState<boolean | null>(null);
+  const [configured, setConfigured] = useState<{ messenger: boolean; instagram: boolean } | null>(null);
   const [step, setStep] = useState<'idle' | 'choose'>('idle');
   const [pages, setPages] = useState<MetaPage[] | null>(null);
   const [error, setError] = useState('');
@@ -40,7 +40,9 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
   const [busy, setBusy] = useState('');
 
   useEffect(() => {
-    fetch('/api/meta/status').then(response => response.json()).then(data => setConfigured(Boolean(data.configured))).catch(() => setConfigured(false));
+    fetch('/api/meta/status').then(response => response.json())
+      .then(data => setConfigured({ messenger: Boolean(data.messengerConfigured), instagram: Boolean(data.instagramConfigured) }))
+      .catch(() => setConfigured({ messenger: false, instagram: false }));
   }, []);
 
   useEffect(() => {
@@ -109,13 +111,6 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
 
       {configured === null ? (
         <p className="mt-5 flex items-center gap-2 text-xs text-slate-400"><Loader2 size={14} className="animate-spin" />Verificando configuração…</p>
-      ) : !configured ? (
-        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 shrink-0 text-amber-700" size={18} /><div>
-            <p className="text-xs font-bold text-amber-900">Ainda falta configurar o app da Meta no servidor</p>
-            <p className="mt-1 text-[11px] leading-5 text-amber-800">Crie um app em developers.facebook.com, adicione os casos de uso do Messenger e do Instagram, e cadastre no servidor as variáveis <code>META_APP_ID</code>, <code>META_APP_SECRET</code> e <code>META_WEBHOOK_VERIFY_TOKEN</code>. Veja o passo a passo completo em docs/meta-channels.md.</p>
-          </div></div>
-        </div>
       ) : step === 'choose' ? (
         <div className="mt-5 rounded-2xl border border-slate-200 bg-[#FBFCFE] p-4">
           <p className="text-xs font-bold text-[#25275B]">Escolha a página do Facebook (Messenger)</p>
@@ -136,6 +131,8 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
             <div className="mt-3">
               {messenger?.status === 'connected' ? (
                 canManage && <button type="button" onClick={() => void disconnect(messenger.id)} disabled={busy === messenger.id} className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 hover:underline disabled:opacity-50">{busy === messenger.id ? <Loader2 size={13} className="animate-spin" /> : <Unplug size={13} />}Desconectar</button>
+              ) : !configured.messenger ? (
+                <p className="flex items-start gap-1.5 text-[11px] leading-4 text-amber-800"><AlertTriangle size={13} className="mt-0.5 shrink-0" />Falta <code>META_APP_ID</code>/<code>META_APP_SECRET</code> no servidor.</p>
               ) : canManage && (
                 <a href={`/api/meta/oauth/start?organizationId=${organizationId}`} className="inline-flex items-center gap-2 rounded-xl bg-[#1877F2] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0E63D1]"><Facebook size={14} />Conectar com Facebook</a>
               )}
@@ -147,12 +144,17 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
             <div className="mt-3">
               {instagram?.status === 'connected' ? (
                 canManage && <button type="button" onClick={() => void disconnect(instagram.id)} disabled={busy === instagram.id} className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 hover:underline disabled:opacity-50">{busy === instagram.id ? <Loader2 size={13} className="animate-spin" /> : <Unplug size={13} />}Desconectar</button>
+              ) : !configured.instagram ? (
+                <p className="flex items-start gap-1.5 text-[11px] leading-4 text-amber-800"><AlertTriangle size={13} className="mt-0.5 shrink-0" />Falta <code>META_INSTAGRAM_APP_ID</code>/<code>META_INSTAGRAM_APP_SECRET</code> no servidor.</p>
               ) : canManage && (
                 <a href={`/api/meta/instagram/oauth/start?organizationId=${organizationId}`} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#833AB4] via-[#E1306C] to-[#F77737] px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"><Instagram size={14} />Conectar Instagram</a>
               )}
             </div>
           </div>
         </div>
+      )}
+      {configured && !configured.messenger && !configured.instagram && step !== 'choose' && (
+        <p className="mt-3 text-[11px] text-slate-400">Veja o passo a passo completo em docs/meta-channels.md.</p>
       )}
 
       {(messenger?.status === 'connected' || instagram?.status === 'connected') && step !== 'choose' && (
