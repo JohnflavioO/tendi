@@ -22,9 +22,10 @@ function cleanUrl(params: string[]) {
 }
 
 /**
- * Canal "Conexões" > Instagram e Messenger. São dois produtos separados pela Meta, com login
- * próprio cada um: o Messenger entra pela página do Facebook; o Instagram entra direto com a
- * conta do Instagram, sem página nenhuma. Por isso são dois botões, não um só.
+ * Canal "Conexões" > Instagram e Messenger. Dois botões porque são duas conexões independentes
+ * (cada uma pode estar configurada sem a outra), mas hoje os dois entram pelo mesmo Login do
+ * Facebook para Empresas — o Instagram usa uma Configuração de login própria (config_id) em vez
+ * de pedir permissões soltas.
  */
 export function MetaConnectionCard({ organizationId, connections, canManage, onChanged }: {
   organizationId: string;
@@ -145,7 +146,7 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
               {instagram?.status === 'connected' ? (
                 canManage && <button type="button" onClick={() => void disconnect(instagram.id)} disabled={busy === instagram.id} className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 hover:underline disabled:opacity-50">{busy === instagram.id ? <Loader2 size={13} className="animate-spin" /> : <Unplug size={13} />}Desconectar</button>
               ) : !configured.instagram ? (
-                <p className="flex items-start gap-1.5 text-[11px] leading-4 text-amber-800"><AlertTriangle size={13} className="mt-0.5 shrink-0" />Falta <code>META_INSTAGRAM_APP_ID</code>/<code>META_INSTAGRAM_APP_SECRET</code> no servidor.</p>
+                <p className="flex items-start gap-1.5 text-[11px] leading-4 text-amber-800"><AlertTriangle size={13} className="mt-0.5 shrink-0" />Falta <code>META_INSTAGRAM_CONFIG_ID</code> no servidor.</p>
               ) : canManage && (
                 <a href={`/api/meta/instagram/oauth/start?organizationId=${organizationId}`} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#833AB4] via-[#E1306C] to-[#F77737] px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"><Instagram size={14} />Conectar Instagram</a>
               )}

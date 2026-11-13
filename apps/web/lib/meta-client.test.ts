@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  MetaApiError, exchangeInstagramCode, exchangeInstagramLongLivedToken, getInstagramAccount, listMetaPages, sendInstagramText,
+  MetaApiError, getInstagramAccount, listMetaPages, sendInstagramText,
   sendMessengerText,
 } from './meta-client';
 
@@ -37,40 +37,32 @@ describe('Messenger (graph.facebook.com)', () => {
   });
 });
 
-describe('Instagram (graph.instagram.com / api.instagram.com)', () => {
-  it('troca o código pelo token de curta duração', async () => {
-    const fetchMock = vi.fn().mockReturnValue(jsonResponse({ access_token: 'short-token', user_id: '123' }));
+describe('Instagram (Unified login — mesma Graph API do Messenger)', () => {
+  it('busca, entre as páginas do usuário, a que tem uma conta do Instagram vinculada', async () => {
+    const fetchMock = vi.fn().mockReturnValue(jsonResponse({
+      data: [
+        { id: 'p0', name: 'Sem Instagram', access_token: 'tok-0' },
+        { id: 'p1', name: 'Minha Página', access_token: 'tok-1', instagram_business_account: { id: '456', username: 'minhaloja' } },
+      ],
+    }));
     vi.stubGlobal('fetch', fetchMock);
-    const result = await exchangeInstagramCode({ client_id: '1', client_secret: 's', grant_type: 'authorization_code', redirect_uri: 'https://x/cb', code: 'c' });
-    expect(result).toEqual({ accessToken: 'short-token', userId: '123' });
-    expect(String(fetchMock.mock.calls[0]![0])).toBe('https://api.instagram.com/oauth/access_token');
+    const account = await getInstagramAccount('user-token');
+    expect(account).toEqual({ id: '456', username: 'minhaloja', pageId: 'p1', pageAccessToken: 'tok-1' });
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('graph.facebook.com/v21.0/me/accounts');
   });
 
-  it('troca o token curto pelo de longa duração', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockReturnValue(jsonResponse({ access_token: 'long-token', expires_in: 5184000 })));
-    const token = await exchangeInstagramLongLivedToken({ grant_type: 'ig_exchange_token', client_secret: 's', access_token: 'short-token' });
-    expect(token).toBe('long-token');
+  it('falha com uma mensagem clara quando nenhuma página tem conta do Instagram vinculada', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(jsonResponse({ data: [{ id: 'p0', name: 'Sem Instagram', access_token: 'tok-0' }] })));
+    await expect(getInstagramAccount('user-token')).rejects.toThrow('Nenhuma conta do Instagram vinculada');
   });
 
-  it('busca a conta do Instagram dona do token', async () => {
-    const fetchMock = vi.fn().mockReturnValue(jsonResponse({ user_id: '456', username: 'minhaloja' }));
-    vi.stubGlobal('fetch', fetchMock);
-    const account = await getInstagramAccount('ig-token');
-    expect(account).toEqual({ id: '456', username: 'minhaloja' });
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('graph.instagram.com/v21.0/me');
-  });
-
-  it('envia uma mensagem de texto pela conta do Instagram', async () => {
+  it('envia uma mensagem de texto pela conta do Instagram, usando o token da Página', async () => {
     const fetchMock = vi.fn().mockReturnValue(jsonResponse({ message_id: 'm2' }));
     vi.stubGlobal('fetch', fetchMock);
-    await sendInstagramText('ig-token', 'igsid-1', 'Oi!');
+    await sendInstagramText('page-token', '456', 'igsid-1', 'Oi!');
     const [url, init] = fetchMock.mock.calls[0]!;
-    expect(String(url)).toBe('https://graph.instagram.com/v21.0/me/messages');
-    expect(init.body).toContain('access_token=ig-token');
-  });
-
-  it('falha com uma mensagem clara quando o token não vem na resposta', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockReturnValue(jsonResponse({})));
-    await expect(exchangeInstagramCode({})).rejects.toThrow('token de acesso');
+    expect(String(url)).toBe('https://graph.facebook.com/v21.0/456/messages');
+    expect(init.body).toContain('access_token=page-token');
+    expect(decodeURIComponent(init.body)).toContain('"id":"igsid-1"');
   });
 });

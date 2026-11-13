@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
-  instagramAccessTokenParams, instagramDialogUrl, instagramLongLivedTokenParams, metaAccessTokenParams, metaChannelFromObject,
+  instagramDialogUrl, metaAccessTokenParams, metaChannelFromObject,
   metaGraphUrl, metaLongLivedTokenParams, messengerDialogUrl, parseMetaWebhookBody, verifyMetaSignature,
 } from './meta';
 
@@ -49,13 +49,14 @@ describe('diálogo de login do Messenger (Facebook)', () => {
   });
 });
 
-describe('diálogo de login do Instagram', () => {
-  it('monta a URL de autorização no host do Instagram, sem página', () => {
-    const url = new URL(instagramDialogUrl({ appId: '123', redirectUri: 'https://app.tendi.com.br/api/meta/instagram/oauth/callback', state: 'xyz' }));
-    expect(url.origin + url.pathname).toBe('https://www.instagram.com/oauth/authorize');
+describe('diálogo de login do Instagram (Unified login)', () => {
+  it('monta a URL de autorização na mesma tela do Facebook, com o config_id no lugar do scope', () => {
+    const url = new URL(instagramDialogUrl({ appId: '123', redirectUri: 'https://app.tendi.com.br/api/meta/instagram/oauth/callback', state: 'xyz', configId: '456' }));
+    expect(url.origin + url.pathname).toBe('https://www.facebook.com/v21.0/dialog/oauth');
     expect(url.searchParams.get('client_id')).toBe('123');
     expect(url.searchParams.get('state')).toBe('xyz');
-    expect(url.searchParams.get('scope')).toBe('instagram_business_basic,instagram_business_manage_messages');
+    expect(url.searchParams.get('config_id')).toBe('456');
+    expect(url.searchParams.get('scope')).toBeNull();
   });
 });
 
@@ -67,18 +68,6 @@ describe('parâmetros de troca de token do Facebook', () => {
   it('monta os parâmetros da troca para token de longa duração', () => {
     expect(metaLongLivedTokenParams({ appId: '1', appSecret: 's', shortLivedToken: 't' }))
       .toEqual({ grant_type: 'fb_exchange_token', client_id: '1', client_secret: 's', fb_exchange_token: 't' });
-  });
-});
-
-describe('parâmetros de troca de token do Instagram', () => {
-  it('monta os parâmetros do código pelo token e tira o "#_" do final', () => {
-    expect(instagramAccessTokenParams({ appId: '1', appSecret: 's', redirectUri: 'https://x/cb', code: 'c' }))
-      .toEqual({ client_id: '1', client_secret: 's', grant_type: 'authorization_code', redirect_uri: 'https://x/cb', code: 'c' });
-    expect(instagramAccessTokenParams({ appId: '1', appSecret: 's', redirectUri: 'https://x/cb', code: 'c#_' }).code).toBe('c');
-  });
-  it('monta os parâmetros da troca para token de longa duração', () => {
-    expect(instagramLongLivedTokenParams({ appSecret: 's', shortLivedToken: 't' }))
-      .toEqual({ grant_type: 'ig_exchange_token', client_secret: 's', access_token: 't' });
   });
 });
 

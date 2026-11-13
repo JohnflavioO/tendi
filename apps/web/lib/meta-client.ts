@@ -1,23 +1,13 @@
 import { metaGraphUrl } from './meta';
 
 /**
- * Credenciais do app da Meta (Instagram/Messenger) e chamadas às duas APIs.
- * META_APP_ID/META_APP_SECRET são o app do Tendi cadastrado no Meta for Developers, usados pelo
- * login do Messenger (Facebook). O login do Instagram usa um ID e uma chave PRÓPRIOS — a Meta os
- * mostra em "Instagram → API setup with Instagram login → Business login settings", diferentes
- * do ID/chave do topo do painel. Por isso META_INSTAGRAM_APP_ID/META_INSTAGRAM_APP_SECRET existem
- * à parte: usar o ID do Facebook no login do Instagram dá o erro "Invalid platform app".
+ * Credenciais do app da Meta (Instagram/Messenger) e chamadas à Graph API.
+ * Messenger e Instagram usam HOJE o mesmo app (META_APP_ID/META_APP_SECRET) e o mesmo login —
+ * a Meta aposentou o login próprio do Instagram para apps novos; eles só têm a "API setup with
+ * Unified login", que é o Login do Facebook para Empresas com uma "Configuração de login"
+ * (META_INSTAGRAM_CONFIG_ID) que já embute os ativos (Página + conta do Instagram) autorizados.
  * O token de cada página/conta fica no Vault (migration dos canais), nunca aqui.
- *
- * Messenger fala com graph.facebook.com, usando o token da PÁGINA do Facebook.
- * Instagram fala com graph.instagram.com (hosts e login diferentes — produtos separados pela
- * Meta), usando o token da própria conta do Instagram, sem passar por nenhuma página.
  */
-
-export const INSTAGRAM_GRAPH_VERSION = 'v21.0';
-const INSTAGRAM_GRAPH_BASE = `https://graph.instagram.com/${INSTAGRAM_GRAPH_VERSION}`;
-const INSTAGRAM_TOKEN_URL = 'https://api.instagram.com/oauth/access_token';
-const INSTAGRAM_LONG_LIVED_URL = `https://graph.instagram.com/access_token`;
 
 export class MetaApiError extends Error {
   status: number;
@@ -48,26 +38,25 @@ export function getMetaWebhookVerifyToken(): string {
   return value;
 }
 
-export function getInstagramAppId(): string {
-  const value = process.env.META_INSTAGRAM_APP_ID?.trim();
-  if (!value) throw new Error('META_INSTAGRAM_APP_ID não está configurada no servidor.');
+export function getInstagramConfigId(): string {
+  const value = process.env.META_INSTAGRAM_CONFIG_ID?.trim();
+  if (!value) throw new Error('META_INSTAGRAM_CONFIG_ID não está configurada no servidor.');
   return value;
 }
 
-export function getInstagramAppSecret(): string {
-  const value = process.env.META_INSTAGRAM_APP_SECRET?.trim();
-  if (!value) throw new Error('META_INSTAGRAM_APP_SECRET não está configurada no servidor.');
-  return value;
-}
-
-/** Messenger está pronto para conectar (ID/chave do app principal + token do webhook). */
+/** Messenger está pronto para conectar (ID/chave do app + token do webhook). */
 export function isMessengerConfigured(): boolean {
   return Boolean(process.env.META_APP_ID?.trim() && process.env.META_APP_SECRET?.trim() && process.env.META_WEBHOOK_VERIFY_TOKEN?.trim());
 }
 
-/** Instagram está pronto para conectar (ID/chave PRÓPRIOS do login do Instagram + token do webhook). */
+/** Instagram está pronto para conectar (mesmo ID/chave do app + a Configuração de login própria + token do webhook). */
 export function isInstagramConfigured(): boolean {
-  return Boolean(process.env.META_INSTAGRAM_APP_ID?.trim() && process.env.META_INSTAGRAM_APP_SECRET?.trim() && process.env.META_WEBHOOK_VERIFY_TOKEN?.trim());
+  return Boolean(
+    process.env.META_APP_ID?.trim() &&
+    process.env.META_APP_SECRET?.trim() &&
+    process.env.META_WEBHOOK_VERIFY_TOKEN?.trim() &&
+    process.env.META_INSTAGRAM_CONFIG_ID?.trim(),
+  );
 }
 
 async function parseMetaResponse(response: Response): Promise<unknown> {
@@ -91,7 +80,7 @@ function metaErrorMessage(payload: unknown): { message: string; code?: number } 
 }
 
 // ---------------------------------------------------------------------------------------------
-// Messenger (graph.facebook.com, token da página)
+// Graph API (graph.facebook.com) — usada por Messenger e, agora, também pelo Instagram.
 // ---------------------------------------------------------------------------------------------
 
 export async function metaGet(path: string, params: Record<string, string>): Promise<unknown> {
@@ -128,51 +117,39 @@ export async function sendMessengerText(pageAccessToken: string, recipientId: st
 }
 
 // ---------------------------------------------------------------------------------------------
-// Instagram (graph.instagram.com / api.instagram.com, token da própria conta)
+// Instagram (Unified login): a conta do Instagram vem presa a uma Página do Facebook — a mesma
+// Configuração de login já autoriza as duas. Por isso buscamos a conta pelo /me/accounts, com o
+// campo instagram_business_account, e enviamos as mensagens com o token da PÁGINA (não um token
+// próprio do Instagram, que não existe mais nesse fluxo).
 // ---------------------------------------------------------------------------------------------
 
-async function instagramFetch(url: string, init?: RequestInit): Promise<unknown> {
-  const response = await fetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
-  const payload = await parseMetaResponse(response);
-  if (!response.ok) { const { message, code } = metaErrorMessage(payload); throw new MetaApiError(message, response.status, code); }
-  return payload;
-}
+export type InstagramAccount = { id: string; username: string | null; pageId: string; pageAccessToken: string };
 
-/** Troca o código do login do Instagram por um token de curta duração. */
-export async function exchangeInstagramCode(params: Record<string, string>): Promise<{ accessToken: string; userId: string }> {
-  const payload = await instagramFetch(INSTAGRAM_TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(params).toString() }) as Record<string, unknown>;
-  const accessToken = typeof payload.access_token === 'string' ? payload.access_token : '';
-  if (!accessToken) throw new Error('O Instagram não devolveu um token de acesso.');
-  return { accessToken, userId: String(payload.user_id ?? '') };
-}
-
-/** Troca o token de curta duração por um de longa duração (~60 dias). */
-export async function exchangeInstagramLongLivedToken(params: Record<string, string>): Promise<string> {
-  const url = new URL(INSTAGRAM_LONG_LIVED_URL);
-  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-  const payload = await instagramFetch(url.toString()) as Record<string, unknown>;
-  const accessToken = typeof payload.access_token === 'string' ? payload.access_token : '';
-  if (!accessToken) throw new Error('O Instagram não devolveu o token de longa duração.');
-  return accessToken;
-}
-
-export type InstagramAccount = { id: string; username: string | null };
-
-/** Conta do Instagram dona do token (a pessoa só autoriza a própria conta, não escolhe entre várias). */
-export async function getInstagramAccount(accessToken: string): Promise<InstagramAccount> {
-  const payload = await instagramFetch(`${INSTAGRAM_GRAPH_BASE}/me?fields=user_id,username&access_token=${encodeURIComponent(accessToken)}`) as Record<string, unknown>;
-  const id = String(payload.user_id ?? payload.id ?? '');
-  if (!id) throw new Error('Não foi possível identificar a conta do Instagram.');
-  return { id, username: typeof payload.username === 'string' ? payload.username : null };
-}
-
-/** Envia texto por uma conta do Instagram. */
-export async function sendInstagramText(accessToken: string, recipientId: string, text: string): Promise<unknown> {
-  return instagramFetch(`${INSTAGRAM_GRAPH_BASE}/me/messages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ access_token: accessToken, recipient: JSON.stringify({ id: recipientId }), message: JSON.stringify({ text }) }).toString(),
+/**
+ * Entre as páginas do usuário, acha a primeira com uma conta do Instagram vinculada. A
+ * Configuração de login (config_id) já restringe o login a uma única Página + conta, então
+ * normalmente só virá uma.
+ */
+export async function getInstagramAccount(userAccessToken: string): Promise<InstagramAccount> {
+  const data = await metaGet('/me/accounts', {
+    access_token: userAccessToken,
+    fields: 'id,name,access_token,instagram_business_account{id,username}',
   });
+  const list = data && typeof data === 'object' && Array.isArray((data as Record<string, unknown>).data) ? (data as { data: unknown[] }).data : [];
+  for (const item of list) {
+    if (!item || typeof item !== 'object') continue;
+    const page = item as { id?: unknown; access_token?: unknown; instagram_business_account?: unknown };
+    const ig = page.instagram_business_account as { id?: unknown; username?: unknown } | undefined;
+    if (ig && typeof ig.id === 'string' && typeof page.id === 'string' && typeof page.access_token === 'string') {
+      return { id: ig.id, username: typeof ig.username === 'string' ? ig.username : null, pageId: page.id, pageAccessToken: page.access_token };
+    }
+  }
+  throw new Error('Nenhuma conta do Instagram vinculada foi encontrada nas páginas autorizadas.');
+}
+
+/** Envia texto por uma conta do Instagram, usando o token da Página do Facebook vinculada a ela. */
+export async function sendInstagramText(pageAccessToken: string, instagramAccountId: string, recipientId: string, text: string): Promise<unknown> {
+  return metaPost(`/${instagramAccountId}/messages`, { access_token: pageAccessToken, recipient: JSON.stringify({ id: recipientId }), message: JSON.stringify({ text }) });
 }
 
 /** Mensagem amigável para quem está respondendo pelo Inbox. */
