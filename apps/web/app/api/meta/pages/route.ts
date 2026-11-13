@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   try {
     const pages = await listMetaPages(decodeURIComponent(token));
     return NextResponse.json({
-      pages: pages.map(page => ({ id: page.id, name: page.name, instagramUsername: page.instagram_business_account?.username ?? null })),
+      pages: pages.map(page => ({ id: page.id, name: page.name })),
     });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Não foi possível listar as páginas.' }, { status: 502 });
