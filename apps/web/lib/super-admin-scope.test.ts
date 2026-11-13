@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SUPER_ADMIN_AREAS, canAccessArea, type Area } from './team';
 
 const ATTENDANCE: Area[] = ['inbox', 'agenda', 'crm', 'contatos', 'relatorios'];
-const CONFIG: Area[] = ['chatbots', 'configuracoes', 'equipe', 'assinatura'];
+const CONFIG: Area[] = ['chatbots', 'configuracoes', 'equipe', 'assinatura', 'ia'];
 
 describe('escopo do Super Admin nas empresas dos clientes', () => {
   it.each(ATTENDANCE)('não abre a área de atendimento "%s" sem vínculo com a empresa', area => {
