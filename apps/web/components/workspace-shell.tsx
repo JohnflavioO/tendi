@@ -7,6 +7,7 @@ import { SidebarFooter } from '@/components/sidebar-footer';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
 import { requestedOrganizationId, resolveCurrentOrganization, withOrganization } from '@/lib/current-organization';
 import { SupportBanner } from '@/components/support-banner';
+import { BrandLoader } from '@/components/brand-loader';
 import { areaForPath, canAccessArea, type Area } from '@/lib/team';
 import {
   Inbox, CalendarDays, KanbanSquare, Users, Plug, ChartNoAxesCombined, Settings, ChevronDown,
@@ -80,7 +81,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
     <SidebarFooter organizationId={organization?.id} role={role} superAdmin={superAdmin} onSignOut={signOut}/>
   </aside>;
 
-  if (loading || blocked) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]">Carregando workspace...</main>;
+  if (loading || blocked) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]"><BrandLoader label="Carregando workspace..." size={56} /></main>;
   if (!organization) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><Building2 className="mx-auto text-[#CB0A9F]" size={30}/><h1 className="mt-3 font-bold text-[#2F316B]">Workspace não encontrado</h1><p className="mt-2 text-sm text-slate-500">Sua conta não possui uma empresa ativa vinculada.</p></div></main>;
 
   return <main className="flex min-h-screen bg-[#F5F6FB] text-slate-800">
