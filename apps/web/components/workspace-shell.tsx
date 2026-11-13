@@ -9,7 +9,7 @@ import { requestedOrganizationId, resolveCurrentOrganization, withOrganization }
 import { SupportBanner } from '@/components/support-banner';
 import { areaForPath, canAccessArea, type Area } from '@/lib/team';
 import {
-  Inbox, CalendarDays, KanbanSquare, Users, Bot, ChartNoAxesCombined, Settings, ChevronDown,
+  Inbox, CalendarDays, KanbanSquare, Users, Plug, ChartNoAxesCombined, Settings, ChevronDown,
   MoreHorizontal, UserRound, RefreshCw, CircleHelp, LogOut, Building2, Menu, X, UsersRound,
 } from 'lucide-react';
 
@@ -18,7 +18,7 @@ export const WORKSPACE_NAV: Array<{ label: string; href: string; icon: typeof In
   { label: 'Agenda', href: '/agenda', icon: CalendarDays, area: 'agenda' },
   { label: 'CRM', href: '/crm', icon: KanbanSquare, area: 'crm' },
   { label: 'Contatos', href: '/contatos', icon: Users, area: 'contatos' },
-  { label: 'Chatbots', href: '/chatbots', icon: Bot, area: 'chatbots' },
+  { label: 'Conexões', href: '/chatbots', icon: Plug, area: 'chatbots' },
   { label: 'Relatórios', href: '/relatorios', icon: ChartNoAxesCombined, area: 'relatorios' },
   { label: 'Equipe', href: '/equipe', icon: UsersRound, area: 'equipe' },
   { label: 'Configurações', href: '/configuracoes', icon: Settings, area: 'configuracoes' },
