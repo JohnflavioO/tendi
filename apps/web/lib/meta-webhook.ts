@@ -36,10 +36,16 @@ async function ensureMetaContact(db: Db, organizationId: string, channel: MetaCh
 }
 
 async function ensureMetaConversation(db: Db, organizationId: string, contactId: string, channel: MetaChannel, nowIso: string): Promise<{ id: string; unread_count: number }> {
-  const existing = await db.from('conversations').select('id,unread_count').eq('organization_id', organizationId).eq('contact_id', contactId).eq('channel', channel).neq('status', 'closed').order('last_message_at', { ascending: false }).limit(1).maybeSingle();
+  const lookup = () => db.from('conversations').select('id,unread_count').eq('organization_id', organizationId).eq('contact_id', contactId).eq('channel', channel).neq('status', 'closed').order('last_message_at', { ascending: false }).limit(1).maybeSingle();
+  const existing = await lookup();
   if (existing.data) return existing.data as { id: string; unread_count: number };
   // ai_mode fica sempre 'off': a resposta automática ainda não entrega por este canal.
   const created = await db.from('conversations').insert({ organization_id: organizationId, contact_id: contactId, channel, status: 'open', unread_count: 0, last_message_at: nowIso, ai_mode: 'off' }).select('id,unread_count').single();
+  if (created.error?.code === '23505') {
+    // Dois eventos simultâneos: o banco aceita uma só conversa aberta por contato; usa a que já existe.
+    const again = await lookup();
+    if (again.data) return again.data as { id: string; unread_count: number };
+  }
   if (created.error || !created.data) throw new Error(`conversations.insert: ${created.error?.message ?? 'sem retorno'}`);
   return created.data as { id: string; unread_count: number };
 }
