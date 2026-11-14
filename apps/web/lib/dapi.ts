@@ -162,3 +162,19 @@ export function extractDapiConnectionStatus(payload: unknown): string | undefine
     connection.status ?? root.status;
   return typeof value === 'string' ? value : undefined;
 }
+
+/** Base pública (sem o segredo) para onde os webhooks da D-API apontam, para exibir no Console. */
+export function dapiWebhookBaseUrl(): string | null {
+  return process.env.DAPI_WEBHOOK_BASE_URL?.trim().replace(/\/$/, '') || null;
+}
+
+/**
+ * Aponta uma sessão que já existe para o webhook atual (troca de domínio, por exemplo),
+ * sem desconectar o WhatsApp: atualiza o webhook da sessão e o de cada evento.
+ */
+export async function repointDapiSessionWebhook(sessionId: string, webhookUrl = buildDapiWebhookUrl()): Promise<void> {
+  const path = `/sessions/${encodeURIComponent(sessionId)}`;
+  await dapiRequest(`${path}/webhook`, { method: 'POST', body: JSON.stringify({ webhookUrl }) });
+  const { webhookConfig } = buildCreateSessionPayload(sessionId, webhookUrl);
+  await dapiRequest(`${path}/webhook-config`, { method: 'POST', body: JSON.stringify(webhookConfig) });
+}

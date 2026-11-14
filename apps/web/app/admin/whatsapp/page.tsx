@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ShieldCheck, MessageCircle, Server, Webhook, LockKeyhole, CircleCheck, Clock3, ExternalLink, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { AdminShell } from '@/components/admin/admin-shell';
+import { DapiWebhookSync } from '@/components/admin/dapi-webhook-sync';
 
 export default function AdminWhatsAppPage() {
   const supabase = createClient() as any;
@@ -40,6 +41,7 @@ export default function AdminWhatsAppPage() {
         <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4"><div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 shrink-0 text-amber-700" size={18}/><div><p className="text-xs font-bold text-amber-900">Conexão por QR Code disponível</p><p className="mt-1 text-xs leading-5 text-amber-800">O Tendi cria sessões independentes por workspace usando a API D-API. Configure DAPI_API_KEY como secret no Vercel; a chave não é armazenada no banco nem enviada ao navegador. O recebimento de mensagens no Inbox depende da homologação do contrato completo de webhook.</p></div></div></div>
       </section>
 
+      <DapiWebhookSync />
       <section className="mt-5 grid gap-4 md:grid-cols-2">
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center gap-2"><CircleCheck className="text-[#004751]" size={18}/><h3 className="text-sm font-bold text-[#25275B]">Experiência do cliente</h3></div><ul className="mt-4 space-y-2 text-xs leading-5 text-slate-500"><li>• Conectar número por fluxo guiado dentro do workspace.</li><li>• Exibir QR Code ou autorização apenas quando a API real responder.</li><li>• Confirmar conexão e identificar o número conectado.</li><li>• Permitir reconexão e mostrar erros com instruções claras.</li><li>• Liberar o Inbox após confirmação do provedor e do webhook.</li></ul></article>
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center gap-2"><ShieldCheck className="text-[#004751]" size={18}/><h3 className="text-sm font-bold text-[#25275B]">Controles do Super Admin</h3></div><ul className="mt-4 space-y-2 text-xs leading-5 text-slate-500"><li>• Credenciais mantidas exclusivamente no servidor.</li><li>• Provisionamento isolado por organização.</li><li>• Monitoramento de sessão, webhook e falhas.</li><li>• Limites de números e recursos por plano.</li><li>• Logs técnicos sem armazenar tokens em texto aberto.</li></ul></article>
