@@ -1,6 +1,6 @@
 'use client';
 
-import { Compass, CreditCard, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Compass, CreditCard, ExternalLink, ShieldCheck, UserRound } from 'lucide-react';
 import { TOUR_EVENT } from '@/lib/onboarding';
 import { TrialNotice } from '@/components/trial-notice';
 import { AiUsageNotice } from '@/components/ai-usage-notice';
@@ -23,6 +23,7 @@ export function SidebarFooter({ organizationId, role, superAdmin, onSignOut }: {
     <TrialNotice organizationId={organizationId} />
     {manager && <AiUsageNotice organizationId={organizationId} compact />}
     {canAccess(role, 'assinatura') && <a href={organizationId ? `/assinatura?organization=${organizationId}` : '/assinatura'} className={link}><CreditCard size={15} className="text-[#004751]" />Plano e assinatura</a>}
+    <a href={organizationId ? `/conta?organization=${organizationId}` : "/conta"} className={link}><UserRound size={15} className="text-[#004751]" />Minha conta</a>
     <a href="/" target="_blank" rel="noopener" className={link}><ExternalLink size={15} className="text-[#004751]" />Ver site do TendiDesk</a>
     {superAdmin && <a href="/admin" className={link}><ShieldCheck size={15} className="text-[#CB0A9F]" />Console Super Admin</a>}
     {role && <div className="flex items-center justify-between gap-2 px-2">
