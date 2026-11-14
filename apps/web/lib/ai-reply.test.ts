@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MAX_AI_REPLIES_PER_DAY, runAiAutoReply, splitHandoff, toChatTurns } from './ai-reply';
+import { MAX_AI_REPLIES_PER_DAY, extractQuickOptions, runAiAutoReply, splitHandoff, toChatTurns, withQuickOptions } from './ai-reply';
 import { normalizeTurns, supportsEffort } from './ai-llm';
 import { HANDOFF_MARKER } from './ai-agent';
 
@@ -255,5 +255,26 @@ describe('resposta automática no Webchat', () => {
     db.t.conversations[0]!.channel = 'instagram';
     expect(await run()).toEqual({ status: 'skipped', reason: 'conversation_not_found' });
     expect(send).not.toHaveBeenCalled();
+  });
+});
+
+describe('opções rápidas da IA', () => {
+  it('tira o marcador e numera as opções', () => {
+    const raw = 'Qual é a maior dificuldade hoje?\n[[OPCOES: Demora para responder | Fora do horário | Controle de vendas]]';
+    const quick = extractQuickOptions(raw);
+    expect(quick).toEqual({ text: 'Qual é a maior dificuldade hoje?', options: ['Demora para responder', 'Fora do horário', 'Controle de vendas'] });
+    expect(withQuickOptions(quick.text, quick.options)).toBe('Qual é a maior dificuldade hoje?\n\n1. Demora para responder\n2. Fora do horário\n3. Controle de vendas');
+  });
+
+  it('limita a 3 opções curtas, sem repetidas e sem formatação', () => {
+    const quick = extractQuickOptions('Escolha:\n[[opcoes: *Sim* | sim | Não | Talvez | Mais tarde]]');
+    expect(quick.options).toEqual(['Sim', 'Não', 'Talvez']);
+    expect(extractQuickOptions('Ok [[OPCOES: Uma opção muito longa que passa do limite permitido | Outra]]').options[0]!.length).toBeLessThanOrEqual(24);
+  });
+
+  it('marcador com uma opção só some e não vira lista', () => {
+    expect(extractQuickOptions('Certo! [[OPCOES: Sim]]')).toEqual({ text: 'Certo!', options: [] });
+    expect(extractQuickOptions('Sem opções aqui.')).toEqual({ text: 'Sem opções aqui.', options: [] });
+    expect(withQuickOptions('Oi', [])).toBe('Oi');
   });
 });
