@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Check, Copy, KanbanSquare, Loader2, PanelRightClose, Phone, Plus, UserCheck, UserMinus, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { AmountEditor } from '@/components/crm/inline-edit';
 import { addTag, tagTone } from '@/lib/inbox-utils';
 import { ContactAvatar } from '@/components/inbox/contact-avatar';
 
@@ -17,7 +18,7 @@ export type PanelConversation = {
   contacts: { id: string; full_name: string; phone_e164: string | null; email: string | null; tags: string[]; opt_in: boolean } | null;
 };
 type Stage = { id: string; name: string; color: string; position: number; final_type: string };
-type Opportunity = { id: string; stage_id: string; pipeline_id: string };
+type Opportunity = { id: string; stage_id: string; pipeline_id: string; amount?: number | string | null };
 
 const initials = (name?: string | null) => (name ?? '?').split(' ').filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?';
 const label = 'text-[10px] font-bold uppercase tracking-[.12em] text-slate-400';
@@ -61,7 +62,7 @@ export function ContactPanel({ conversation, userId, onChanged, onClose }: { con
     if (!contact) return;
     setCrmLoading(true);
     const supabase = createClient() as any;
-    const { data: opp } = await supabase.from('opportunities').select('id,stage_id,pipeline_id')
+    const { data: opp } = await supabase.from('opportunities').select('id,stage_id,pipeline_id,amount')
       .eq('organization_id', conversation.organization_id).eq('contact_id', contact.id)
       .order('created_at', { ascending: false }).limit(1).maybeSingle();
     let resolvedPipelineId: string | null = opp?.pipeline_id ?? null;
@@ -133,6 +134,17 @@ export function ContactPanel({ conversation, userId, onChanged, onClose }: { con
     }, () => setOpportunity({ ...opportunity, stage_id: stageId }));
   };
 
+  /** Valor da oportunidade (o que o cliente deve fechar). Devolve a mensagem de erro, ou null. */
+  async function saveAmount(amount: number): Promise<string | null> {
+    if (!opportunity) return 'Envie o contato ao funil primeiro.';
+    const supabase = createClient() as any;
+    const { error } = await supabase.from('opportunities').update({ amount }).eq('id', opportunity.id).eq('organization_id', conversation.organization_id);
+    if (error) return 'Não foi possível salvar o valor.';
+    setOpportunity({ ...opportunity, amount });
+    onChanged();
+    return null;
+  }
+
   const createOpportunity = () => {
     if (!contact || !pipelineId) return;
     const first = stages.find(stage => stage.final_type === 'open');
@@ -141,7 +153,7 @@ export function ContactPanel({ conversation, userId, onChanged, onClose }: { con
       const supabase = createClient() as any;
       const { data, error } = await supabase.from('opportunities')
         .insert({ organization_id: conversation.organization_id, pipeline_id: pipelineId, stage_id: first.id, contact_id: contact.id, title: contact.full_name, created_by: userId })
-        .select('id,stage_id,pipeline_id').single();
+        .select('id,stage_id,pipeline_id,amount').single();
       if (!error && data) setOpportunity(data as Opportunity);
       return { error };
     });
@@ -191,7 +203,7 @@ export function ContactPanel({ conversation, userId, onChanged, onClose }: { con
         <p className={label}>Funil de vendas (CRM)</p>
         {crmLoading ? <div className="mt-2"><Loader2 size={14} className="animate-spin text-slate-400" /></div>
           : !stages.length ? <p className="mt-2 text-xs text-slate-400">O funil deste workspace ainda não foi configurado.</p>
-          : opportunity ? <div className="mt-2 space-y-2"><select aria-label="Etapa do funil" value={opportunity.stage_id} disabled={busy} onChange={event => moveStage(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-[#FAFBFD] px-2.5 py-2 text-xs text-slate-700">{stages.map(stage => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select><a href={`/crm?organization=${encodeURIComponent(conversation.organization_id)}`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#004751]"><KanbanSquare size={12} />Ver no CRM</a></div>
+          : opportunity ? <div className="mt-2 space-y-2"><select aria-label="Etapa do funil" value={opportunity.stage_id} disabled={busy} onChange={event => moveStage(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-[#FAFBFD] px-2.5 py-2 text-xs text-slate-700">{stages.map(stage => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select><div className="rounded-lg border border-slate-200 bg-[#FAFBFD] px-2.5 py-2"><p className="text-[10px] font-semibold text-slate-500">Valor da oportunidade</p><div className="mt-0.5"><AmountEditor size="sm" value={opportunity.amount} onSave={saveAmount} /></div></div><a href={`/crm?organization=${encodeURIComponent(conversation.organization_id)}`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#004751]"><KanbanSquare size={12} />Ver no CRM</a></div>
           : <div className="mt-2 space-y-2"><p className="text-xs text-slate-500">Este contato ainda não está no funil.</p><button type="button" disabled={busy} onClick={createOpportunity} className={actionButton}><Plus size={12} />Criar oportunidade</button></div>}
       </div>
 
