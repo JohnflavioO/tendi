@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { jidToPhone, mapMessageType, parseTimestamp, processDapiEvent } from './dapi-webhook';
+import { ensureConversation, jidToPhone, mapMessageType, parseTimestamp, processDapiEvent } from './dapi-webhook';
 
 // Banco em memória que imita só o que o webhook usa do Supabase.
 type Row = Record<string, any>;
@@ -252,5 +252,41 @@ describe('agente de IA', () => {
     const old = await run(envelope('messages.received', text('M3', 'Antiga', { timestamp: Date.now() - 60 * 60 * 1000 })));
     const repeated = await run(envelope('messages.received', text('M1', 'Oi')));
     expect([fromMe.aiTrigger, old.aiTrigger, repeated.aiTrigger]).toEqual([undefined, undefined, undefined]);
+  });
+});
+
+describe('conversa duplicada em eventos simultâneos', () => {
+  it('quando o banco recusa a segunda conversa, usa a que o outro evento criou', async () => {
+    const created = { id: 'conv-1', status: 'open', unread_count: 0, last_message_at: null, ai_mode: 'on' };
+    let lookups = 0;
+    // Primeira busca: ainda não existe. O insert colide (o outro evento criou). Segunda busca: acha a conversa.
+    const chain = (result: any) => {
+      const q: any = { select: () => q, eq: () => q, neq: () => q, order: () => q, limit: () => q, insert: () => q };
+      q.maybeSingle = () => Promise.resolve(result());
+      q.single = () => Promise.resolve(result());
+      return q;
+    };
+    const db: any = {
+      from(table: string) {
+        if (table === 'ai_agents') return chain(() => ({ data: { is_enabled: true, auto_enable_new_conversations: true }, error: null }));
+        const q = chain(() => ({ data: lookups++ === 0 ? null : created, error: null }));
+        q.insert = () => chain(() => ({ data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint' } }));
+        return q;
+      },
+    };
+    await expect(ensureConversation(db, 'org-1', 'contact-1', new Date().toISOString())).resolves.toEqual(created);
+    expect(lookups).toBe(2);
+  });
+
+  it('outro erro no insert continua sendo erro', async () => {
+    const q: any = { select: () => q, eq: () => q, neq: () => q, order: () => q, limit: () => q };
+    q.maybeSingle = () => Promise.resolve({ data: null, error: null });
+    const db: any = {
+      from(table: string) {
+        if (table === 'ai_agents') return q;
+        return { ...q, insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: { code: '42501', message: 'sem permissão' } }) }) }) };
+      },
+    };
+    await expect(ensureConversation(db, 'org-1', 'contact-1', new Date().toISOString())).rejects.toThrow('sem permissão');
   });
 });

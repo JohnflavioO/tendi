@@ -166,8 +166,8 @@ export async function initialAiMode(db: Db, organizationId: string): Promise<'on
 }
 
 export async function ensureConversation(db: Db, organizationId: string, contactId: string, nowIso: string): Promise<ConversationRow> {
-  const existing = must<ConversationRow>(
-    await db
+  const lookup = async () =>
+    db
       .from('conversations')
       .select('id,status,unread_count,last_message_at,ai_mode')
       .eq('organization_id', organizationId)
@@ -176,29 +176,34 @@ export async function ensureConversation(db: Db, organizationId: string, contact
       .neq('status', 'closed')
       .order('last_message_at', { ascending: false, nullsFirst: false })
       .limit(1)
-      .maybeSingle(),
-    'conversations.select',
-  );
+      .maybeSingle();
+  const existing = must<ConversationRow>(await lookup(), 'conversations.select');
   if (existing) return existing;
 
-  const created = must<ConversationRow>(
-    await db
-      .from('conversations')
-      .insert({
-        organization_id: organizationId,
-        contact_id: contactId,
-        channel: 'whatsapp',
-        status: 'open',
-        unread_count: 0,
-        last_message_at: nowIso,
-        ai_mode: await initialAiMode(db, organizationId),
-      })
-      .select('id,status,unread_count,last_message_at,ai_mode')
-      .single(),
-    'conversations.insert',
-  );
-  if (!created) throw new Error('conversations.insert: sem retorno');
-  return created;
+  const inserted = await db
+    .from('conversations')
+    .insert({
+      organization_id: organizationId,
+      contact_id: contactId,
+      channel: 'whatsapp',
+      status: 'open',
+      unread_count: 0,
+      last_message_at: nowIso,
+      ai_mode: await initialAiMode(db, organizationId),
+    })
+    .select('id,status,unread_count,last_message_at,ai_mode')
+    .single();
+  if (inserted.error) {
+    // Corrida entre dois eventos simultâneos (ex.: mensagem do cliente + resposta automática do
+    // WhatsApp Business): o banco aceita uma só conversa aberta por contato; usa a que o outro criou.
+    if (inserted.error.code === '23505') {
+      const again = must<ConversationRow>(await lookup(), 'conversations.reselect');
+      if (again) return again;
+    }
+    throw new Error(`conversations.insert: ${inserted.error.message}`);
+  }
+  if (!inserted.data) throw new Error('conversations.insert: sem retorno');
+  return inserted.data as ConversationRow;
 }
 
 async function handleMessageReceived(
