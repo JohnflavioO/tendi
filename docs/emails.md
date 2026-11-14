@@ -9,9 +9,9 @@ Painel do Supabase → **Authentication** → **Emails** → **Templates**. Para
 | Modelo no painel | Arquivo | Assunto |
 | --- | --- | --- |
 | Confirm signup | `confirmacao-cadastro.html` | Confirme seu e-mail para começar no Tendi |
-| Invite user | `convite.html` | Você foi convidado para o Tendi |
+| Invite user | `convite.html` | {{ if .Data.inviter_name }}{{ .Data.inviter_name }} convidou você para a equipe no Tendi{{ else }}Você foi convidado para o Tendi{{ end }} |
 | Reset password | `redefinir-senha.html` | Redefinir sua senha do Tendi |
-| Magic link | `link-de-acesso.html` | Seu link de acesso ao Tendi |
+| Magic link | `link-de-acesso.html` | {{ if .Data.needs_password }}Seu convite para o Tendi{{ else }}Seu link de acesso ao Tendi{{ end }} |
 | Change email address | `alteracao-de-email.html` | Confirme seu novo e-mail no Tendi |
 
 ## Pré-requisitos
@@ -22,3 +22,11 @@ Painel do Supabase → **Authentication** → **Emails** → **Templates**. Para
 ## Variáveis usadas
 
 `{{ .ConfirmationURL }}`, `{{ .SiteURL }}`, `{{ .Email }}` e `{{ .NewEmail }}` são preenchidas pelo Supabase no envio. Não as remova ao editar os textos.
+
+## Convite de equipe personalizado
+
+O convite enviado pela tela **Equipe** (e pelo Console, para o responsável da empresa) grava nos dados do usuário: `full_name`, `organization_name`, `inviter_name`, `role_label` e `needs_password`. Os modelos usam esses campos com `{{ .Data.campo }}` e blocos `{{ if .Data.campo }}…{{ else }}…{{ end }}`, então o e-mail mostra "Ana convidou você para a equipe da Clínica Sorriso" e o papel da pessoa; sem esses dados, cai no texto genérico.
+
+**Reenviar convite** (botão na tela Equipe) manda o modelo **Magic link**: para quem ainda não criou a senha (`needs_password`), ele aparece como "Seu convite continua de pé". O link leva a `/auth/callback`, que ativa o convite e abre `/definir-senha`.
+
+Se o painel não aceitar os blocos `{{ if }}` no **assunto**, use um assunto fixo (ex.: "Você foi convidado para uma equipe no Tendi").

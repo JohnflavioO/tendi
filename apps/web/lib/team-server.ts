@@ -9,8 +9,35 @@ import { assignableRoles, canManageMember, checkSeats, isRole, normalizeEmail, R
 type Db = SupabaseClient<any, any, any>;
 export type Actor = { userId: string; role: Role };
 export type Outcome<T = Record<string, unknown>> = { status: number; body: T | { error: string } };
-/** Envia o convite do Supabase Auth e devolve o id do usuário criado. */
-export type InviteUserFn = (email: string, fullName: string) => Promise<string>;
+/** Dados que personalizam o e-mail de convite (empresa, quem convidou, papel). */
+export type InviteContext = { organizationName: string; inviterName: string; roleLabel: string };
+
+/** Operações do Supabase Auth usadas no convite (injetadas pela rota; nos testes, simuladas). */
+export type AuthOps = {
+  /** Conta nova: envia o e-mail de convite e devolve o id do usuário criado. */
+  invite: (email: string, fullName: string, context: InviteContext) => Promise<string>;
+  /** Conta que existe mas nunca entrou: envia um novo link de acesso por e-mail. */
+  resend: (email: string) => Promise<void>;
+  /** A pessoa já entrou e criou a senha? */
+  isActivated: (userId: string) => Promise<boolean>;
+};
+
+const friendlyAuthError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error('[Equipe] e-mail de convite não enviado', { message });
+  return /rate limit|too many|security purposes/i.test(message)
+    ? 'Muitos e-mails em pouco tempo. Tente de novo em alguns minutos.'
+    : 'Não foi possível enviar o e-mail agora.';
+};
+
+async function inviteContext(db: Db, organizationId: string, actor: Actor, role: Role): Promise<InviteContext> {
+  const [{ data: org }, { data: inviter }] = await Promise.all([
+    db.from('organizations').select('name').eq('id', organizationId).maybeSingle(),
+    db.from('profiles').select('full_name,email').eq('id', actor.userId).maybeSingle(),
+  ]);
+  const inviterName = String(inviter?.full_name || inviter?.email?.split('@')[0] || '').trim().split(' ')[0] || 'A equipe';
+  return { organizationName: String(org?.name ?? 'sua empresa'), inviterName, roleLabel: ROLE_INFO[role].label };
+}
 
 const fail = (status: number, error: string): Outcome<never> => ({ status, body: { error } });
 
@@ -75,7 +102,7 @@ export async function inviteMember(
   db: Db,
   actor: Actor,
   input: { organizationId: string; email: unknown; fullName: unknown; role: unknown; teamId?: unknown },
-  inviteUser: InviteUserFn,
+  auth: AuthOps,
 ): Promise<Outcome> {
   const email = normalizeEmail(input.email);
   const fullName = typeof input.fullName === 'string' ? input.fullName.trim().slice(0, 120) : '';
@@ -97,22 +124,26 @@ export async function inviteMember(
   }
 
   const { data: existing } = await db.from('profiles').select('id').eq('email', email).maybeSingle();
+  // 'invited' = conta nova (e-mail de convite); 'reminded' = conta que nunca entrou (novo link); 'joined' = já usa o Tendi.
   let userId: string;
-  let invited: boolean;
+  let outcome: 'invited' | 'reminded' | 'joined';
   if (existing?.id) {
     const { data: already } = await db.from('organization_memberships').select('status').eq('organization_id', input.organizationId).eq('user_id', existing.id).maybeSingle();
-    if (already) return fail(409, already.status === 'invited' ? 'Esta pessoa já foi convidada e ainda não aceitou.' : 'Esta pessoa já faz parte da equipe.');
+    if (already) return fail(409, already.status === 'invited' ? 'Esta pessoa já foi convidada e ainda não aceitou. Use "Reenviar convite" na lista.' : 'Esta pessoa já faz parte da equipe.');
     userId = existing.id as string;
-    invited = false;
+    if (await auth.isActivated(userId)) {
+      outcome = 'joined';
+    } else {
+      try { await auth.resend(email); } catch (error) { return fail(502, friendlyAuthError(error)); }
+      outcome = 'reminded';
+    }
   } else {
     try {
-      userId = await inviteUser(email, fullName);
+      userId = await auth.invite(email, fullName, await inviteContext(db, input.organizationId, actor, role));
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error('[Equipe] convite não enviado', { message });
-      return fail(502, /rate limit/i.test(message) ? 'Muitos convites em pouco tempo. Tente de novo em alguns minutos.' : 'Não foi possível enviar o convite agora.');
+      return fail(502, friendlyAuthError(error));
     }
-    invited = true;
+    outcome = 'invited';
   }
 
   const now = new Date().toISOString();
@@ -120,8 +151,8 @@ export async function inviteMember(
     organization_id: input.organizationId,
     user_id: userId,
     role,
-    // Conta nova fica "convidada" até abrir o link; conta que já existe entra direto.
-    status: invited ? 'invited' : 'active',
+    // Fica "convidada" até a pessoa abrir o link e criar a senha; quem já usa o Tendi entra direto.
+    status: outcome === 'joined' ? 'active' : 'invited',
     invited_by: actor.userId,
     invited_at: now,
   });
@@ -130,12 +161,26 @@ export async function inviteMember(
   if (teamId) {
     await db.from('team_members').insert({ organization_id: input.organizationId, team_id: teamId, user_id: userId, team_role: role === 'agent' ? 'member' : 'leader' });
   }
-  return {
-    status: 200,
-    body: invited
-      ? { ok: true, invited: true, message: `Convite enviado para ${email}.` }
-      : { ok: true, invited: false, message: `${fullName} já tinha conta no Tendi e foi adicionado(a) à equipe. Basta entrar com o e-mail e a senha de sempre.` },
+  const messages = {
+    invited: `Convite enviado para ${email}.`,
+    reminded: `Enviamos um novo link de acesso para ${email}.`,
+    joined: `${fullName} já usa o Tendi e foi adicionado(a) à equipe. Basta entrar com o e-mail e a senha de sempre.`,
   };
+  return { status: 200, body: { ok: true, invited: outcome !== 'joined', message: messages[outcome] } };
+}
+
+/** Reenvia o link de acesso para quem foi convidado e ainda não entrou. */
+export async function resendInvite(db: Db, actor: Actor, input: { organizationId: string; userId: string }, auth: AuthOps): Promise<Outcome> {
+  const target = await loadTarget(db, input.organizationId, input.userId);
+  if (!target) return fail(404, 'Membro não encontrado.');
+  if (target.status !== 'invited') return fail(409, 'Esta pessoa já aceitou o convite.');
+  if (!canManageMember(actor.role, target.role, input.userId === actor.userId)) return fail(403, 'Você não pode reenviar este convite.');
+  const { data: profile } = await db.from('profiles').select('email').eq('id', input.userId).maybeSingle();
+  const email = normalizeEmail(profile?.email);
+  if (!email) return fail(404, 'E-mail do convidado não encontrado.');
+  try { await auth.resend(email); } catch (error) { return fail(502, friendlyAuthError(error)); }
+  await db.from('organization_memberships').update({ invited_at: new Date().toISOString(), invited_by: actor.userId }).eq('organization_id', input.organizationId).eq('user_id', input.userId);
+  return { status: 200, body: { ok: true, message: `Convite reenviado para ${email}.` } };
 }
 
 async function loadTarget(db: Db, organizationId: string, userId: string) {
