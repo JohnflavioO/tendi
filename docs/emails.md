@@ -10,7 +10,7 @@ Painel do Supabase → **Authentication** → **Emails** → **Templates**. Para
 | --- | --- | --- |
 | Confirm signup | `confirmacao-cadastro.html` | Confirme seu e-mail para começar no Tendi |
 | Invite user | `convite.html` | {{ if .Data.inviter_name }}{{ .Data.inviter_name }} convidou você para a equipe no Tendi{{ else }}Você foi convidado para o Tendi{{ end }} |
-| Reset password | `redefinir-senha.html` | Redefinir sua senha do Tendi |
+| Reset password | `redefinir-senha.html` (link via `/auth/confirm`, funciona em qualquer aparelho) | Redefinir sua senha do Tendi |
 | Magic link | `link-de-acesso.html` | {{ if .Data.needs_password }}Seu convite para o Tendi{{ else }}Seu link de acesso ao Tendi{{ end }} |
 | Change email address | `alteracao-de-email.html` | Confirme seu novo e-mail no Tendi |
 

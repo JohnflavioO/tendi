@@ -42,8 +42,10 @@ export async function middleware(request: NextRequest) {
   const { data } = await supabase.auth.getUser();
   const isLogin = request.nextUrl.pathname.startsWith('/login');
   const isRegister = request.nextUrl.pathname === '/register' || request.nextUrl.pathname === '/register/confirmar';
+  // Recuperação de senha: aberta para quem não está logado.
+  const isRecovery = request.nextUrl.pathname === '/esqueci-senha';
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth');
-  if (!data.user && !isLogin && !isRegister && !isAuthRoute) {
+  if (!data.user && !isLogin && !isRegister && !isAuthRoute && !isRecovery) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = '/login';
     return NextResponse.redirect(redirect);
