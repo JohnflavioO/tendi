@@ -8,6 +8,18 @@ html, body { min-height: 100%; scroll-behavior: smooth; }
 body { margin: 0; background: var(--tendi-surface); color: #17211f; font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 button, input { font: inherit; }
 button { cursor: pointer; }
+
+/* Celular: toque sem o flash cinza, sem "puxar" a página inteira e sem o zoom automático do iPhone
+   ao tocar em campos (o Safari amplia quando a fonte do campo é menor que 16px). */
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@media (max-width: 1023px) {
+  body { overscroll-behavior-y: none; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px !important; }
+}
+/* App instalado (aberto pela tela inicial): sem seleção acidental de textos de interface. */
+@media (display-mode: standalone) {
+  nav, header, button { -webkit-user-select: none; user-select: none; }
+}
 ::selection { background: #c9eee3; }
 :focus-visible { outline: 2px solid var(--tendi-magenta); outline-offset: 2px; }
 .skip-link { position: fixed; left: 1rem; top: 1rem; z-index: 100; transform: translateY(-160%); border-radius: .75rem; background: white; padding: .75rem 1rem; color: var(--tendi-indigo); box-shadow: 0 4px 20px rgb(0 0 0 / .12); }

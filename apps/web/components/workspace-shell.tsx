@@ -9,6 +9,7 @@ import { requestedOrganizationId, resolveCurrentOrganization, withOrganization }
 import { SupportBanner } from '@/components/support-banner';
 import { BrandLoader } from '@/components/brand-loader';
 import { OnboardingTour } from '@/components/onboarding-tour';
+import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { TOUR_EVENT } from '@/lib/onboarding';
 import { areaForPath, canAccessArea, type Area } from '@/lib/team';
 import {
@@ -89,16 +90,17 @@ export function WorkspaceShell({ children, title, description, actions }: {
 
   return <main className="flex min-h-screen bg-[#F5F6FB] text-slate-800">
     <div className="hidden lg:flex">{sidebar}</div>
-    {mobileOpen && <div className="fixed inset-0 z-40 flex lg:hidden"><button aria-label="Fechar menu" className="absolute inset-0 bg-slate-950/30" onClick={()=>setMobileOpen(false)}/><div className="relative z-10">{sidebar}<button onClick={()=>setMobileOpen(false)} className="absolute right-3 top-3 rounded-lg p-2 text-slate-500"><X size={18}/></button></div></div>}
+    {mobileOpen && <div className="fixed inset-0 z-40 flex lg:hidden"><button aria-label="Fechar menu" className="absolute inset-0 bg-slate-950/30" onClick={()=>setMobileOpen(false)}/><div className="relative z-10 flex h-full overflow-y-auto bg-white pt-[env(safe-area-inset-top)] shadow-xl">{sidebar}<button onClick={()=>setMobileOpen(false)} aria-label="Fechar menu" className="absolute right-3 top-[calc(env(safe-area-inset-top)+12px)] rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={18}/></button></div></div>}
     <section className="flex min-w-0 flex-1 flex-col">
       <SupportBanner organizationId={organization.id} organizationName={organization.name} supportUntil={supportUntil}/>
-      <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-slate-200/80 bg-white/95 px-5 backdrop-blur md:px-8">
-        <div className="flex min-w-0 items-center gap-3"><button onClick={()=>setMobileOpen(true)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Abrir menu"><Menu size={19}/></button><div className="min-w-0"><p className="truncate text-lg font-bold tracking-tight text-[#25275B]">{title}</p><p className="hidden truncate text-xs text-slate-400 sm:block">{description}</p></div></div>
+      <header className="sticky top-0 z-20 flex min-h-[60px] items-center justify-between gap-3 border-b border-slate-200/80 bg-white/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur md:min-h-[76px] md:px-8">
+        <div className="flex min-w-0 items-center gap-3"><img src="/icons/icon-192.png" alt="" className="size-8 shrink-0 rounded-[10px] lg:hidden"/><div className="min-w-0"><p className="truncate text-lg font-bold tracking-tight text-[#25275B]">{title}</p><p className="hidden truncate text-xs text-slate-400 sm:block">{description}</p></div></div>
         <div className="relative flex items-center gap-2">{actions}<button onClick={()=>setMenuOpen(!menuOpen)} aria-label="Abrir menu de opções" aria-expanded={menuOpen} className={menuOpen?'rounded-xl bg-[#F0F0FA] p-2.5 text-[#2F316B]':'rounded-xl p-2.5 text-slate-400 transition hover:bg-slate-100 hover:text-[#2F316B]'}><MoreHorizontal size={20}/></button>
           {menuOpen&&<><button aria-label="Fechar menu" className="fixed inset-0 z-20 cursor-default" onClick={()=>setMenuOpen(false)}/><div className="absolute right-0 top-12 z-30 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10"><div className="border-b border-slate-100 px-3 py-2"><p className="text-xs font-semibold text-[#2F316B]">{organization.name}</p><p className="text-[10px] text-slate-400">Opções do workspace</p></div><a href={withOrganization('/conta', organization.id)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><UserRound size={15}/>Minha conta</a>{canAccessArea(role, superAdmin, 'configuracoes')&&<a href={withOrganization('/configuracoes', organization.id)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><Settings size={15}/>Configurações</a>}{role&&<button onClick={()=>{setMenuOpen(false);setMobileOpen(false);window.dispatchEvent(new Event(TOUR_EVENT));}} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50"><Compass size={15}/>Primeiros passos</button>}<button onClick={()=>window.location.reload()} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50"><RefreshCw size={15}/>Atualizar página</button><a href="mailto:suporte@tendidesk.com.br" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><CircleHelp size={15}/>Ajuda e suporte</a><button onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-rose-600 hover:bg-rose-50"><LogOut size={15}/>Sair da conta</button></div></>}
         </div>
       </header>
-      <div className="mx-auto w-full max-w-[1600px] flex-1 p-5 md:p-8">{children}</div>
+      <div className="mx-auto w-full max-w-[1600px] flex-1 p-4 pb-[calc(env(safe-area-inset-bottom)+92px)] md:p-8 md:pb-[calc(env(safe-area-inset-bottom)+100px)] lg:pb-8">{children}</div>
+      <MobileTabBar fixed pathname={pathname} organizationId={organization.id} role={role} superAdmin={superAdmin} onMenu={()=>setMobileOpen(true)}/>
       <OnboardingTour organizationId={organization.id} role={role} superAdmin={superAdmin}/>
     </section>
   </main>;

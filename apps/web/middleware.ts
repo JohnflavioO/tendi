@@ -11,6 +11,8 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/api/cron/')) return NextResponse.next({ request });
   // Webchat: o visitante do site do cliente nunca faz login no Tendi. O script público e as
   // rotas que ele chama (token próprio, validado dentro de cada rota) precisam ficar fora do login.
+  // App instalável (PWA): manifesto, service worker e tela sem conexão precisam abrir sem login.
+  if (['/manifest.webmanifest', '/sw.js', '/offline.html'].includes(request.nextUrl.pathname)) return NextResponse.next({ request });
   if (request.nextUrl.pathname === '/webchat.js' || request.nextUrl.pathname.startsWith('/api/webchat/')) {
     return NextResponse.next({ request });
   }

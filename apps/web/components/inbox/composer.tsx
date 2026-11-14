@@ -89,7 +89,7 @@ export function Composer({ conversation, onSent, onError }: {
   const audioPending = pending?.kind === 'audio';
   const placeholder = audioPending ? 'Áudios não têm legenda' : pending ? 'Legenda (opcional)…' : 'Escreva sua mensagem...';
 
-  return <form onSubmit={event => void send(event)} className="border-t border-slate-200/80 bg-white p-4 md:px-6">
+  return <form onSubmit={event => void send(event)} className="border-t border-slate-200/80 bg-white p-3 pb-[calc(env(safe-area-inset-bottom)+12px)] md:p-4 md:px-6">
     <div className="rounded-2xl border border-slate-200 bg-[#FBFCFE] p-3 shadow-[0_4px_18px_rgba(35,45,90,.04)] focus-within:border-[#A7A8D0]">
       {pending && <div className="mb-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-2">
         {pending.kind === 'image' && pending.previewUrl && <img src={pending.previewUrl} alt="Prévia do anexo" className="size-14 rounded-lg object-cover" />}
