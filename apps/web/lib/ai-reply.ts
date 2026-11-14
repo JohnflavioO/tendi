@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
-  AI_TONES, HANDOFF_MARKER, buildSystemPrompt, normalizeBusinessHours,
+  AI_TONES, HANDOFF_MARKER, MAX_OPTION_CHARS, MAX_QUICK_OPTIONS, OPTIONS_MARKER, buildSystemPrompt, normalizeBusinessHours,
   type AiProvider, type AiTone, type KnowledgeItem,
 } from './ai-agent';
 import type { ChatTurn, GenerateFn } from './ai-llm';
@@ -55,6 +55,34 @@ export function splitHandoff(raw: string): { text: string; handoff: boolean } {
   const handoff = raw.includes(HANDOFF_MARKER);
   const cleaned = raw.split(HANDOFF_MARKER).join('').replace(/\n{3,}/g, '\n\n').trim();
   return { text: cleaned, handoff };
+}
+
+const OPTIONS_PATTERN = new RegExp(`\\[\\[\\s*${OPTIONS_MARKER}\\s*:([^\\]]*)\\]\\]`, 'gi');
+
+/**
+ * Tira o marcador de opções rápidas da resposta da IA.
+ * Devolve o texto limpo e até 3 opções curtas, sem repetidas. Marcador inválido some sem deixar resto.
+ */
+export function extractQuickOptions(raw: string): { text: string; options: string[] } {
+  let options: string[] = [];
+  const text = raw.replace(OPTIONS_PATTERN, (_match, list: string) => {
+    if (!options.length) {
+      const seen = new Set<string>();
+      options = list
+        .split('|')
+        .map(item => item.replace(/[*_~`]/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_OPTION_CHARS).trim())
+        .filter(item => item && !seen.has(item.toLowerCase()) && seen.add(item.toLowerCase()))
+        .slice(0, MAX_QUICK_OPTIONS);
+    }
+    return '';
+  }).replace(/\n{3,}/g, '\n\n').trim();
+  return { text, options: options.length >= 2 ? options : [] };
+}
+
+/** Texto final com as opções numeradas ("1. Sim"), que o cliente responde com o número. */
+export function withQuickOptions(text: string, options: string[]): string {
+  if (!options.length) return text;
+  return `${text}\n\n${options.map((option, index) => `${index + 1}. ${option}`).join('\n')}`;
 }
 
 const MEDIA_NOTES: Record<string, string> = {
@@ -237,7 +265,10 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     output_tokens: generated.outputTokens,
     cost_usd: estimateCostUsd(pricing, model, generated.inputTokens, generated.outputTokens),
   };
-  const parsed = generated.refused ? { text: '', handoff: true } : splitHandoff(generated.text);
+  const handoffParsed = generated.refused ? { text: '', handoff: true } : splitHandoff(generated.text);
+  // Opções rápidas ([[OPCOES: ...]]) viram lista numerada no fim da mensagem.
+  const quick = extractQuickOptions(handoffParsed.text);
+  const parsed = { handoff: handoffParsed.handoff, text: withQuickOptions(quick.text, quick.options) };
   const handoffMessage = text(profile.handoff_message).trim() || 'Vou chamar um atendente da nossa equipe para continuar com você. Só um instante!';
   const reply = parsed.text || (parsed.handoff ? handoffMessage : '');
   if (!reply) return fail('O modelo devolveu uma resposta vazia.', tokens);
@@ -265,7 +296,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     signer = signature.enabled ? aiSigner(agent.name, signature.aiSuffix) : '';
   }
 
-  const basePayload = { source: 'ai', sender: { type: 'ai', name: agent.name }, ...(signer ? { signature: signer } : {}), ai: { provider, model, handoff: parsed.handoff } };
+  const basePayload = { source: 'ai', sender: { type: 'ai', name: agent.name }, ...(signer ? { signature: signer } : {}), ai: { provider, model, handoff: parsed.handoff, ...(quick.options.length ? { options: quick.options } : {}) } };
   const inserted = await db
     .from('messages')
     .insert({
