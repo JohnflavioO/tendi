@@ -56,8 +56,10 @@ export async function POST(request: Request, { params }: { params: { organizatio
     }
 
     const { data: invite, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      // Mesmos dados do convite de equipe: personalizam o e-mail e levam a pessoa a criar a senha.
-      data: { full_name: fullName, needs_password: true, organization_name: organization.name, inviter_name: 'Equipe Tendi', role_label: 'Dono' },
+      // needs_password: o primeiro acesso leva a pessoa a criar a senha (sem isso ela não consegue entrar de novo).
+      // organization_name, inviter_name e role_label personalizam o e-mail; invite_role marca o convite do
+      // administrador da empresa (texto próprio no e-mail e na tela de boas-vindas).
+      data: { full_name: fullName, needs_password: true, organization_name: organization.name, inviter_name: 'Equipe Tendi', role_label: 'Administrador da conta', invite_role: 'administrador' },
       redirectTo: new URL('/auth/callback', request.url).toString(),
     });
     if (inviteError) throw inviteError;

@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Bot, MessageCircle, Instagram, Facebook, Globe2, Loader2, ShieldCheck, ArrowRight, RefreshCw, Unplug, QrCode, CheckCircle2 } from 'lucide-react';
+import { Bot, MessageCircle, Loader2, ShieldCheck, ArrowRight, RefreshCw, Unplug, QrCode, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { WorkspaceShell } from '@/components/workspace-shell';
 import { QRCodeSVG } from 'qrcode.react';
+import { useWorkspaceRole } from '@/lib/use-workspace-role';
+import { WebchatSettingsCard } from '@/components/chatbots/webchat-settings';
+import { MetaConnectionCard } from '@/components/chatbots/meta-settings';
 
 type Connection={id:string;channel:string;display_name:string;status:string;phone_number_id:string|null;provider_account_id:string|null;updated_at:string};
 type QrPayload={status:string;waiting?:boolean;qrCode?:string|null;qrCodeImage?:string|null;qrCodeUpdatedAt?:string|null;displayName?:string;diagnostic?:{providerStatus?:string;qrCodePresent?:boolean;qrCodeImagePresent?:boolean;responseWrapped?:boolean;responseKeys?:string[];resourceKeys?:string[];providerError?:string|null;providerCode?:string|null}};
-const channels=[{id:'instagram',name:'Instagram',detail:'Mensagens diretas do Instagram',icon:Instagram},{id:'messenger',name:'Messenger',detail:'Conversas da página do Facebook',icon:Facebook},{id:'webchat',name:'Webchat',detail:'Widget de atendimento para seu site',icon:Globe2}];
 const statusLabel=(status:string)=>status==='connected'?'Conectado':status==='error'?'Atenção necessária':status==='pending'?'Aguardando leitura do QR Code':status==='disconnected'?'Desconectado':status;
 
 export default function ChatbotsPage(){
@@ -207,6 +209,8 @@ export default function ChatbotsPage(){
  }
  const whatsapp=rows.find(r=>r.channel==='whatsapp');
  const connected=whatsapp?.status==='connected';
+ const { role } = useWorkspaceRole(organizationId);
+ const canManageChannels = role==='owner'||role==='admin';
  return <WorkspaceShell title="Canais e automações" description="Conecte seus canais e organize os atendimentos do workspace">
   <section className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#25275B] via-[#2F316B] to-[#004751] p-6 text-white shadow-sm md:p-8">
    <div className="flex flex-wrap items-start justify-between gap-5"><div className="max-w-2xl"><span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/80"><Bot size={13}/> Central de canais Tendi</span><h1 className="mt-4 text-2xl font-bold tracking-tight md:text-3xl">Seu atendimento, em um só lugar.</h1><p className="mt-2 max-w-xl text-sm leading-6 text-white/70">Conecte os canais da sua empresa para receber e responder mensagens pela equipe, com histórico centralizado no Inbox.</p></div><div className="rounded-2xl border border-white/15 bg-white/10 p-4"><MessageCircle size={30}/><p className="mt-3 text-[10px] font-semibold text-white/70">{workspace||'Workspace ativo'}</p></div></div>
@@ -222,8 +226,9 @@ export default function ChatbotsPage(){
     {connected&&<div className="mt-5 flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs font-medium text-emerald-800"><CheckCircle2 size={16}/>Sessão confirmada pela D-API.</div>}
     <div className="mt-6 grid gap-3 border-t border-slate-100 pt-5 md:grid-cols-3"><Step number="01" title="Inicie a conexão" detail="O Tendi cria uma sessão exclusiva para este workspace."/><Step number="02" title="Leia o QR Code" detail="Autorize o acesso pelo menu Dispositivos conectados do WhatsApp."/><Step number="03" title="Confirme o status" detail="O Tendi consulta a sessão diretamente na D-API." /></div>
    </section>
-   <div className="mb-3 flex items-center justify-between"><div><h2 className="text-sm font-bold text-[#25275B]">Outros canais</h2><p className="mt-1 text-xs text-slate-400">Expanda sua operação para novos pontos de contato.</p></div><span className="text-[10px] font-medium text-slate-400">{channels.length} canais planejados</span></div>
-   <div className="grid gap-4 md:grid-cols-3">{channels.map(c=>{const connection=rows.find(r=>r.channel===c.id);const Icon=c.icon;return <article key={c.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-start justify-between"><span className="rounded-xl bg-[#F0F0FA] p-3 text-[#2F316B]"><Icon size={20}/></span><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-500">{connection?statusLabel(connection.status):'Planejado'}</span></div><h3 className="mt-4 text-sm font-bold text-[#2F316B]">{c.name}</h3><p className="mt-1 min-h-10 text-[11px] leading-5 text-slate-400">{c.detail}</p><div className="mt-4 border-t border-slate-100 pt-3 text-[10px] text-slate-400">{connection?.display_name??'Disponibilidade em uma próxima etapa'}</div></article>})}</div>
+   <div className="mb-3"><h2 className="text-sm font-bold text-[#25275B]">Outros canais</h2><p className="mt-1 text-xs text-slate-400">Expanda sua operação para novos pontos de contato.</p></div>
+   <div className="mb-6">{organizationId&&<WebchatSettingsCard organizationId={organizationId} canManage={canManageChannels}/>}</div>
+   <div>{organizationId&&<MetaConnectionCard organizationId={organizationId} connections={rows.filter(r=>r.channel==='instagram'||r.channel==='messenger')} canManage={canManageChannels} onChanged={load}/>}</div>
    <div className="mt-6 flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4"><ShieldCheck className="mt-0.5 shrink-0 text-[#004751]" size={18}/><p className="text-[11px] leading-5 text-slate-500">A chave da D-API fica exclusivamente no servidor. Cada workspace possui uma sessão independente e só pode consultar ou desconectar a própria conexão. A integração de recebimento de mensagens no Inbox depende da homologação dos eventos de webhook.</p></div>
   </>}
  </WorkspaceShell>;

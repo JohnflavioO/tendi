@@ -5,7 +5,8 @@ import { FileText, ImageOff, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { MEDIA_BUCKET } from '@/lib/inbox-attachments';
 import { AudioPlayer } from '@/components/inbox/audio-player';
-import { MEDIA_LABEL, mediaKind, safeMediaUrl } from '@/lib/inbox-utils';
+import { MEDIA_LABEL, safeMediaUrl } from '@/lib/inbox-utils';
+import { resolveMediaSource, type MediaSource } from '@/lib/inbox-media';
 
 type MediaMessage = { message_type: string; body: string | null; payload: Record<string, unknown> | null };
 
@@ -34,31 +35,36 @@ function useSignedMediaUrl(path: string | null): { url: string | null; loading: 
   return state;
 }
 
+/** Link para exibir a mídia de uma mensagem (externo da D-API ou temporário do Storage). */
+export function useMessageMedia(message: MediaMessage | null): { source: MediaSource | null; url: string | null; loading: boolean } {
+  const source = message ? resolveMediaSource(message) : null;
+  const signed = useSignedMediaUrl(source?.storagePath ?? null);
+  return { source, url: source?.url ?? signed.url, loading: signed.loading };
+}
+
 /**
  * Conteúdo de uma mensagem: mídia (imagem, vídeo, áudio, documento, figurinha) e/ou texto.
  * O link da mídia vem do webhook da D-API (payload.media_url) e só é usado se for http(s).
+ * `onOpenImage` abre a imagem no visualizador da própria conversa.
  */
-export function MessageMedia({ message }: { message: MediaMessage }) {
+export function MessageMedia({ message, onOpenImage }: { message: MediaMessage; onOpenImage?: () => void }) {
   const [failed, setFailed] = useState(false);
-  const kind = mediaKind(message.message_type);
-  const payload = message.payload ?? {};
-  const stored = payload.media && typeof payload.media === 'object' ? (payload.media as Record<string, unknown>) : null;
-  const directUrl = kind ? safeMediaUrl(payload.media_url) : null;
-  const storagePath = kind && !directUrl && typeof stored?.path === 'string' ? stored.path : null;
-  const signed = useSignedMediaUrl(storagePath);
-  const url = directUrl ?? signed.url;
-  const nameSource = typeof payload.filename === 'string' ? payload.filename : typeof stored?.filename === 'string' ? stored.filename : '';
-  const filename = nameSource.trim() ? nameSource.trim() : null;
+  const { source, url, loading } = useMessageMedia(message);
+  const kind = source?.kind ?? null;
+  const filename = source?.filename ?? null;
   const caption = message.body && message.body.trim() ? message.body : null;
 
   let media: React.ReactNode = null;
   if (kind) {
-    if (signed.loading && !url) {
+    if (loading && !url) {
       media = <p className="mb-1 flex items-center gap-2 rounded-lg bg-black/5 px-3 py-2 text-xs opacity-80"><Loader2 size={14} className="animate-spin" />Carregando {MEDIA_LABEL[kind].toLowerCase()}…</p>;
     } else if (!url || failed) {
       media = <p className="mb-1 flex items-center gap-2 rounded-lg bg-black/5 px-3 py-2 text-xs opacity-80"><ImageOff size={14} />{MEDIA_LABEL[kind]} indisponível</p>;
     } else if (kind === 'image' || kind === 'sticker') {
-      media = <a href={url} target="_blank" rel="noreferrer noopener" className="mb-1 block"><img src={url} alt={caption ?? MEDIA_LABEL[kind]} loading="lazy" onError={() => setFailed(true)} className={kind === 'sticker' ? 'max-h-40 w-auto' : 'max-h-72 w-auto max-w-full rounded-xl object-cover'} /></a>;
+      const image = <img src={url} alt={caption ?? MEDIA_LABEL[kind]} loading="lazy" onError={() => setFailed(true)} className={kind === 'sticker' ? 'max-h-40 w-auto' : 'max-h-72 w-auto max-w-full rounded-xl object-cover'} />;
+      media = onOpenImage
+        ? <button type="button" onClick={onOpenImage} aria-label={`Ampliar ${MEDIA_LABEL[kind].toLowerCase()}`} title="Clique para ampliar" className="mb-1 block cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#CB0A9F]">{image}</button>
+        : <a href={url} target="_blank" rel="noreferrer noopener" className="mb-1 block">{image}</a>;
     } else if (kind === 'video') {
       media = <video controls preload="metadata" src={url} onError={() => setFailed(true)} className="mb-1 max-h-72 w-full max-w-sm rounded-xl" />;
     } else if (kind === 'audio') {

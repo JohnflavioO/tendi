@@ -237,3 +237,23 @@ describe('assinatura da IA', () => {
     expect((off.send.mock.calls[0] as any)[1].text).toBe('A limpeza custa R$ 150.');
   });
 });
+
+describe('resposta automática no Webchat', () => {
+  it('responde sem telefone nem conexão de WhatsApp, e não chama o provedor externo', async () => {
+    const { db, run, send } = setup();
+    db.t.conversations[0]!.channel = 'webchat';
+    db.t.conversations[0]!.contacts = { phone_e164: null };
+    db.t.channel_connections.length = 0; // nenhuma conexão de WhatsApp cadastrada
+    expect(await run()).toEqual({ status: 'replied' });
+    expect(send).not.toHaveBeenCalled();
+    const sent = db.t.messages.find(m => m.direction === 'outbound')!;
+    expect(sent).toMatchObject({ delivery_status: 'sent', provider: 'webchat', body: 'A limpeza custa R$ 150.' });
+  });
+
+  it('ainda ignora canais que não são WhatsApp nem Webchat', async () => {
+    const { db, run, send } = setup();
+    db.t.conversations[0]!.channel = 'instagram';
+    expect(await run()).toEqual({ status: 'skipped', reason: 'conversation_not_found' });
+    expect(send).not.toHaveBeenCalled();
+  });
+});

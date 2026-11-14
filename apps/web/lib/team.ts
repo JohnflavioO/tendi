@@ -20,10 +20,11 @@ export const ROLE_INFO: Record<Role, { label: string; description: string }> = {
   agent: { label: 'Atendente', description: 'Atende no Inbox e cuida de contatos e oportunidades.' },
 };
 
-export type Area = 'inbox' | 'crm' | 'contatos' | 'chatbots' | 'relatorios' | 'configuracoes' | 'equipe' | 'assinatura';
+export type Area = 'inbox' | 'agenda' | 'crm' | 'contatos' | 'chatbots' | 'relatorios' | 'configuracoes' | 'equipe' | 'assinatura' | 'ia';
 
 const AREA_MIN_ROLE: Record<Area, Role> = {
   inbox: 'agent',
+  agenda: 'agent',
   crm: 'agent',
   contatos: 'agent',
   relatorios: 'manager',
@@ -31,12 +32,25 @@ const AREA_MIN_ROLE: Record<Area, Role> = {
   configuracoes: 'manager',
   equipe: 'manager',
   assinatura: 'admin',
+  ia: 'admin',
 };
 
 const RANK: Record<Role, number> = { owner: 4, admin: 3, manager: 2, agent: 1 };
 
 export function canAccess(role: Role | null | undefined, area: Area): boolean {
   return Boolean(role) && RANK[role as Role] >= RANK[AREA_MIN_ROLE[area]];
+}
+
+/**
+ * Áreas que o Super Admin da plataforma abre numa empresa da qual NÃO é membro: só a configuração
+ * da conta. Inbox, CRM, contatos e relatórios ficam fora, por confidencialidade dos atendimentos
+ * (o banco também bloqueia esses dados para ele).
+ */
+export const SUPER_ADMIN_AREAS: readonly Area[] = ['chatbots', 'configuracoes', 'equipe', 'assinatura', 'ia'];
+
+/** Acesso a uma área: pelo papel na empresa ou, para o Super Admin, só nas áreas de configuração. */
+export function canAccessArea(role: Role | null | undefined, superAdmin: boolean, area: Area): boolean {
+  return canAccess(role, area) || (superAdmin && SUPER_ADMIN_AREAS.includes(area));
 }
 
 /** Área da rota (/crm/... -> crm). null = rota sem controle por papel. */

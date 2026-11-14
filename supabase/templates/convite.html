@@ -31,13 +31,13 @@
                 <td bgcolor="#1D1F4E" style="background-color:#1D1F4E;background-image:linear-gradient(135deg,#1D1F4E 0%,#2F316B 55%,#7A1468 100%);padding:34px 32px 30px 32px;">
                   <p style="margin:0 0 10px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#F4A8DF;">Convite para a equipe</p>
                   <h1 style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:34px;font-weight:700;color:#FFFFFF;">{{ if .Data.inviter_name }}{{ .Data.inviter_name }} convidou você para o Tendi{{ else }}Você foi convidado(a) para o Tendi{{ end }}</h1>
-                  <p style="margin:12px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#D6D7F0;">{{ if .Data.organization_name }}Faça parte da equipe de atendimento da <strong style="color:#FFFFFF;">{{ .Data.organization_name }}</strong>.{{ else }}Faça parte da equipe de atendimento da sua empresa.{{ end }}</p>
+                  <p style="margin:12px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#D6D7F0;">{{ if .Data.organization_name }}{{ if .Data.invite_role }}Administre a conta da <strong style="color:#FFFFFF;">{{ .Data.organization_name }}</strong> no Tendi.{{ else }}Faça parte da equipe de atendimento da <strong style="color:#FFFFFF;">{{ .Data.organization_name }}</strong>.{{ end }}{{ else }}Faça parte da equipe de atendimento da sua empresa.{{ end }}</p>
                 </td>
               </tr>
 
               <tr>
                 <td style="padding:30px 32px 8px 32px;">
-                  <p style="margin:0 0 20px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#334155;">Olá{{ if .Data.full_name }}, {{ .Data.full_name }}{{ end }}! O Tendi reúne o WhatsApp da empresa, o CRM e o agente de IA em um só lugar, para a equipe atender melhor e não perder nenhuma conversa.</p>
+                  <p style="margin:0 0 20px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#334155;">Olá{{ if .Data.full_name }}, {{ .Data.full_name }}{{ end }}! O Tendi reúne o WhatsApp da empresa, o CRM e o agente de IA em um só lugar, para a equipe atender melhor e não perder nenhuma conversa.{{ if .Data.invite_role }} Como administrador(a), você conecta o WhatsApp da empresa, convida a equipe e acompanha os atendimentos.{{ end }} O acesso é individual: depois, entre sempre com este e-mail.</p>
 
                   <!-- Detalhes do convite -->
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F7F8FC;border:1px solid #E6E8F2;border-radius:14px;">

@@ -44,6 +44,8 @@ export type AiReplyDeps = {
   now?: () => Date;
 };
 export type AiReplyResult = { status: 'replied' | 'handoff' | 'skipped' | 'error'; reason?: string };
+/** Canais em que a resposta automática já funciona. Instagram/Messenger ainda não entram aqui. */
+const AI_REPLY_CHANNELS = ['whatsapp', 'webchat'];
 
 const isRecord = (value: unknown): value is Json => typeof value === 'object' && value !== null && !Array.isArray(value);
 const text = (value: unknown) => (typeof value === 'string' ? value : '');
@@ -98,7 +100,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     .maybeSingle();
   if (conversationResult.error) throw new Error(`conversations: ${conversationResult.error.message}`);
   const conversation = conversationResult.data as { channel: string; ai_mode: string; contacts: any } | null;
-  if (!conversation || conversation.channel !== 'whatsapp') return { status: 'skipped', reason: 'conversation_not_found' };
+  if (!conversation || !AI_REPLY_CHANNELS.includes(conversation.channel)) return { status: 'skipped', reason: 'conversation_not_found' };
   if (conversation.ai_mode !== 'on') return { status: 'skipped', reason: 'ai_off' };
 
   // 2) Esta precisa ser a última mensagem da conversa.
@@ -240,21 +242,29 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   const reply = parsed.text || (parsed.handoff ? handoffMessage : '');
   if (!reply) return fail('O modelo devolveu uma resposta vazia.', tokens);
 
-  // 10) Envio pelo WhatsApp.
-  const contact = Array.isArray(conversation.contacts) ? conversation.contacts[0] : conversation.contacts;
-  const phone = text(contact?.phone_e164).replace(/\D/g, '');
-  const connection = await db
-    .from('channel_connections')
-    .select('provider_account_id,status,settings')
-    .eq('organization_id', organizationId)
-    .eq('channel', 'whatsapp')
-    .maybeSingle();
-  const sessionId = text(connection.data?.provider_account_id);
-  if (!/^\d{8,15}$/.test(phone)) return fail('O contato não tem um número de WhatsApp válido.', tokens);
-  if (!sessionId || connection.data?.status !== 'connected') return fail('WhatsApp da empresa desconectado.', tokens);
+  // 10) Entrega. WhatsApp fala com a D-API; Webchat só grava (quem lê é o navegador do visitante,
+  // que consulta /api/webchat/messages — não há provedor externo para chamar).
+  const isWebchat = conversation.channel === 'webchat';
+  let signer = '';
+  let sessionId = '';
+  let phone = '';
 
-  const signature = normalizeSignature(connection.data?.settings);
-  const signer = signature.enabled ? aiSigner(agent.name, signature.aiSuffix) : '';
+  if (!isWebchat) {
+    const contact = Array.isArray(conversation.contacts) ? conversation.contacts[0] : conversation.contacts;
+    phone = text(contact?.phone_e164).replace(/\D/g, '');
+    const connection = await db
+      .from('channel_connections')
+      .select('provider_account_id,status,settings')
+      .eq('organization_id', organizationId)
+      .eq('channel', 'whatsapp')
+      .maybeSingle();
+    sessionId = text(connection.data?.provider_account_id);
+    if (!/^\d{8,15}$/.test(phone)) return fail('O contato não tem um número de WhatsApp válido.', tokens);
+    if (!sessionId || connection.data?.status !== 'connected') return fail('WhatsApp da empresa desconectado.', tokens);
+    const signature = normalizeSignature(connection.data?.settings);
+    signer = signature.enabled ? aiSigner(agent.name, signature.aiSuffix) : '';
+  }
+
   const basePayload = { source: 'ai', sender: { type: 'ai', name: agent.name }, ...(signer ? { signature: signer } : {}), ai: { provider, model, handoff: parsed.handoff } };
   const inserted = await db
     .from('messages')
@@ -265,7 +275,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
       message_type: 'text',
       body: reply,
       delivery_status: 'queued',
-      provider: 'd-api',
+      provider: isWebchat ? 'webchat' : 'd-api',
       sent_at: now().toISOString(),
       payload: basePayload,
     })
@@ -274,16 +284,20 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   if (inserted.error || !inserted.data) return fail('Não foi possível registrar a resposta da IA.', tokens);
   const rowId = (inserted.data as { id: string }).id;
 
-  try {
-    const response = await deps.send('/messages/send/text', { sessionId, to: phone, text: signText(reply, signer) });
-    const providerMessageId = pickProviderMessageId(response);
-    const patch = { delivery_status: 'sent', sent_at: now().toISOString() };
-    const update = await db.from('messages').update(providerMessageId ? { ...patch, provider_message_id: providerMessageId } : patch).eq('id', rowId);
-    if (update.error && providerMessageId) await db.from('messages').update(patch).eq('id', rowId);
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    await db.from('messages').update({ delivery_status: 'failed', payload: { ...basePayload, error: reason.slice(0, 300) } }).eq('id', rowId);
-    return fail(friendlySendError(reason), tokens);
+  if (isWebchat) {
+    await db.from('messages').update({ delivery_status: 'sent', sent_at: now().toISOString() }).eq('id', rowId);
+  } else {
+    try {
+      const response = await deps.send('/messages/send/text', { sessionId, to: phone, text: signText(reply, signer) });
+      const providerMessageId = pickProviderMessageId(response);
+      const patch = { delivery_status: 'sent', sent_at: now().toISOString() };
+      const update = await db.from('messages').update(providerMessageId ? { ...patch, provider_message_id: providerMessageId } : patch).eq('id', rowId);
+      if (update.error && providerMessageId) await db.from('messages').update(patch).eq('id', rowId);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      await db.from('messages').update({ delivery_status: 'failed', payload: { ...basePayload, error: reason.slice(0, 300) } }).eq('id', rowId);
+      return fail(friendlySendError(reason), tokens);
+    }
   }
 
   await db

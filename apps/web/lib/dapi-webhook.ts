@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ensureLeadForContact } from './crm-lead';
+import { parseReminderReply } from './agenda-reminders';
 
 /**
  * Processamento dos webhooks da D-API (Fase 3).
@@ -31,6 +32,8 @@ export type ProcessResult = {
   reason?: string;
   /** Mensagem nova do cliente numa conversa com a IA ligada: o chamador agenda a resposta automática. */
   aiTrigger?: { organizationId: string; conversationId: string; messageId: string };
+  /** Mensagem curta do cliente que pode ser a resposta a um lembrete da agenda. */
+  reminderReply?: { organizationId: string; contactId: string; conversationId: string; text: string };
 };
 
 export const DAPI_PROVIDER = 'd-api';
@@ -111,7 +114,7 @@ async function findConnection(db: Db, sessionId: string) {
   return must<{ id: string; organization_id: string; settings: Json | null; status: string }>(result, 'channel_connections');
 }
 
-async function ensureContact(db: Db, organizationId: string, phone: string, name: string | null): Promise<{ id: string; created: boolean }> {
+export async function ensureContact(db: Db, organizationId: string, phone: string, name: string | null): Promise<{ id: string; created: boolean }> {
   const lookup = () =>
     db
       .from('contacts')
@@ -148,7 +151,7 @@ async function ensureContact(db: Db, organizationId: string, phone: string, name
 type ConversationRow = { id: string; status: string; unread_count: number; last_message_at: string | null; ai_mode?: string | null };
 
 /** Conversa nova já nasce com a IA ligada quando o agente da empresa está liberado e configurado para isso. */
-async function initialAiMode(db: Db, organizationId: string): Promise<'on' | 'off'> {
+export async function initialAiMode(db: Db, organizationId: string): Promise<'on' | 'off'> {
   try {
     const result = await db
       .from('ai_agents')
@@ -162,7 +165,7 @@ async function initialAiMode(db: Db, organizationId: string): Promise<'on' | 'of
   }
 }
 
-async function ensureConversation(db: Db, organizationId: string, contactId: string, nowIso: string): Promise<ConversationRow> {
+export async function ensureConversation(db: Db, organizationId: string, contactId: string, nowIso: string): Promise<ConversationRow> {
   const existing = must<ConversationRow>(
     await db
       .from('conversations')
@@ -320,11 +323,17 @@ async function handleMessageReceived(
     }
   }
 
+  // Agenda: resposta curta ("1", "confirmo", "2", "preciso remarcar") pode ser a resposta a um lembrete.
+  // O chamador confere se existe lembrete pendente; se existir, ele trata e a IA não responde.
+  const reminderReply = !fromMe && isFresh && row.message_type === 'text' && parseReminderReply(row.body)
+    ? { organizationId, contactId, conversationId: conversation.id, text: row.body as string }
+    : undefined;
+
   // IA: só responde mensagem nova do cliente (nunca histórico sincronizado nem o que a empresa enviou).
   if (!fromMe && isFresh && insertedId && conversation.ai_mode === 'on') {
-    return { handled: true, aiTrigger: { organizationId, conversationId: conversation.id, messageId: insertedId } };
+    return { handled: true, aiTrigger: { organizationId, conversationId: conversation.id, messageId: insertedId }, ...(reminderReply ? { reminderReply } : {}) };
   }
-  return { handled: true };
+  return { handled: true, ...(reminderReply ? { reminderReply } : {}) };
 }
 
 async function handleConnectionStatus(
