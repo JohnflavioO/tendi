@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Bot, CheckCircle2, Circle, Loader2, Save, ShieldAlert, Sparkles, TriangleAlert } from 'lucide-react';
+import { Bot, CheckCircle2, Circle, Loader2, Save, ShieldAlert, ListChecks, TriangleAlert } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { requestedOrganizationId, resolveCurrentOrganization } from '@/lib/current-organization';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
@@ -137,7 +137,7 @@ export default function WorkspaceAiPage() {
       {!planIncludesAi && <p className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-800"><TriangleAlert size={16} className="mt-0.5 shrink-0" />O plano atual não inclui inteligência artificial. <a href={`/assinatura?organization=${org.id}`} className="ml-1 font-semibold underline">Veja os planos</a>.</p>}
 
       <section className={cardClass}>
-        <div className="mb-3 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><Sparkles size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Primeiros passos</h2><p className="text-xs text-slate-400">{stepsDone} de {steps.length} concluídos</p></div></div>
+        <div className="mb-3 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><ListChecks size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Primeiros passos</h2><p className="text-xs text-slate-400">{stepsDone} de {steps.length} concluídos</p></div></div>
         <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full bg-[#004751] transition-all" style={{ width: `${(stepsDone / steps.length) * 100}%` }} /></div>
         <ul className="space-y-2">{steps.map(step => (
           <li key={step.label} className="flex items-start gap-2 text-xs">

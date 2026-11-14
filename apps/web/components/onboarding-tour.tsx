@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Compass, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { withOrganization } from '@/lib/current-organization';
 import { placePopover, shouldAutoStartTour, TOUR_DONE_KEY, TOUR_EVENT, tourStepsFor, type Placement, type Rect } from '@/lib/onboarding';
@@ -113,7 +113,7 @@ export function OnboardingTour({ organizationId, role, superAdmin }: { organizat
         <div className="p-5">
           <div className="mb-2 flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FCEAF7] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] text-[#CB0A9F]">
-              <Sparkles size={11} />{stepNumber > 0 ? `Passo ${stepNumber} de ${numbered.length}` : 'Primeiros passos'}
+              <Compass size={11} />{stepNumber > 0 ? `Passo ${stepNumber} de ${numbered.length}` : 'Primeiros passos'}
             </span>
             <button onClick={finish} aria-label="Fechar guia" className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"><X size={16} /></button>
           </div>
