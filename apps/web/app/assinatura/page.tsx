@@ -92,7 +92,7 @@ export default function SubscriptionPage() {
 
   return <main className="min-h-screen bg-[#F5F6FB] text-slate-800">
     <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-      <img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain" />
+      <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain" />
       <div className="flex items-center gap-4">
         {!blocked && <a href="/inbox" className="inline-flex items-center gap-2 text-sm font-semibold text-[#004751]"><ArrowLeft size={16} /> Voltar ao Inbox</a>}
         <form action="/auth/signout" method="post"><button className="text-sm text-slate-500 hover:text-slate-700">Sair</button></form>

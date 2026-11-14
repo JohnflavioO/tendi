@@ -70,7 +70,7 @@ export function AdminShell({ title, description, actions, children, width = 'max
 
   const sidebar = <aside className="flex h-full w-64 shrink-0 flex-col border-r border-slate-200/80 bg-white">
     <div className="flex h-16 items-center gap-2.5 px-5">
-      <a href="/admin" className="flex items-center gap-2.5"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-8 w-auto object-contain" /></a>
+      <a href="/admin" className="flex items-center gap-2.5"><img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-10 w-auto object-contain" /></a>
       <span className="rounded-md bg-[#25275B] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">Console</span>
     </div>
     <div className="px-3">

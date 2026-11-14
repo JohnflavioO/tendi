@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
 
   return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] p-6 text-slate-800">
     <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-      <img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain" />
+      <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain" />
       {sent ? <>
         <span className="mt-6 flex size-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600"><MailCheck size={22} /></span>
         <h1 className="mt-4 text-2xl font-bold text-[#25275B]">Confira o seu e-mail</h1>

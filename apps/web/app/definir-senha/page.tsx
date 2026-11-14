@@ -50,7 +50,7 @@ export default function SetPasswordPage() {
 
   return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] p-6 text-slate-800">
     <form onSubmit={submit} className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-      <img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain" />
+      <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain" />
       <span className="mt-6 flex size-12 items-center justify-center rounded-2xl bg-[#E8F4F2] text-[#004751]"><KeyRound size={22} /></span>
       <h1 className="mt-4 text-2xl font-bold text-[#25275B]">{reset ? 'Crie uma nova senha' : name ? `Boas-vindas, ${name}!` : 'Boas-vindas!'}</h1>
       {reset ? <p className="mt-2 text-sm leading-6 text-slate-500">Escolha uma nova senha para a sua conta{name ? `, ${name}` : ''}. Depois de salvar, você já entra no Tendi.</p> : <p className="mt-2 text-sm leading-6 text-slate-500">{company ? <>Você foi convidado(a) para {asAdmin ? 'administrar a conta da empresa' : 'a equipe da empresa'} <strong className="text-[#25275B]">{company}</strong> no Tendi.</> : 'Você foi convidado(a) para a equipe no Tendi.'} Crie a sua senha para entrar sempre que precisar.</p>}

@@ -16,7 +16,7 @@ Painel do Supabase → **Authentication** → **Emails** → **Templates**. Para
 
 ## Pré-requisitos
 
-- **Site URL** (Authentication → URL Configuration) deve ser o endereço público do app. O logo do e-mail é carregado de `{Site URL}/brand/Logo%20Tendi.png`; com outro endereço, aparece só o texto "Tendi".
+- **Site URL** (Authentication → URL Configuration) deve ser o endereço público do app. O logo do e-mail é carregado de `{Site URL}/brand/tendidesk-logo.png`; com outro endereço, aparece só o texto "Tendi".
 - **Remetente próprio**: para o e-mail sair como "Tendi" de um domínio da empresa, e não como "Supabase Auth", configure um SMTP próprio em Authentication → Emails → SMTP Settings. O envio padrão do Supabase é destinado a testes e tem limite baixo de mensagens por hora.
 
 ### SMTP com uma caixa de e-mail da Hostinger

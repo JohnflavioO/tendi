@@ -87,7 +87,7 @@ export async function POST(request: Request) {
         customerName: (profile?.full_name as string | undefined)?.trim() || org.name,
         customerEmail: email,
         successUrl: `${origin}/assinatura?organization=${organizationId}&checkout=concluido`,
-        logoUrl: `${origin}/brand/tendi-logo-light.png`,
+        logoUrl: `${origin}/brand/tendidesk-logo.png`,
       }),
     });
     if (!link?.id || !link.url) throw new PagarmeError('A Pagar.me não devolveu o link de pagamento.', 502);
