@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Loader2, MessageCircle, ShieldCheck } from 'lucide-react';
@@ -16,6 +16,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const trialLabel = trialDaysLabel(useTrialDays());
+
+  // Link de e-mail vencido ou já usado (vem de /auth/confirm).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('erro') === 'link') setError('O link expirou ou já foi usado. Peça um novo em "Esqueci minha senha".');
+  }, []);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,7 +47,7 @@ export default function LoginPage() {
       router.replace(admin ? '/admin' : '/inbox');
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível entrar. Confira seus dados.');
+      setError(loginErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -74,7 +79,7 @@ export default function LoginPage() {
 
           <label className="mt-8 block text-sm font-medium text-slate-700">E-mail</label>
           <input required type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#004751] focus:ring-2 focus:ring-[#004751]/10" placeholder="voce@empresa.com"/>
-          <label className="mt-5 block text-sm font-medium text-slate-700">Senha</label>
+          <div className="mt-5 flex items-center justify-between"><label className="block text-sm font-medium text-slate-700">Senha</label><Link href="/esqueci-senha" className="text-xs font-semibold text-[#004751] hover:underline">Esqueci minha senha</Link></div>
           <input required type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#004751] focus:ring-2 focus:ring-[#004751]/10" placeholder="Sua senha"/>
 
           {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -93,4 +98,13 @@ export default function LoginPage() {
       </section>
     </main>
   );
+}
+
+/** Mensagens do login em português (o Supabase responde em inglês). */
+function loginErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : '';
+  if (/invalid login credentials/i.test(message)) return 'E-mail ou senha incorretos. Se não lembra a senha, use "Esqueci minha senha".';
+  if (/email not confirmed/i.test(message)) return 'Confirme o seu e-mail pelo link que enviamos antes de entrar.';
+  if (/rate limit|too many/i.test(message)) return 'Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.';
+  return 'Não foi possível entrar. Confira seus dados e tente de novo.';
 }
