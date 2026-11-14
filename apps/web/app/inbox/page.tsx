@@ -16,6 +16,7 @@ import { ConversationList } from '@/components/inbox/conversation-list';
 import { BrandLoader } from '@/components/brand-loader';
 import { ContactAvatar } from '@/components/inbox/contact-avatar';
 import { SidebarFooter } from '@/components/sidebar-footer';
+import { OnboardingTour } from '@/components/onboarding-tour';
 import { WORKSPACE_NAV } from '@/components/workspace-shell';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
 import { canAccess } from '@/lib/team';
@@ -76,7 +77,7 @@ export default function InboxPage() {
   const [tabVisible, setTabVisible] = useState(true);
   const [viewerImageId, setViewerImageId] = useState('');
   const { role, superAdmin, supportUntil } = useWorkspaceRole(organizationId);
-  const nav = WORKSPACE_NAV.filter(item => role === undefined ? item.area === 'inbox' : canAccess(role, item.area)).map(item => [item.label, item.icon, withOrganization(item.href, organizationId)] as const);
+  const nav = WORKSPACE_NAV.filter(item => role === undefined ? item.area === 'inbox' : canAccess(role, item.area)).map(item => [item.label, item.icon, withOrganization(item.href, organizationId), item.area] as const);
   const [agent, setAgent] = useState<{ name: string; is_enabled: boolean } | null>(null);
   const [aiSaving, setAiSaving] = useState(false);
   const selectedRef = useRef('');
@@ -257,9 +258,10 @@ export default function InboxPage() {
       <div className="mb-8 flex items-center px-3"><img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain"/></div>
       <label className="mb-7 block px-2"><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</span><div className="relative"><select value={organizationId} onChange={e=>setOrganizationId(e.target.value)} className="w-full appearance-none rounded-xl border border-slate-200 bg-[#FAFBFD] p-3 pr-8 text-sm font-semibold text-[#2F316B] outline-none focus:border-[#004751]">{organizations.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-3.5 text-slate-400" size={16}/></div></label>
       <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</p>
-      <nav className="space-y-1">{nav.map(([label,Icon,url])=><a key={label} href={url} className={label==='Inbox'?'group flex items-center gap-3 rounded-xl bg-[#F0F0FA] px-3 py-3 text-sm font-semibold text-[#2F316B] shadow-sm shadow-indigo-950/[.03]':'group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-[#2F316B]'}><Icon size={18}/>{label}{label==='Inbox'&&<span className="ml-auto rounded-full bg-[#CB0A9F] px-2 py-0.5 text-[10px] font-bold text-white">{conversations.length}</span>}</a>)}</nav>
+      <nav className="space-y-1">{nav.map(([label,Icon,url,area])=><a key={label} data-tour={`nav-${area}`} href={url} className={label==='Inbox'?'group flex items-center gap-3 rounded-xl bg-[#F0F0FA] px-3 py-3 text-sm font-semibold text-[#2F316B] shadow-sm shadow-indigo-950/[.03]':'group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-[#2F316B]'}><Icon size={18}/>{label}{label==='Inbox'&&<span className="ml-auto rounded-full bg-[#CB0A9F] px-2 py-0.5 text-[10px] font-bold text-white">{conversations.length}</span>}</a>)}</nav>
       <SidebarFooter organizationId={organizationId} role={role} superAdmin={superAdmin}/>
     </aside>
+    <OnboardingTour organizationId={organizationId} role={role} superAdmin={superAdmin}/>
 
     <section className={selectedId ? "hidden w-full shrink-0 flex-col border-r border-slate-200/80 bg-white md:flex md:w-[350px]" : "flex w-full shrink-0 flex-col border-r border-slate-200/80 bg-white md:w-[350px]"}>
       <ConversationList conversations={conversations} userId={userId} selectedId={selectedId} onSelect={setSelectedId} onRefresh={()=>void loadInbox()} preview={id=>previewText(latestMessage(id),'Nova conversa')} memberNames={memberNames}/>

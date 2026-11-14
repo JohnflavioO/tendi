@@ -8,10 +8,12 @@ import { useWorkspaceRole } from '@/lib/use-workspace-role';
 import { requestedOrganizationId, resolveCurrentOrganization, withOrganization } from '@/lib/current-organization';
 import { SupportBanner } from '@/components/support-banner';
 import { BrandLoader } from '@/components/brand-loader';
+import { OnboardingTour } from '@/components/onboarding-tour';
+import { TOUR_EVENT } from '@/lib/onboarding';
 import { areaForPath, canAccessArea, type Area } from '@/lib/team';
 import {
   Inbox, CalendarDays, KanbanSquare, Users, Plug, ChartNoAxesCombined, Settings, ChevronDown,
-  MoreHorizontal, UserRound, RefreshCw, CircleHelp, LogOut, Building2, Menu, X, UsersRound, Sparkles,
+  MoreHorizontal, UserRound, RefreshCw, CircleHelp, LogOut, Building2, Menu, X, UsersRound, Sparkles, Compass,
 } from 'lucide-react';
 
 export const WORKSPACE_NAV: Array<{ label: string; href: string; icon: typeof Inbox; area: Area }> = [
@@ -75,9 +77,9 @@ export function WorkspaceShell({ children, title, description, actions }: {
       <div className="flex items-center gap-2 text-sm font-semibold text-[#2F316B]"><Building2 size={16}/><span className="truncate">{organization?.name ?? 'Carregando...'}</span><ChevronDown size={14} className="ml-auto text-slate-400"/></div>
     </div>
     <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</p>
-    <nav className="space-y-1">{navigation.map(({label,href,icon:Icon})=>{
+    <nav className="space-y-1">{navigation.map(({label,href,icon:Icon,area})=>{
       const active = pathname === href || (href !== '/inbox' && pathname.startsWith(href + '/'));
-      return <a key={href} href={withOrganization(href, organization?.id)} onClick={()=>setMobileOpen(false)} className={active ? 'flex items-center gap-3 rounded-xl bg-[#F0F0FA] px-3 py-3 text-sm font-semibold text-[#2F316B]' : 'flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-[#2F316B]'}><Icon size={18}/>{label}</a>;
+      return <a key={href} data-tour={`nav-${area}`} href={withOrganization(href, organization?.id)} onClick={()=>setMobileOpen(false)} className={active ? 'flex items-center gap-3 rounded-xl bg-[#F0F0FA] px-3 py-3 text-sm font-semibold text-[#2F316B]' : 'flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-[#2F316B]'}><Icon size={18}/>{label}</a>;
     })}</nav>
     <SidebarFooter organizationId={organization?.id} role={role} superAdmin={superAdmin} onSignOut={signOut}/>
   </aside>;
@@ -93,10 +95,11 @@ export function WorkspaceShell({ children, title, description, actions }: {
       <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-slate-200/80 bg-white/95 px-5 backdrop-blur md:px-8">
         <div className="flex min-w-0 items-center gap-3"><button onClick={()=>setMobileOpen(true)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Abrir menu"><Menu size={19}/></button><div className="min-w-0"><p className="truncate text-lg font-bold tracking-tight text-[#25275B]">{title}</p><p className="hidden truncate text-xs text-slate-400 sm:block">{description}</p></div></div>
         <div className="relative flex items-center gap-2">{actions}<button onClick={()=>setMenuOpen(!menuOpen)} aria-label="Abrir menu de opções" aria-expanded={menuOpen} className={menuOpen?'rounded-xl bg-[#F0F0FA] p-2.5 text-[#2F316B]':'rounded-xl p-2.5 text-slate-400 transition hover:bg-slate-100 hover:text-[#2F316B]'}><MoreHorizontal size={20}/></button>
-          {menuOpen&&<><button aria-label="Fechar menu" className="fixed inset-0 z-20 cursor-default" onClick={()=>setMenuOpen(false)}/><div className="absolute right-0 top-12 z-30 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10"><div className="border-b border-slate-100 px-3 py-2"><p className="text-xs font-semibold text-[#2F316B]">{organization.name}</p><p className="text-[10px] text-slate-400">Opções do workspace</p></div>{canAccessArea(role, superAdmin, 'configuracoes')&&<a href="/configuracoes" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><UserRound size={15}/>Perfil e configurações</a>}<button onClick={()=>window.location.reload()} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50"><RefreshCw size={15}/>Atualizar página</button><a href="mailto:suporte@tendidesk.com.br" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><CircleHelp size={15}/>Ajuda e suporte</a><button onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-rose-600 hover:bg-rose-50"><LogOut size={15}/>Sair da conta</button></div></>}
+          {menuOpen&&<><button aria-label="Fechar menu" className="fixed inset-0 z-20 cursor-default" onClick={()=>setMenuOpen(false)}/><div className="absolute right-0 top-12 z-30 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10"><div className="border-b border-slate-100 px-3 py-2"><p className="text-xs font-semibold text-[#2F316B]">{organization.name}</p><p className="text-[10px] text-slate-400">Opções do workspace</p></div><a href={withOrganization('/conta', organization.id)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><UserRound size={15}/>Minha conta</a>{canAccessArea(role, superAdmin, 'configuracoes')&&<a href={withOrganization('/configuracoes', organization.id)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><Settings size={15}/>Configurações</a>}{role&&<button onClick={()=>{setMenuOpen(false);setMobileOpen(false);window.dispatchEvent(new Event(TOUR_EVENT));}} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50"><Compass size={15}/>Primeiros passos</button>}<button onClick={()=>window.location.reload()} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50"><RefreshCw size={15}/>Atualizar página</button><a href="mailto:suporte@tendidesk.com.br" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50"><CircleHelp size={15}/>Ajuda e suporte</a><button onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-rose-600 hover:bg-rose-50"><LogOut size={15}/>Sair da conta</button></div></>}
         </div>
       </header>
       <div className="mx-auto w-full max-w-[1600px] flex-1 p-5 md:p-8">{children}</div>
+      <OnboardingTour organizationId={organization.id} role={role} superAdmin={superAdmin}/>
     </section>
   </main>;
 }
