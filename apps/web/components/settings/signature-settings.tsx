@@ -56,7 +56,7 @@ export function SignatureSettingsCard({ organizationId }: { organizationId: stri
   return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
     <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#E8F4F2] p-3 text-[#004751]"><PenLine size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Assinatura no WhatsApp</h2><p className="text-xs text-slate-400">O cliente vê em negrito, no topo da mensagem, quem respondeu: o atendente ou o agente de IA.</p></div></div>
     {connection === undefined ? <div className="grid h-24 place-items-center"><Loader2 className="animate-spin text-[#2F316B]" /></div>
-      : connection === null ? <p className="rounded-xl bg-slate-50 p-4 text-xs text-slate-500">Conecte o WhatsApp em Chatbots para configurar a assinatura.</p>
+      : connection === null ? <p className="rounded-xl bg-slate-50 p-4 text-xs text-slate-500">Conecte o WhatsApp em Conexões para configurar a assinatura.</p>
       : <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-4">
           <label className="flex items-center gap-3 text-sm font-semibold text-slate-700"><input type="checkbox" checked={value.enabled} disabled={!canEdit} onChange={e => setValue(current => ({ ...current, enabled: e.target.checked }))} className="size-4 accent-[#004751]" />Assinar as mensagens com o nome de quem respondeu</label>
