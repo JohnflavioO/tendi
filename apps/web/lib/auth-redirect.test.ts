@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { destinationAfterLink, isOtpType, RESET_PASSWORD_PATH, safeNext } from './auth-redirect';
+import { destinationAfterLink, isOtpType, isRecoveryLogin, RESET_PASSWORD_PATH, safeNext } from './auth-redirect';
 
 describe('safeNext', () => {
   it('aceita só caminhos internos', () => {
@@ -29,5 +29,19 @@ describe('destino depois do link', () => {
   it('tipos de link aceitos', () => {
     expect(isOtpType('recovery')).toBe(true);
     expect(isOtpType('qualquer')).toBe(false);
+  });
+});
+
+describe('login pelo link de nova senha', () => {
+  const token = (amr: unknown) => `x.${Buffer.from(JSON.stringify({ amr })).toString('base64url')}.y`;
+  const now = new Date('2026-11-14T17:00:00Z');
+  it('reconhece pelo método "recovery" no token', () => {
+    expect(isRecoveryLogin({ accessToken: token([{ method: 'recovery', timestamp: 1 }]), now })).toBe(true);
+    expect(isRecoveryLogin({ accessToken: token([{ method: 'password', timestamp: 1 }]), now })).toBe(false);
+  });
+  it('reconhece pelo pedido de recuperação recente (até 1 hora)', () => {
+    expect(isRecoveryLogin({ recoverySentAt: '2026-11-14T16:54:57Z', now })).toBe(true);
+    expect(isRecoveryLogin({ recoverySentAt: '2026-11-14T15:30:00Z', now })).toBe(false);
+    expect(isRecoveryLogin({ accessToken: 'lixo', recoverySentAt: null, now })).toBe(false);
   });
 });

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { provisionPendingWorkspace } from '@/lib/ensure-workspace';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { activateInvitations } from '@/lib/team-server';
-import { safeNext } from '@/lib/auth-redirect';
+import { isRecoveryLogin, RESET_PASSWORD_PATH, safeNext } from '@/lib/auth-redirect';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -11,12 +11,16 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data: exchanged, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
 
       if (user) {
+        // Link de "Esqueci minha senha": sempre para a tela de nova senha, mesmo sem o "next".
+        if (isRecoveryLogin({ accessToken: exchanged?.session?.access_token, recoverySentAt: (user as any).recovery_sent_at })) {
+          return NextResponse.redirect(new URL(RESET_PASSWORD_PATH, origin));
+        }
         // Convite para a equipe: o primeiro acesso ativa o vínculo e leva a pessoa a criar a senha.
         const serviceClient = createAdminClient();
         if (serviceClient) {
@@ -53,5 +57,6 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(new URL('/login', origin));
+  // Código inválido, expirado ou aberto em outro navegador: avisa na tela de login.
+  return NextResponse.redirect(new URL(code ? '/login?erro=link' : '/login', origin));
 }
