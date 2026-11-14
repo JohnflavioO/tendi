@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { teamContext } from '@/lib/team-route';
 import { inviteMember, listMembers } from '@/lib/team-server';
+import { teamAuthOps } from '@/lib/team-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,16 +27,6 @@ export async function POST(request: Request) {
     fullName: body?.fullName,
     role: body?.role,
     teamId: body?.teamId,
-  }, async (email, fullName) => {
-    // O nome da empresa aparece no e-mail de convite e na tela de boas-vindas.
-    const { data: organization } = await ctx.admin.from('organizations').select('name').eq('id', ctx.organizationId).maybeSingle();
-    const { data, error } = await ctx.admin.auth.admin.inviteUserByEmail(email, {
-      // needs_password: o primeiro acesso leva a pessoa a criar a senha.
-      data: { full_name: fullName, needs_password: true, ...(organization?.name ? { organization_name: organization.name } : {}) },
-      redirectTo: `${origin}/auth/callback`,
-    });
-    if (error || !data?.user?.id) throw error ?? new Error('Convite sem usuário.');
-    return data.user.id;
-  });
+  }, teamAuthOps(ctx.admin, origin));
   return NextResponse.json(outcome.body, { status: outcome.status });
 }

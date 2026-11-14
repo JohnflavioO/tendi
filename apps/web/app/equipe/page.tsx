@@ -75,6 +75,15 @@ export default function TeamPage() {
     await load(organizationId);
   }
 
+  async function resend(member: Member) {
+    setBusy(member.userId); setMessage(null);
+    const response = await fetch(`/api/team/members/${member.userId}/resend`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ organizationId }) }).catch(() => null);
+    const json = await response?.json().catch(() => null);
+    setBusy('');
+    setMessage(response?.ok ? { ok: true, text: json?.message ?? 'Convite reenviado.' } : { ok: false, text: json?.error ?? 'Não foi possível reenviar o convite.' });
+    if (response?.ok) await load(organizationId);
+  }
+
   async function remove(member: Member) {
     const pending = member.status === 'invited';
     if (!window.confirm(pending ? `Cancelar o convite de ${member.email}?` : `Remover ${member.name} da equipe? As conversas atribuídas a essa pessoa voltam para a fila.`)) return;
@@ -104,7 +113,7 @@ export default function TeamPage() {
             <p className="truncate text-sm font-semibold text-slate-800">{member.name}{member.isSelf && <span className="ml-2 text-[11px] font-normal text-slate-400">(você)</span>}</p>
             <p className="truncate text-xs text-slate-400">{member.email}{member.teams.length ? ` · ${member.teams.map(team => team.name).join(', ')}` : ''}</p>
           </div>
-          {member.status === 'invited' && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">Convite pendente</span>}
+          {member.status === 'invited' && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">Convite pendente</span>}{member.status === 'invited' && member.canManage && <button type="button" onClick={() => void resend(member)} disabled={busy !== ''} className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-[#004751] hover:bg-slate-50 disabled:opacity-50">Reenviar convite</button>}
           {member.canManage && data
             ? <select aria-label={`Papel de ${member.name}`} value={member.role} disabled={busy !== ''} onChange={e => void changeRole(member, e.target.value as Role)} className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700">{data.assignableRoles.map(role => <option key={role} value={role}>{ROLE_INFO[role].label}</option>)}</select>
             : <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${ROLE_TONE[member.role]}`}>{ROLE_INFO[member.role].label}</span>}

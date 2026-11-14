@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { areaForPath, assignableRoles, canAccess, canManageMember, checkSeats, normalizeEmail } from './team';
-import { activateInvitations, changeRole, inviteMember, listMembers, removeMember, resolveActor } from './team-server';
+import { activateInvitations, changeRole, inviteMember, listMembers, removeMember, resendInvite, resolveActor } from './team-server';
 
 type Row = Record<string, any>;
 class FakeDb {
@@ -32,7 +32,7 @@ class Query {
 const ORG = 'org1';
 function setup(limit = 4) {
   const db = new FakeDb();
-  db.t.organizations.push({ id: ORG, plan_code: 'tendi_start' });
+  db.t.organizations.push({ id: ORG, plan_code: 'tendi_start', name: 'Clínica Sorriso' });
   db.t.subscription_plans.push({ code: 'tendi_start', max_attendants: limit });
   db.t.profiles.push({ id: 'u-owner', full_name: 'Dona Maria', email: 'maria@x.com' }, { id: 'u-admin', full_name: 'Ana', email: 'ana@x.com' }, { id: 'u-agent', full_name: 'Beto', email: 'beto@x.com' });
   db.t.organization_memberships.push(
@@ -40,8 +40,11 @@ function setup(limit = 4) {
     { organization_id: ORG, user_id: 'u-admin', role: 'admin', status: 'active' },
     { organization_id: ORG, user_id: 'u-agent', role: 'agent', status: 'active' },
   );
-  const inviteUser = vi.fn(async (_email: string, _name: string) => 'u-new');
-  return { db, inviteUser };
+  const inviteUser = vi.fn(async (_email: string, _name: string, _context: unknown) => 'u-new');
+  const resend = vi.fn(async (_email: string) => undefined);
+  const isActivated = vi.fn(async (_userId: string) => true);
+  const auth = { invite: inviteUser, resend, isActivated };
+  return { db, inviteUser, resend, isActivated, auth };
 }
 const owner = { userId: 'u-owner', role: 'owner' as const };
 const admin = { userId: 'u-admin', role: 'admin' as const };
@@ -89,39 +92,39 @@ describe('operações da equipe', () => {
   });
 
   it('convite de pessoa nova: envia e-mail e fica pendente', async () => {
-    const { db, inviteUser } = setup();
-    const result = await inviteMember(db as any, owner, { organizationId: ORG, email: 'Nova@X.com', fullName: 'Nova Pessoa', role: 'manager' }, inviteUser);
+    const { db, inviteUser, auth } = setup();
+    const result = await inviteMember(db as any, owner, { organizationId: ORG, email: 'Nova@X.com', fullName: 'Nova Pessoa', role: 'manager' }, auth);
     expect(result.status).toBe(200);
-    expect(inviteUser).toHaveBeenCalledWith('nova@x.com', 'Nova Pessoa');
+    expect(inviteUser).toHaveBeenCalledWith('nova@x.com', 'Nova Pessoa', { organizationName: 'Clínica Sorriso', inviterName: 'Dona', roleLabel: 'Supervisor' });
     expect(db.t.organization_memberships.at(-1)).toMatchObject({ user_id: 'u-new', role: 'manager', status: 'invited', invited_by: 'u-owner' });
   });
 
   it('pessoa que já tem conta entra direto, sem novo e-mail', async () => {
-    const { db, inviteUser } = setup(10);
+    const { db, inviteUser, auth } = setup(10);
     db.t.profiles.push({ id: 'u-old', email: 'velho@x.com' });
-    const result = await inviteMember(db as any, owner, { organizationId: ORG, email: 'velho@x.com', fullName: 'Velho', role: 'agent' }, inviteUser);
+    const result = await inviteMember(db as any, owner, { organizationId: ORG, email: 'velho@x.com', fullName: 'Velho', role: 'agent' }, auth);
     expect(result.status).toBe(200);
     expect(inviteUser).not.toHaveBeenCalled();
     expect(db.t.organization_memberships.at(-1)).toMatchObject({ user_id: 'u-old', status: 'active' });
   });
 
   it('bloqueia: papel acima do permitido, membro repetido e limite do plano', async () => {
-    const { db, inviteUser } = setup();
-    expect((await inviteMember(db as any, admin, { organizationId: ORG, email: 'x@x.com', fullName: 'X Y', role: 'admin' }, inviteUser)).status).toBe(403);
-    expect((await inviteMember(db as any, owner, { organizationId: ORG, email: 'x@x.com', fullName: 'X Y', role: 'owner' }, inviteUser)).status).toBe(403);
-    expect((await inviteMember(db as any, owner, { organizationId: ORG, email: 'beto@x.com', fullName: 'Beto', role: 'agent' }, inviteUser)).status).toBe(409);
-    await inviteMember(db as any, owner, { organizationId: ORG, email: 'quarto@x.com', fullName: 'Quarto', role: 'agent' }, inviteUser);
-    const full = await inviteMember(db as any, owner, { organizationId: ORG, email: 'quinto@x.com', fullName: 'Quinto', role: 'agent' }, async () => 'u-5');
+    const { db, inviteUser, auth } = setup();
+    expect((await inviteMember(db as any, admin, { organizationId: ORG, email: 'x@x.com', fullName: 'X Y', role: 'admin' }, auth)).status).toBe(403);
+    expect((await inviteMember(db as any, owner, { organizationId: ORG, email: 'x@x.com', fullName: 'X Y', role: 'owner' }, auth)).status).toBe(403);
+    expect((await inviteMember(db as any, owner, { organizationId: ORG, email: 'beto@x.com', fullName: 'Beto', role: 'agent' }, auth)).status).toBe(409);
+    await inviteMember(db as any, owner, { organizationId: ORG, email: 'quarto@x.com', fullName: 'Quarto', role: 'agent' }, auth);
+    const full = await inviteMember(db as any, owner, { organizationId: ORG, email: 'quinto@x.com', fullName: 'Quinto', role: 'agent' }, { ...auth, invite: async () => 'u-5' });
     expect(full.status).toBe(409);
     expect(JSON.stringify(full.body)).toMatch(/até 4 usuários/);
   });
 
   it('setor escolhido no convite vira vínculo com o setor', async () => {
-    const { db, inviteUser } = setup(10);
+    const { db, inviteUser, auth } = setup(10);
     db.t.teams.push({ id: 't1', organization_id: ORG, name: 'Vendas' });
-    await inviteMember(db as any, owner, { organizationId: ORG, email: 'n@x.com', fullName: 'Nova', role: 'agent', teamId: 't1' }, inviteUser);
+    await inviteMember(db as any, owner, { organizationId: ORG, email: 'n@x.com', fullName: 'Nova', role: 'agent', teamId: 't1' }, auth);
     expect(db.t.team_members.at(-1)).toMatchObject({ team_id: 't1', user_id: 'u-new', team_role: 'member' });
-    expect((await inviteMember(db as any, owner, { organizationId: ORG, email: 'm@x.com', fullName: 'M', role: 'agent', teamId: 'outro' }, inviteUser)).status).toBe(400);
+    expect((await inviteMember(db as any, owner, { organizationId: ORG, email: 'm@x.com', fullName: 'M', role: 'agent', teamId: 'outro' }, auth)).status).toBe(400);
   });
 
   it('mudar papel: admin promove atendente a supervisor, mas não mexe em outro admin nem em si', async () => {
@@ -156,5 +159,37 @@ describe('operações da equipe', () => {
     db.t.organization_memberships.push({ organization_id: ORG, user_id: 'u-new', role: 'agent', status: 'invited' }, { organization_id: 'org2', user_id: 'u-new', role: 'agent', status: 'invited' });
     expect(await activateInvitations(db as any, 'u-new')).toBe(2);
     expect(db.t.organization_memberships.filter(m => m.user_id === 'u-new').every(m => m.status === 'active')).toBe(true);
+  });
+});
+
+
+describe('convite: reenvio e contas nunca ativadas', () => {
+  it('conta que existe mas nunca entrou recebe novo link e fica pendente (não "entra com a senha de sempre")', async () => {
+    const { db, auth, resend, inviteUser, isActivated } = setup(10);
+    db.t.profiles.push({ id: 'u-old', email: 'nunca@x.com' });
+    isActivated.mockResolvedValueOnce(false);
+    const result = await inviteMember(db as any, owner, { organizationId: ORG, email: 'nunca@x.com', fullName: 'Nunca Entrou', role: 'agent' }, auth);
+    expect(result.status).toBe(200);
+    expect(JSON.stringify(result.body)).toMatch(/novo link/);
+    expect(resend).toHaveBeenCalledWith('nunca@x.com');
+    expect(inviteUser).not.toHaveBeenCalled();
+    expect(db.t.organization_memberships.at(-1)).toMatchObject({ user_id: 'u-old', status: 'invited' });
+  });
+
+  it('reenviar convite: só para pendentes e só por quem pode gerenciar', async () => {
+    const { db, auth, resend } = setup(10);
+    db.t.profiles.push({ id: 'u-pend', email: 'pend@x.com' });
+    db.t.organization_memberships.push({ organization_id: ORG, user_id: 'u-pend', role: 'agent', status: 'invited' });
+    expect((await resendInvite(db as any, admin, { organizationId: ORG, userId: 'u-pend' }, auth)).status).toBe(200);
+    expect(resend).toHaveBeenCalledWith('pend@x.com');
+    expect((await resendInvite(db as any, admin, { organizationId: ORG, userId: 'u-agent' }, auth)).status).toBe(409);
+    expect((await resendInvite(db as any, { userId: 'u-agent', role: 'agent' }, { organizationId: ORG, userId: 'u-pend' }, auth)).status).toBe(403);
+  });
+
+  it('limite de e-mails do Supabase vira mensagem amigável', async () => {
+    const { db, auth } = setup(10);
+    const result = await inviteMember(db as any, owner, { organizationId: ORG, email: 'z@x.com', fullName: 'Zé', role: 'agent' }, { ...auth, invite: async () => { throw new Error('email rate limit exceeded'); } });
+    expect(result.status).toBe(502);
+    expect(JSON.stringify(result.body)).toMatch(/Muitos e-mails/);
   });
 });
