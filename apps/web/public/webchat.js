@@ -1,14 +1,14 @@
 /*!
- * Widget de atendimento do Tendi. Cole no site:
+ * Widget de atendimento do TendiDesk. Cole no site:
  *   <script src="https://SEU-APP/webchat.js" data-tendi-key="SUA_CHAVE" async></script>
- * Sem dependências. Fala só com as rotas /api/webchat/* do Tendi.
+ * Sem dependências. Fala só com as rotas /api/webchat/* do TendiDesk.
  */
 (function () {
   'use strict';
   var scriptTag = document.currentScript;
   if (!scriptTag) return;
   var publicKey = scriptTag.getAttribute('data-tendi-key');
-  if (!publicKey) { console.warn('[Tendi webchat] data-tendi-key não informado.'); return; }
+  if (!publicKey) { console.warn('[TendiDesk webchat] data-tendi-key não informado.'); return; }
   var origin = scriptTag.src.replace(/\/webchat\.js.*$/, '');
   var storageKey = 'tendi_webchat_token_' + publicKey;
   var POLL_MS = 4000;
