@@ -47,18 +47,23 @@ from (
 where k.id = agg.id
   and exists (select 1 from public.messages m where m.conversation_id = k.id);
 
--- Remove as duplicadas que ficaram vazias (tudo já foi movido para a principal).
+-- Remove as duplicadas (tudo já foi movido para a principal). Mesma escolha da principal do passo 1:
+-- sempre sobra uma conversa por contato e canal, mesmo que todas estejam vazias.
 delete from public.conversations c
-where c.status <> 'closed'
-  and not exists (select 1 from public.messages m where m.conversation_id = c.id)
-  and exists (
-    select 1 from public.conversations o
-    where o.id <> c.id
-      and o.organization_id = c.organization_id
-      and o.contact_id = c.contact_id
-      and o.channel = c.channel
-      and o.status <> 'closed'
-  );
+using (
+  select x.id,
+         first_value(x.id) over (
+           partition by x.organization_id, x.contact_id, x.channel
+           order by (select count(*) from public.messages m where m.conversation_id = x.id) desc,
+                    x.last_message_at desc nulls last,
+                    x.created_at
+         ) as keeper_id
+  from public.conversations x
+  where x.status <> 'closed'
+) r
+where c.id = r.id
+  and r.id <> r.keeper_id
+  and not exists (select 1 from public.messages m where m.conversation_id = c.id);
 
 -- 2) Regra: no máximo uma conversa não encerrada por contato e canal.
 create unique index if not exists conversations_one_open_per_contact_idx
