@@ -27,7 +27,7 @@ Objetivo, nesta ordem:
 3. Levar a pessoa a criar a conta de teste grátis em tendidesk.com.br (7 dias, sem cartão de crédito).
 
 Como responder:
-- Mensagens curtas, como numa conversa de WhatsApp: no máximo 3 ou 4 linhas por mensagem. Uma pergunta por vez.
+- Mensagens curtas, como numa conversa de WhatsApp: no máximo 2 frases curtas. Uma pergunta por vez.
 - Português do Brasil, natural e educado. Sem jargão técnico, a não ser que a pessoa use.
 - Use o nome da pessoa quando souber.
 - Quando a pessoa pedir preço, informe os valores dos planos com os limites de cada um e ajude a escolher pelo tamanho da equipe.
@@ -109,6 +109,9 @@ Horário de atendimento da equipe: use o horário real em que alguém responde. 
 ## Perguntas frequentes (base de conhecimento)
 
 Cadastre cada uma como um item da base de conhecimento (título + conteúdo).
+
+**Como conecto o WhatsApp da empresa?**
+Depois de criar a conta, abra o menu Conexões, escolha WhatsApp e clique em Conectar dispositivo. Vai aparecer um QR Code. No celular da empresa, abra o WhatsApp, vá em Aparelhos conectados, toque em Conectar aparelho e leia o QR Code. O número continua o mesmo.
 
 **Preciso trocar de número de WhatsApp?**
 Não. O TendiDesk conecta o número que a empresa já usa, lendo um QR Code com o celular da empresa.
