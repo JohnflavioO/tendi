@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search, ArrowLeft, MessageCircle, Users, KanbanSquare, ChartNoAxesCombined,
   Settings, Inbox, Bot, ChevronDown, Phone, Info, Check, CheckCheck,
-  Building2, X, RefreshCw, SlidersHorizontal, MoreHorizontal, Clock3,
+  Building2, X, RefreshCw, SlidersHorizontal, MoreHorizontal, Clock3, Menu,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { MessageMedia } from '@/components/inbox/message-media';
@@ -69,6 +69,8 @@ export default function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedId, setSelectedId] = useState('');
+  // Celular/tablet: o menu lateral abre como gaveta pelo botão da barra superior.
+  const [menuOpen, setMenuOpen] = useState(false);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -251,16 +253,26 @@ export default function InboxPage() {
 
   const supportOrganization = organizations.find(org => org.id === organizationId);
 
-  return <div className="flex h-screen min-h-[620px] flex-col">
-    {supportOrganization && <SupportBanner organizationId={supportOrganization.id} organizationName={supportOrganization.name} supportUntil={supportUntil}/>}
-    <main className="flex min-h-0 flex-1 overflow-hidden bg-[#F4F6FB] text-slate-800">
-    <aside className="hidden w-[218px] shrink-0 flex-col border-r border-slate-200/80 bg-white px-3 py-5 lg:flex">
+  const sidebar = (mobile: boolean) => <>
       <div className="mb-8 flex items-center px-3"><img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain"/></div>
       <label className="mb-7 block px-2"><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</span><div className="relative"><select value={organizationId} onChange={e=>setOrganizationId(e.target.value)} className="w-full appearance-none rounded-xl border border-slate-200 bg-[#FAFBFD] p-3 pr-8 text-sm font-semibold text-[#2F316B] outline-none focus:border-[#004751]">{organizations.map(org=><option key={org.id} value={org.id}>{org.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-3.5 text-slate-400" size={16}/></div></label>
       <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</p>
       <nav className="space-y-1">{nav.map(([label,Icon,url,area])=><a key={label} data-tour={`nav-${area}`} href={url} className={label==='Inbox'?'group flex items-center gap-3 rounded-xl bg-[#F0F0FA] px-3 py-3 text-sm font-semibold text-[#2F316B] shadow-sm shadow-indigo-950/[.03]':'group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-500 transition hover:bg-slate-50 hover:text-[#2F316B]'}><Icon size={18}/>{label}{label==='Inbox'&&<span className="ml-auto rounded-full bg-[#CB0A9F] px-2 py-0.5 text-[10px] font-bold text-white">{conversations.length}</span>}</a>)}</nav>
       <SidebarFooter organizationId={organizationId} role={role} superAdmin={superAdmin}/>
-    </aside>
+      {mobile && <button onClick={()=>setMenuOpen(false)} aria-label="Fechar menu" className="absolute right-3 top-4 rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={18}/></button>}
+  </>;
+
+  return <div className="flex h-[100dvh] min-h-[620px] flex-col">
+    {supportOrganization && <SupportBanner organizationId={supportOrganization.id} organizationName={supportOrganization.name} supportUntil={supportUntil}/>}
+    {/* Barra do celular/tablet: abre o menu. Escondida no celular com uma conversa aberta (a conversa tem o botão voltar). */}
+    <header className={`${selectedId ? 'hidden md:flex' : 'flex'} h-14 shrink-0 items-center gap-3 border-b border-slate-200/80 bg-white px-3 lg:hidden`}>
+      <button onClick={()=>setMenuOpen(true)} aria-label="Abrir menu" aria-expanded={menuOpen} className="rounded-lg p-2 text-[#2F316B] hover:bg-slate-100"><Menu size={21}/></button>
+      <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-8 w-auto object-contain"/>
+      <span className="ml-auto max-w-[45%] truncate text-xs font-semibold text-slate-500">{organizations.find(org=>org.id===organizationId)?.name}</span>
+    </header>
+    {menuOpen && <div className="fixed inset-0 z-40 flex lg:hidden"><button aria-label="Fechar menu" className="absolute inset-0 bg-slate-950/30" onClick={()=>setMenuOpen(false)}/><aside className="relative z-10 flex h-full w-[260px] flex-col overflow-y-auto bg-white px-3 py-5 shadow-xl">{sidebar(true)}</aside></div>}
+    <main className="flex min-h-0 flex-1 overflow-hidden bg-[#F4F6FB] text-slate-800">
+    <aside className="hidden w-[218px] shrink-0 flex-col border-r border-slate-200/80 bg-white px-3 py-5 lg:flex">{sidebar(false)}</aside>
     <OnboardingTour organizationId={organizationId} role={role} superAdmin={superAdmin}/>
 
     <section className={selectedId ? "hidden w-full shrink-0 flex-col border-r border-slate-200/80 bg-white md:flex md:w-[350px]" : "flex w-full shrink-0 flex-col border-r border-slate-200/80 bg-white md:w-[350px]"}>
