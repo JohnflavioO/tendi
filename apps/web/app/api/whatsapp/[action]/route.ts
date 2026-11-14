@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import {
   buildCreateSessionPayload,
   buildDapiWebhookUrl,
+  repointDapiSessionWebhook,
   getDapiApiKey,
   dapiRequest,
   normalizeDapiStatus,
@@ -136,6 +137,8 @@ async function createOrRecoverDapiSession(sessionId: string, webhookUrl: string)
 
     try {
       await dapiRequest(`${sessionPath}/connect`, { method: 'GET' });
+      // Sessão antiga: garante que o webhook aponta para o domínio atual.
+      await repointDapiSessionWebhook(sessionId, webhookUrl).catch(() => undefined);
       return 'recovered';
     } catch (reconnectError) {
       const missing = reconnectError instanceof DapiError &&
@@ -151,6 +154,7 @@ async function createOrRecoverDapiSession(sessionId: string, webhookUrl: string)
     await dapiRequest(sessionPath, { method: 'DELETE' });
 
     await createSession();
+    await repointDapiSessionWebhook(sessionId, webhookUrl).catch(() => undefined);
     return 'recovered';
   }
 }

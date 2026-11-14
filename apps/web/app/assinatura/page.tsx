@@ -123,8 +123,8 @@ export default function SubscriptionPage() {
           <Info label="Próxima cobrança" value={date(subscription.next_billing_at)} />
           <Info label="Cartão" value={subscription.card_last_digits ? `${subscription.card_brand ?? 'Cartão'} •••• ${subscription.card_last_digits}` : '—'} />
         </div>
-        {subscription.status === 'past_due' && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Não conseguimos cobrar o seu cartão. A Pagar.me vai tentar de novo nos próximos dias; se o cartão mudou, fale com o suporte em suporte@tendi.app para atualizar.</p>}
-        <p className="mt-4 text-xs text-slate-400">Para trocar de plano ou cancelar, fale com o suporte em suporte@tendi.app.</p>
+        {subscription.status === 'past_due' && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Não conseguimos cobrar o seu cartão. A Pagar.me vai tentar de novo nos próximos dias; se o cartão mudou, fale com o suporte em suporte@tendidesk.com.br para atualizar.</p>}
+        <p className="mt-4 text-xs text-slate-400">Para trocar de plano ou cancelar, fale com o suporte em suporte@tendidesk.com.br.</p>
       </section>}
 
       {!hasSubscription && hasAnnual && <div role="radiogroup" aria-label="Período de cobrança" className="mt-8 inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
@@ -158,7 +158,7 @@ export default function SubscriptionPage() {
             <button type="button" disabled={!available || busyPlan !== '' || !orgId} onClick={() => void subscribe(plan.code)} className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-[#004751] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#003943] disabled:opacity-50">{busyPlan === plan.code && <Loader2 size={16} className="animate-spin" />}{available ? `Assinar ${plan.name}` : 'Indisponível no momento'}</button>
           </article>;
         })}
-        {!plans.length && <p className="text-sm text-slate-500">Nenhum plano disponível no momento. Fale com o suporte em suporte@tendi.app.</p>}
+        {!plans.length && <p className="text-sm text-slate-500">Nenhum plano disponível no momento. Fale com o suporte em suporte@tendidesk.com.br.</p>}
       </section>}
 
       <p className="mt-8 flex items-center gap-2 text-xs text-slate-400"><ShieldCheck size={14} /> Pagamento processado pela Pagar.me. O Tendi não armazena dados do seu cartão.</p>

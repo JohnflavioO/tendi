@@ -53,7 +53,7 @@ export const getFaqs = (trialLabel: string, plans: PublicPlan[] = []) => {
     { question: 'Como funciona o agente de IA?', answer: 'Você conta para a IA sobre o seu negócio (produtos, preços, horários e regras). Ela responde os clientes no WhatsApp no tom que você escolher e, quando o assunto pede uma pessoa, avisa o cliente e passa a conversa para a equipe.' },
     { question: 'Existe limite de uso da IA?', answer: `Sim. Cada plano inclui uma quantidade de respostas da IA por mês${replies ? ` (${replies})` : ''}. O limite renova todo mês e, se acabar, as conversas continuam normalmente com a sua equipe.` },
     { question: 'Posso pagar por ano?', answer: annualPercent > 0 ? `Sim. O plano anual sai com ${annualPercent}% de desconto em relação a 12 mensalidades, cobrado uma vez por ano no cartão.` : 'No momento a cobrança é mensal, no cartão de crédito.' },
-    { question: 'Como troco de plano ou cancelo?', answer: 'Fale com o nosso suporte em suporte@tendi.app e ajustamos a sua assinatura.' },
+    { question: 'Como troco de plano ou cancelo?', answer: 'Fale com o nosso suporte em suporte@tendidesk.com.br e ajustamos a sua assinatura.' },
     { question: 'A segunda via de boleto já está integrada a qualquer banco?', answer: 'Não. As integrações financeiras são definidas por provedor e disponibilidade técnica. Não anunciamos conexão bancária que ainda não foi homologada.' },
   ];
 };

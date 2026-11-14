@@ -90,7 +90,7 @@ export default function ConfirmEmailPage() {
 
           <p className="mt-5 text-xs leading-5 text-slate-400">
             E-mail errado? <Link href="/register" className="font-semibold text-[#004751] hover:underline">Refazer o cadastro</Link>
-            {' · '}Precisa de ajuda? <a href="mailto:suporte@tendi.app" className="font-semibold text-[#004751] hover:underline">suporte@tendi.app</a>
+            {' · '}Precisa de ajuda? <a href="mailto:suporte@tendidesk.com.br" className="font-semibold text-[#004751] hover:underline">suporte@tendidesk.com.br</a>
           </p>
         </section>
       </div>
