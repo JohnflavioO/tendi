@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   Activity, ArrowRight, Bot, Building2, ChevronRight, CreditCard, ExternalLink, LayoutDashboard, LogOut,
-  Menu, MessageSquare, Plus, Search, Sparkles, X, Zap,
+  Menu, MessageSquare, Plus, Search, X, Zap,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -22,7 +22,7 @@ const NAV: Array<{ group: string; items: NavItem[] }> = [
     { label: 'Planos e recursos', href: '/admin/plans', icon: Zap, hint: 'O que cada plano libera' },
   ] },
   { group: 'Produto', items: [
-    { label: 'Agentes de IA', href: '/admin/ia', icon: Sparkles, hint: 'Chave, modelo e treinamento por empresa' },
+    { label: 'Agentes de IA', href: '/admin/ia', icon: Bot, hint: 'Chave, modelo e treinamento por empresa' },
     { label: 'Consumo da IA', href: '/admin/ia/consumo', icon: Activity, hint: 'Limites, custo e margem' },
     { label: 'Conectividade WhatsApp', href: '/admin/whatsapp', icon: MessageSquare, hint: 'Sessões da D-API' },
   ] },

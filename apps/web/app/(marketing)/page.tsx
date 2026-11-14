@@ -2,7 +2,7 @@ import Link from 'next/link';
 import {
   ArrowRight, ArrowUpRight, Bot, Check, CheckCircle2, CircleHelp,
   MessageSquareText, Users, Workflow, ReceiptText, Building2,
-  Clock3, MessagesSquare, ChartNoAxesCombined, Sparkles, ShieldCheck,
+  Clock3, MessagesSquare, ChartNoAxesCombined, ShieldCheck,
 } from 'lucide-react';
 import { siteContent, features, steps, getFaqs } from '@/content/marketing/site';
 import { getTrialDays } from '@/lib/trial-days';
@@ -89,7 +89,7 @@ export default async function MarketingHome() {
         <div className="pointer-events-none absolute -bottom-48 -left-40 -z-10 size-[440px] rounded-full bg-[#004751]/[.07] blur-3xl" />
         <div className="mx-auto grid min-h-[690px] max-w-[1200px] items-center gap-14 px-5 pb-20 pt-24 md:grid-cols-2 md:px-6 md:pb-24 md:pt-28">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-[#CB0A9F]/15 bg-white/80 px-3 py-2 text-[10px] font-bold uppercase tracking-[.16em] text-[#CB0A9F]"><Sparkles size={13} /> Atendimento e gestão conectados</p>
+            <p className="inline-flex items-center gap-2 rounded-full border border-[#CB0A9F]/15 bg-white/80 px-3 py-2 text-[10px] font-bold uppercase tracking-[.16em] text-[#CB0A9F]">Atendimento e gestão conectados</p>
             <h1 className="mt-6 max-w-xl text-[clamp(2.45rem,5vw,4.1rem)] font-extrabold leading-[1.04] tracking-[-.05em] text-[#25275B]">{siteContent.heroTitle}</h1>
             <p className="mt-6 max-w-[38rem] text-lg leading-8 text-slate-600">{siteContent.heroDescription}</p>
             <div className="mt-9 flex flex-wrap gap-3">
@@ -122,7 +122,7 @@ export default async function MarketingHome() {
         <div className="pointer-events-none absolute -left-32 top-0 -z-10 size-[420px] rounded-full bg-[#CB0A9F]/35 blur-3xl"/>
         <div className="pointer-events-none absolute -bottom-40 right-0 -z-10 size-[480px] rounded-full bg-[#00A59A]/25 blur-3xl"/>
         <div className="mx-auto grid max-w-[1200px] items-center gap-16 px-5 md:grid-cols-2 md:px-6">
-          <div><p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[.18em] text-[#F4A8DF]"><Sparkles size={13}/> Atendimento que flui</p><h2 className="mt-6 text-3xl font-extrabold leading-tight tracking-tight md:text-5xl">Sua equipe conectada. Cada conversa com um próximo passo.</h2><p className="mt-5 max-w-lg text-base leading-7 text-white/75">Mais do que reunir mensagens: dê contexto para as pessoas, organize responsabilidades e transforme atendimento em relacionamento contínuo.</p><div className="mt-8 flex flex-wrap gap-3"><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">Inbox compartilhado</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">CRM integrado</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">IA que responde no WhatsApp</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">Equipe com papéis</span></div></div>
+          <div><p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[.18em] text-[#F4A8DF]">Atendimento que flui</p><h2 className="mt-6 text-3xl font-extrabold leading-tight tracking-tight md:text-5xl">Sua equipe conectada. Cada conversa com um próximo passo.</h2><p className="mt-5 max-w-lg text-base leading-7 text-white/75">Mais do que reunir mensagens: dê contexto para as pessoas, organize responsabilidades e transforme atendimento em relacionamento contínuo.</p><div className="mt-8 flex flex-wrap gap-3"><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">Inbox compartilhado</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">CRM integrado</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">IA que responde no WhatsApp</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">Equipe com papéis</span></div></div>
           <ConversationIllustration/>
         </div>
       </section>
