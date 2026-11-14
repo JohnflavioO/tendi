@@ -12,7 +12,7 @@ const REUSE_MS = 30 * 60 * 1000;
 /**
  * POST /api/billing/checkout { organizationId, planCode, period? ('monthly' | 'annual') }
  * Dono ou admin do workspace pede o checkout de um plano. Devolve a URL do checkout da Pagar.me
- * (página hospedada por ela: o Tendi nunca vê dados de cartão).
+ * (página hospedada por ela: o TendiDesk nunca vê dados de cartão).
  */
 export async function POST(request: Request) {
   const supabase = (await createClient()) as any;

@@ -67,13 +67,13 @@ export default function LoginPage() {
           <p className="mt-6 max-w-lg text-lg leading-8 text-white/75">Organize conversas, acompanhe oportunidades e mantenha sua equipe conectada em um só lugar.</p>
           <div className="mt-10 h-1.5 w-32 rounded-full bg-[#CB0A9F]" />
         </div>
-        <p className="relative text-sm text-white/55">Tendi · Atendimento e CRM conversacional</p>
+        <p className="relative text-sm text-white/55">TendiDesk · Atendimento e CRM conversacional</p>
       </section>
 
       <section className="flex items-center justify-center px-6 py-12">
         <form onSubmit={submit} className="w-full max-w-md">
           <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="mb-10 h-12 w-auto object-contain lg:hidden" />
-          <p className="text-sm font-semibold uppercase tracking-wider text-[#004751]">Bem-vindo ao Tendi</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-[#004751]">Bem-vindo ao TendiDesk</p>
           <h2 className="mt-3 text-3xl font-semibold text-slate-900">Acesse sua conta</h2>
           <p className="mt-2 text-sm text-slate-500">Entre para continuar seus atendimentos ou administrar a plataforma.</p>
 

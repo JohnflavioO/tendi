@@ -124,7 +124,7 @@ export async function inviteMember(
   }
 
   const { data: existing } = await db.from('profiles').select('id').eq('email', email).maybeSingle();
-  // 'invited' = conta nova (e-mail de convite); 'reminded' = conta que nunca entrou (novo link); 'joined' = já usa o Tendi.
+  // 'invited' = conta nova (e-mail de convite); 'reminded' = conta que nunca entrou (novo link); 'joined' = já usa o TendiDesk.
   let userId: string;
   let outcome: 'invited' | 'reminded' | 'joined';
   if (existing?.id) {
@@ -151,7 +151,7 @@ export async function inviteMember(
     organization_id: input.organizationId,
     user_id: userId,
     role,
-    // Fica "convidada" até a pessoa abrir o link e criar a senha; quem já usa o Tendi entra direto.
+    // Fica "convidada" até a pessoa abrir o link e criar a senha; quem já usa o TendiDesk entra direto.
     status: outcome === 'joined' ? 'active' : 'invited',
     invited_by: actor.userId,
     invited_at: now,
@@ -164,7 +164,7 @@ export async function inviteMember(
   const messages = {
     invited: `Convite enviado para ${email}.`,
     reminded: `Enviamos um novo link de acesso para ${email}.`,
-    joined: `${fullName} já usa o Tendi e foi adicionado(a) à equipe. Basta entrar com o e-mail e a senha de sempre.`,
+    joined: `${fullName} já usa o TendiDesk e foi adicionado(a) à equipe. Basta entrar com o e-mail e a senha de sempre.`,
   };
   return { status: 200, body: { ok: true, invited: outcome !== 'joined', message: messages[outcome] } };
 }

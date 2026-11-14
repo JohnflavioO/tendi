@@ -43,7 +43,7 @@ describe('nome e saudação do widget', () => {
 });
 
 describe('código de incorporação', () => {
-  it('monta a tag de script com a chave e o domínio do Tendi', () => {
+  it('monta a tag de script com a chave e o domínio do TendiDesk', () => {
     expect(buildWebchatEmbedSnippet('0123456789abcdef0123456789abcdef', 'https://app.tendi.com.br'))
       .toBe('<script src="https://app.tendi.com.br/webchat.js" data-tendi-key="0123456789abcdef0123456789abcdef" async></script>');
   });

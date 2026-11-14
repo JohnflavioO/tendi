@@ -100,7 +100,7 @@ export async function DELETE(request: Request, { params }: Context) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!confirmsDeletion(body?.confirmName, organization.name)) return fail(400, 'Digite o nome exato da empresa para confirmar a exclusão.');
 
-  // 1) Desliga a sessão do WhatsApp no provedor, para o número parar de entregar mensagens ao Tendi.
+  // 1) Desliga a sessão do WhatsApp no provedor, para o número parar de entregar mensagens ao TendiDesk.
   const { data: connections } = await auth.admin.from('channel_connections').select('provider_account_id').eq('organization_id', organization.id);
   for (const connection of (connections ?? []) as Array<{ provider_account_id: string | null }>) {
     if (!connection.provider_account_id) continue;

@@ -91,8 +91,8 @@ export function AdminShell({ title, description, actions, children, width = 'max
       </div>)}
     </nav>
     <div className="space-y-2 border-t border-slate-100 p-3">
-      {internalOrg && <a href={`/inbox?organization=${internalOrg}`} className="group flex items-center gap-3 rounded-xl bg-gradient-to-br from-[#F4F4FC] to-[#FBF2F9] p-3 transition hover:from-[#EEEEFA]"><span className="rounded-lg bg-white p-1.5 text-[#25275B] shadow-sm"><Building2 size={15} /></span><span className="min-w-0"><span className="block text-xs font-semibold text-[#25275B]">Workspace Tendi</span><span className="block text-[10px] text-slate-500">Ambiente interno de testes</span></span><ArrowRight size={14} className="ml-auto text-slate-400 transition group-hover:translate-x-0.5" /></a>}
-      <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-[#004751]"><ExternalLink size={14} /> Ver site do Tendi</a>
+      {internalOrg && <a href={`/inbox?organization=${internalOrg}`} className="group flex items-center gap-3 rounded-xl bg-gradient-to-br from-[#F4F4FC] to-[#FBF2F9] p-3 transition hover:from-[#EEEEFA]"><span className="rounded-lg bg-white p-1.5 text-[#25275B] shadow-sm"><Building2 size={15} /></span><span className="min-w-0"><span className="block text-xs font-semibold text-[#25275B]">Workspace TendiDesk</span><span className="block text-[10px] text-slate-500">Ambiente interno de testes</span></span><ArrowRight size={14} className="ml-auto text-slate-400 transition group-hover:translate-x-0.5" /></a>}
+      <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-[#004751]"><ExternalLink size={14} /> Ver site do TendiDesk</a>
       <div className="flex items-center gap-2.5 rounded-xl px-2 py-1.5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#25275B] to-[#CB0A9F] text-[11px] font-bold text-white">{(user?.name || 'S').slice(0, 1).toUpperCase()}</span>
         <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-slate-700">{user?.name || 'Super Admin'}</span><span className="block truncate text-[10px] text-slate-400">{user?.email || 'Super Admin'}</span></span>
@@ -149,7 +149,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
   const commands = useMemo<Command[]>(() => [
     { id: 'new', label: 'Nova empresa', hint: 'Cadastrar um cliente', href: NEW_COMPANY_HREF, icon: Plus, keywords: 'criar cadastrar cliente empresa nova' },
     ...ALL_ITEMS.map(item => ({ id: item.href, label: item.label, hint: item.hint ?? '', href: item.href, icon: item.icon, keywords: item.label.toLowerCase() })),
-    { id: 'site', label: 'Ver site do Tendi', hint: 'Abrir a página pública', href: '/', icon: ExternalLink, keywords: 'site landing página' },
+    { id: 'site', label: 'Ver site do TendiDesk', hint: 'Abrir a página pública', href: '/', icon: ExternalLink, keywords: 'site landing página' },
     ...companies.flatMap(org => [
       { id: `ws-${org.id}`, label: org.name, hint: 'Ficha da empresa', href: `/admin/organizations/${org.id}`, icon: Building2, keywords: `${org.name.toLowerCase()} empresa cliente ficha bloquear suporte` },
       { id: `setup-${org.id}`, label: `${org.name}: administrador`, hint: 'Convidar o responsável', href: `/admin/organizations/${org.id}/setup`, icon: Bot, keywords: `${org.name.toLowerCase()} gerenciar configurar admin` },

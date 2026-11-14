@@ -197,7 +197,7 @@ export function ContactPanel({ conversation, userId, onChanged, onClose }: { con
 
       <div><p className={label}>E-mail</p><p className="mt-1 break-all text-xs text-slate-700">{contact.email ?? 'Não informado'}</p></div>
       <div><p className={label}>Consentimento</p><p className="mt-1 text-xs text-slate-700">{contact.opt_in ? 'Opt-in registrado' : 'Não registrado'}</p></div>
-      <div className="rounded-xl bg-[#F7F8FC] p-3"><div className="flex items-center gap-2 text-[11px] font-semibold text-[#2F316B]"><Sparkles size={14} className="text-[#CB0A9F]" /> Inteligência Tendi</div><p className="mt-1.5 text-[10px] leading-5 text-slate-500">Resumo da conversa, tarefas e sugestões inteligentes serão disponibilizados nesta área.</p></div>
+      <div className="rounded-xl bg-[#F7F8FC] p-3"><div className="flex items-center gap-2 text-[11px] font-semibold text-[#2F316B]"><Sparkles size={14} className="text-[#CB0A9F]" /> Inteligência TendiDesk</div><p className="mt-1.5 text-[10px] leading-5 text-slate-500">Resumo da conversa, tarefas e sugestões inteligentes serão disponibilizados nesta área.</p></div>
     </div>
   </>;
 }

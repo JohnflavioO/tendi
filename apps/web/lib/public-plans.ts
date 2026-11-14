@@ -16,8 +16,8 @@ export type PublicPlan = {
 };
 
 export const FALLBACK_PLANS: PublicPlan[] = [
-  { code: 'tendi_start', name: 'Tendi Start', monthlyPrice: 189, annualPrice: 1927.8, aiMonthlyReplies: 1000, maxUsers: 4, maxTeams: null, boleto: false },
-  { code: 'tendi_pro', name: 'Tendi Pro', monthlyPrice: 289, annualPrice: 2947.8, aiMonthlyReplies: 3000, maxUsers: 10, maxTeams: 10, boleto: true },
+  { code: 'tendi_start', name: 'TendiDesk Start', monthlyPrice: 189, annualPrice: 1927.8, aiMonthlyReplies: 1000, maxUsers: 4, maxTeams: null, boleto: false },
+  { code: 'tendi_pro', name: 'TendiDesk Pro', monthlyPrice: 289, annualPrice: 2947.8, aiMonthlyReplies: 3000, maxUsers: 10, maxTeams: 10, boleto: true },
 ];
 
 const num = (value: unknown): number | null => {

@@ -49,7 +49,7 @@ export async function POST(request: Request) {
           .eq('code', code);
         if (error) {
           const duplicate = error.code === '23505';
-          return NextResponse.json({ error: duplicate ? 'Este plano anual já está vinculado a outro plano do Tendi.' : error.message }, { status: duplicate ? 409 : 500 });
+          return NextResponse.json({ error: duplicate ? 'Este plano anual já está vinculado a outro plano do TendiDesk.' : error.message }, { status: duplicate ? 409 : 500 });
         }
         return NextResponse.json({ ok: true, period, price: checked.price, pagarmePlanId: linkId });
       }
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     .eq('code', code);
   if (error) {
     const duplicate = error.code === '23505';
-    return NextResponse.json({ error: duplicate ? 'Este plano da Pagar.me já está vinculado a outro plano do Tendi.' : error.message }, { status: duplicate ? 409 : 500 });
+    return NextResponse.json({ error: duplicate ? 'Este plano da Pagar.me já está vinculado a outro plano do TendiDesk.' : error.message }, { status: duplicate ? 409 : 500 });
   }
   return NextResponse.json({ ok: true, monthlyPrice, pagarmePlanId });
 }

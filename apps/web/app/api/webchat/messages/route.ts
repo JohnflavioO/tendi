@@ -11,7 +11,7 @@ export const maxDuration = 60;
 
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: WEBCHAT_CORS_HEADERS });
 
-/** O site do cliente está numa origem diferente da do Tendi: o navegador manda isto antes do POST. */
+/** O site do cliente está numa origem diferente da do TendiDesk: o navegador manda isto antes do POST. */
 export function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: WEBCHAT_CORS_HEADERS });
 }

@@ -1,7 +1,7 @@
 import { Bot, CheckCheck, Headphones, MoreHorizontal, Search, Send, UserRound } from 'lucide-react';
 
 export function ProductPreview() {
-  return <div aria-label="Prévia ilustrativa da interface Tendi" className="relative mx-auto w-full max-w-[570px]">
+  return <div aria-label="Prévia ilustrativa da interface TendiDesk" className="relative mx-auto w-full max-w-[570px]">
     <div className="absolute -inset-5 rounded-[2rem] bg-[#CB0A9F]/[.06] blur-2xl" />
     <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(32,39,91,.14)]">
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div className="flex items-center gap-2"><span className="size-2 rounded-full bg-emerald-500"/><span className="text-sm font-bold text-[#25275B]">Central de atendimento</span></div><MoreHorizontal className="text-slate-400" size={20}/></div>

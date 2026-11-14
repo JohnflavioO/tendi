@@ -5,8 +5,8 @@ import { getFaqs } from '../content/marketing/site';
 
 describe('planos do site', () => {
   it('converte as linhas do banco e ignora valores vazios', () => {
-    const plans = toPublicPlans([{ code: 'tendi_start', name: 'Tendi Start', monthly_price: '189.00', annual_price: null, ai_monthly_replies: 1000, max_attendants: 4, max_teams: null, boleto_second_copy_enabled: false }, { nada: 1 }]);
-    expect(plans).toEqual([{ code: 'tendi_start', name: 'Tendi Start', monthlyPrice: 189, annualPrice: null, aiMonthlyReplies: 1000, maxUsers: 4, maxTeams: null, boleto: false }]);
+    const plans = toPublicPlans([{ code: 'tendi_start', name: 'TendiDesk Start', monthly_price: '189.00', annual_price: null, ai_monthly_replies: 1000, max_attendants: 4, max_teams: null, boleto_second_copy_enabled: false }, { nada: 1 }]);
+    expect(plans).toEqual([{ code: 'tendi_start', name: 'TendiDesk Start', monthlyPrice: 189, annualPrice: null, aiMonthlyReplies: 1000, maxUsers: 4, maxTeams: null, boleto: false }]);
     expect(toPublicPlans(null)).toEqual([]);
   });
 
@@ -36,7 +36,7 @@ describe('planos do site', () => {
     const text = faqs.map(faq => `${faq.question} ${faq.answer}`).join(' ').replace(/ /g, ' ');
     expect(text).toContain('R$ 189,00/mês');
     expect(text).toContain('15% de desconto');
-    expect(text).toContain('1.000 no Tendi Start');
+    expect(text).toContain('1.000 no TendiDesk Start');
     expect(text).toContain('até 10 usuários');
     expect(text).toContain('Pagar.me');
   });

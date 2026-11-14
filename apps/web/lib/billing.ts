@@ -3,7 +3,7 @@ import type { PagarmeRequest } from './pagarme';
 import type { BillingPeriod } from './billing-format';
 
 /**
- * Assinaturas do Tendi pela Pagar.me.
+ * Assinaturas do TendiDesk pela Pagar.me.
  *
  * Fluxo:
  *  1. O Super Admin cola a chave secreta e publica os planos (POST /plans) no painel.
@@ -78,7 +78,7 @@ export function buildCheckoutPayload(input: {
   logoUrl?: string;
 }) {
   return {
-    name: `Tendi ${input.planName} · ${input.organizationName}`.slice(0, 64),
+    name: `${input.planName} · ${input.organizationName}`.slice(0, 64),
     type: 'subscription',
     order_code: input.organizationId,
     // Um pagamento por link e validade de 24 h: cada tentativa gera um link próprio.
@@ -179,7 +179,7 @@ export function readSubscription(sub: Json): SubscriptionSnapshot {
   };
 }
 
-/** Estado da assinatura no Tendi a partir do estado na Pagar.me e do evento que chegou. */
+/** Estado da assinatura no TendiDesk a partir do estado na Pagar.me e do evento que chegou. */
 export function nextBillingStatus(pagarmeStatus: string, eventType: string, previous: BillingStatus | null): BillingStatus {
   if (pagarmeStatus === 'canceled' || eventType === 'subscription.canceled') return 'canceled';
   if (eventType === 'charge.payment_failed' || eventType === 'invoice.payment_failed') return 'past_due';
@@ -207,7 +207,7 @@ export async function findOrganizationByEmail(db: Db, email: string | null): Pro
 
 export type SyncResult ={ organizationId: string | null; status: BillingStatus | null; reason?: string };
 
-/** Busca a assinatura na Pagar.me e aplica o estado no Tendi (assinatura + empresa). Idempotente. */
+/** Busca a assinatura na Pagar.me e aplica o estado no TendiDesk (assinatura + empresa). Idempotente. */
 export async function syncSubscription(db: Db, api: PagarmeRequest, subscriptionId: string, eventType: string, now = new Date()): Promise<SyncResult> {
   const snapshot = readSubscription(await api(`/subscriptions/${encodeURIComponent(subscriptionId)}`));
 
@@ -231,7 +231,7 @@ export async function syncSubscription(db: Db, api: PagarmeRequest, subscription
     return { organizationId, status: existing.status as BillingStatus, reason: 'stale_subscription' };
   }
 
-  // O plano da Pagar.me pode ser a versão mensal ou a anual de um plano do Tendi.
+  // O plano da Pagar.me pode ser a versão mensal ou a anual de um plano do TendiDesk.
   let planCode: string | null = (existing?.plan_code as string | undefined) ?? null;
   let billingPeriod: BillingPeriod = existing?.billing_period === 'annual' ? 'annual' : 'monthly';
   if (snapshot.planId) {

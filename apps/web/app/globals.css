@@ -28,7 +28,7 @@ button { cursor: pointer; }
 .tendi-audio-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 9999px; background: #CB0A9F; border: 2px solid white; }
 .tendi-audio-rate { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); background: color-mix(in srgb, currentColor 8%, transparent); }
 
-/* Carregamento de página: o ponto do "i" do Tendi pulsando, com o acento balançando por cima. */
+/* Carregamento de página: o ponto do "i" do TendiDesk pulsando, com o acento balançando por cima. */
 @keyframes tendi-load-dot { 0%, 100% { transform: scale(.88); opacity: .75; } 50% { transform: scale(1.04); opacity: 1; } }
 @keyframes tendi-load-arc { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-5px) rotate(-6deg); } }
 .tendi-load-dot { transform-box: fill-box; transform-origin: center; animation: tendi-load-dot 1s ease-in-out infinite; }

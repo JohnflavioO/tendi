@@ -421,7 +421,7 @@ export async function GET(request: Request, { params }: Context) {
                   .eq('organization_id', organizationId);
                 if (persistError) {
                   return NextResponse.json(
-                    { error: 'A D-API informou o status, mas o Tendi não conseguiu salvá-lo.' },
+                    { error: 'A D-API informou o status, mas o TendiDesk não conseguiu salvá-lo.' },
                     { status: 500 },
                   );
                 }
@@ -531,7 +531,7 @@ export async function GET(request: Request, { params }: Context) {
 
         if (persistError) {
           return NextResponse.json(
-            { error: 'A D-API retornou o status, mas não foi possível salvá-lo no Tendi.' },
+            { error: 'A D-API retornou o status, mas não foi possível salvá-lo no TendiDesk.' },
             { status: 500 },
           );
         }
@@ -592,7 +592,7 @@ export async function GET(request: Request, { params }: Context) {
           message: persistError.message,
         });
         return NextResponse.json(
-          { error: 'A D-API informou o status, mas o Tendi não conseguiu salvá-lo.' },
+          { error: 'A D-API informou o status, mas o TendiDesk não conseguiu salvá-lo.' },
           { status: 500 },
         );
       }

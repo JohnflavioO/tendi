@@ -1,5 +1,5 @@
 /**
- * Ícone do "i" do Tendi animado, para usar nas telas de carregamento de página
+ * Ícone do "i" do TendiDesk animado, para usar nas telas de carregamento de página
  * (workspace, inbox, etc.). Reaproveita o traçado vetorial do logo oficial
  * (o "i" da marca TendiDesk, o mesmo do ícone da aba em app/icon.svg): o acento balança e o ponto pulsa.
  */

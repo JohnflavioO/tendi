@@ -59,7 +59,7 @@ export function Pricing({ plans, trialLabel }: { plans: PublicPlan[]; trialLabel
     </div>
 
     <div className="mx-auto mt-7 grid max-w-4xl gap-3 sm:grid-cols-2">
-      <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-5"><CreditCard size={20} className="mt-0.5 shrink-0 text-[#004751]" /><p className="text-xs leading-5 text-slate-500">Depois do teste, você assina dentro do próprio Tendi: mensal{hasAnnual ? ' ou anual com desconto' : ''}, no cartão de crédito, com pagamento processado pela Pagar.me.</p></div>
+      <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-5"><CreditCard size={20} className="mt-0.5 shrink-0 text-[#004751]" /><p className="text-xs leading-5 text-slate-500">Depois do teste, você assina dentro do próprio TendiDesk: mensal{hasAnnual ? ' ou anual com desconto' : ''}, no cartão de crédito, com pagamento processado pela Pagar.me.</p></div>
       <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-5"><ShieldCheck size={20} className="mt-0.5 shrink-0 text-[#004751]" /><p className="text-xs leading-5 text-slate-500">O limite de respostas da IA renova todo mês. Se ele acabar, as conversas seguem normalmente com a sua equipe. Integrações adicionais dependem de escopo e configuração.</p></div>
     </div>
 

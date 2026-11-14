@@ -55,7 +55,7 @@ function ConversationIllustration() {
       <div className="absolute -bottom-5 -left-5 size-28 rounded-full bg-[#00A59A] opacity-80" />
       <div className="relative rounded-[2rem] border border-white/30 bg-white/95 p-3 shadow-[0_30px_90px_rgba(20,25,70,.25)] backdrop-blur sm:p-4">
         <div className="flex items-center justify-between rounded-2xl bg-[#2F316B] px-4 py-3 text-white">
-          <div className="flex items-center gap-3"><span className="flex size-9 items-center justify-center rounded-xl bg-white/15"><MessagesSquare size={18}/></span><div><p className="text-xs font-bold">Inbox Tendi</p><p className="text-[10px] text-white/65">Equipe comercial</p></div></div>
+          <div className="flex items-center gap-3"><span className="flex size-9 items-center justify-center rounded-xl bg-white/15"><MessagesSquare size={18}/></span><div><p className="text-xs font-bold">Inbox TendiDesk</p><p className="text-[10px] text-white/65">Equipe comercial</p></div></div>
           <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-[10px] font-semibold text-emerald-100">● Online</span>
         </div>
         <div className="grid gap-3 p-3 sm:grid-cols-[.8fr_1.2fr] sm:p-4">
@@ -107,7 +107,7 @@ export default async function MarketingHome() {
         </div>
       </section>
 
-      <section aria-label="Benefícios do Tendi" className="border-y border-slate-200 bg-white">
+      <section aria-label="Benefícios do TendiDesk" className="border-y border-slate-200 bg-white">
         <div className="mx-auto grid max-w-[1200px] gap-6 px-5 py-8 md:grid-cols-3 md:px-6">
           {outcomes.map(({ icon: Icon, title, description }) => (
             <div key={title} className="flex items-start gap-4">
@@ -129,7 +129,7 @@ export default async function MarketingHome() {
 
       <section id="recursos" className="scroll-mt-24 bg-white py-20 md:py-24">
         <div className="mx-auto max-w-[1200px] px-5 md:px-6">
-          <div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Uma operação mais conectada</p><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#25275B] md:text-4xl">Tudo começa com uma conversa. O Tendi ajuda sua equipe a dar continuidade.</h2><p className="mt-4 text-base leading-7 text-slate-600">Atendimento, relacionamento e gestão comercial trabalhando juntos para sua empresa não perder o fio de cada oportunidade.</p></div>
+          <div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Uma operação mais conectada</p><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#25275B] md:text-4xl">Tudo começa com uma conversa. O TendiDesk ajuda sua equipe a dar continuidade.</h2><p className="mt-4 text-base leading-7 text-slate-600">Atendimento, relacionamento e gestão comercial trabalhando juntos para sua empresa não perder o fio de cada oportunidade.</p></div>
           <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => {
               const Icon = featureIcons[index];
@@ -139,7 +139,7 @@ export default async function MarketingHome() {
               </article>;
             })}
           </div>
-          <div className="mt-9 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#F7F8FC] p-6"><p className="font-semibold text-[#25275B]">Veja como o Tendi pode se encaixar na sua operação.</p><Link href="/register" className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#004751] px-5 text-sm font-bold text-white transition hover:bg-[#003943]">Experimentar por {trialLabel}<ArrowRight size={16} /></Link></div>
+          <div className="mt-9 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#F7F8FC] p-6"><p className="font-semibold text-[#25275B]">Veja como o TendiDesk pode se encaixar na sua operação.</p><Link href="/register" className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#004751] px-5 text-sm font-bold text-white transition hover:bg-[#003943]">Experimentar por {trialLabel}<ArrowRight size={16} /></Link></div>
         </div>
       </section>
 
@@ -165,7 +165,7 @@ export default async function MarketingHome() {
 
       <section id="planos" className="scroll-mt-24 bg-[#F7F8FC] py-20 md:py-24">
         <div className="mx-auto max-w-[1200px] px-5 md:px-6">
-          <div className="mx-auto max-w-2xl text-center"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Planos Tendi</p><h2 className="mt-4 text-3xl font-bold text-[#25275B] md:text-4xl">O espaço certo para sua equipe crescer.</h2><p className="mt-4 text-base leading-7 text-slate-600">Comece com {trialLabel} de teste grátis, sem cartão. Depois, escolha o plano mensal ou anual que acompanha o tamanho da sua equipe.</p></div>
+          <div className="mx-auto max-w-2xl text-center"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Planos TendiDesk</p><h2 className="mt-4 text-3xl font-bold text-[#25275B] md:text-4xl">O espaço certo para sua equipe crescer.</h2><p className="mt-4 text-base leading-7 text-slate-600">Comece com {trialLabel} de teste grátis, sem cartão. Depois, escolha o plano mensal ou anual que acompanha o tamanho da sua equipe.</p></div>
           <Pricing plans={plans} trialLabel={trialLabel} />
         </div>
       </section>
@@ -176,7 +176,7 @@ export default async function MarketingHome() {
 
       <section className="relative isolate overflow-hidden bg-[#2F316B] py-16 text-white md:py-20">
         <div className="pointer-events-none absolute -right-24 -top-32 -z-10 size-96 rounded-full bg-[#CB0A9F]/20 blur-3xl" />
-        <div className="mx-auto flex max-w-[1200px] flex-col items-start justify-between gap-8 px-5 md:flex-row md:items-center md:px-6"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#F4A8DF]">Seu próximo passo</p><h2 className="mt-4 max-w-2xl text-3xl font-bold md:text-4xl">Menos informação espalhada. Mais clareza para sua equipe avançar.</h2><p className="mt-4 text-sm text-white/70">Experimente o Tendi por {trialLabel}, sem cadastrar cartão.</p></div><Link href="/register" className="inline-flex h-12 shrink-0 items-center gap-2 rounded-xl bg-white px-6 text-sm font-bold text-[#2F316B] transition hover:-translate-y-0.5 hover:bg-slate-100">Começar teste grátis<ArrowRight size={17} /></Link></div>
+        <div className="mx-auto flex max-w-[1200px] flex-col items-start justify-between gap-8 px-5 md:flex-row md:items-center md:px-6"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#F4A8DF]">Seu próximo passo</p><h2 className="mt-4 max-w-2xl text-3xl font-bold md:text-4xl">Menos informação espalhada. Mais clareza para sua equipe avançar.</h2><p className="mt-4 text-sm text-white/70">Experimente o TendiDesk por {trialLabel}, sem cadastrar cartão.</p></div><Link href="/register" className="inline-flex h-12 shrink-0 items-center gap-2 rounded-xl bg-white px-6 text-sm font-bold text-[#2F316B] transition hover:-translate-y-0.5 hover:bg-slate-100">Começar teste grátis<ArrowRight size={17} /></Link></div>
       </section>
     </>
   );

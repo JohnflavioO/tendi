@@ -140,8 +140,8 @@ describe('funções de cobrança', () => {
     expect(readSubscription(subscription()).organizationId).toBe(ORG);
   });
 
-  it('payload do checkout: assinatura no cartão, vinculada à empresa e com retorno ao Tendi', () => {
-    const body = buildCheckoutPayload({ organizationId: ORG, organizationName: 'Clínica', planName: 'Tendi Start', pagarmePlanId: 'plan_start', customerName: 'Ana', customerEmail: 'ana@exemplo.com', successUrl: 'https://app/assinatura' });
+  it('payload do checkout: assinatura no cartão, vinculada à empresa e com retorno ao TendiDesk', () => {
+    const body = buildCheckoutPayload({ organizationId: ORG, organizationName: 'Clínica', planName: 'TendiDesk Start', pagarmePlanId: 'plan_start', customerName: 'Ana', customerEmail: 'ana@exemplo.com', successUrl: 'https://app/assinatura' });
     expect(body).toMatchObject({
       type: 'subscription',
       payment_settings: { accepted_payment_methods: ['credit_card'] },
@@ -152,7 +152,7 @@ describe('funções de cobrança', () => {
   });
 
   it('payload do plano: mensal, cartão, preço em centavos', () => {
-    expect(buildPlanPayload({ code: 'tendi_pro', name: 'Tendi Pro' }, toCents(397.9))).toMatchObject({
+    expect(buildPlanPayload({ code: 'tendi_pro', name: 'TendiDesk Pro' }, toCents(397.9))).toMatchObject({
       interval: 'month', interval_count: 1, payment_methods: ['credit_card'], items: [{ pricing_scheme: { price: 39790 } }],
     });
   });
