@@ -83,7 +83,7 @@ export function AudioPlayer({ src, onError }: { src: string; onError?: () => voi
       onError={onError}
       className="hidden"
     />
-    <button type="button" onClick={() => void toggle()} aria-label={playing ? 'Pausar áudio' : 'Tocar áudio'} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#CB0A9F] text-white shadow-sm transition hover:scale-105 hover:bg-[#B5088D]">
+    <button type="button" onClick={() => void toggle()} aria-label={playing ? 'Pausar áudio' : 'Tocar áudio'} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-tendi-magenta text-white shadow-card transition hover:scale-105 hover:bg-[#B5088D]">
       {loading ? <Loader2 size={16} className="animate-spin" /> : playing ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" className="ml-0.5" />}
     </button>
     <div className="min-w-0 flex-1">

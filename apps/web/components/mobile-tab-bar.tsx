@@ -27,21 +27,21 @@ export function MobileTabBar({ pathname, organizationId, role, superAdmin, onMen
   className?: string;
 }) {
   const tabs = TABS.filter(tab => role !== undefined && canAccessArea(role, Boolean(superAdmin), tab.area));
-  const item = 'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 pt-2 pb-1.5 text-[11px] font-semibold transition active:scale-95';
-  return <nav aria-label="Navegação principal" className={`${fixed ? 'fixed inset-x-0 bottom-0 z-30' : 'shrink-0'} border-t border-slate-200/80 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden ${className}`}>
-    <div className="mx-auto flex max-w-xl">
+  const item = 'group flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 pb-1.5 pt-2 text-[10.5px] font-semibold tracking-tight transition active:scale-95';
+  return <nav aria-label="Navegação principal" className={`${fixed ? 'fixed inset-x-0 bottom-0 z-30' : 'shrink-0'} border-t border-tendi-line/80 bg-white/90 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-16px_rgba(20,22,58,.25)] backdrop-blur-xl backdrop-saturate-150 lg:hidden ${className}`}>
+    <div className="mx-auto flex max-w-xl px-1">
       {tabs.map(({ label, href, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
-        return <a key={href} href={withOrganization(href, organizationId)} aria-current={active ? 'page' : undefined} className={`${item} ${active ? 'text-[#2F316B]' : 'text-slate-400'}`}>
-          <span className={`relative flex h-8 w-14 items-center justify-center rounded-full transition ${active ? 'bg-[#F0F0FA]' : ''}`}>
-            <Icon size={21} strokeWidth={active ? 2.3 : 1.9} />
-            {href === '/inbox' && Boolean(badge) && <span className="absolute -right-0.5 -top-1 min-w-[18px] rounded-full bg-[#CB0A9F] px-1 text-center text-[10px] font-bold leading-[18px] text-white">{badge! > 99 ? '99+' : badge}</span>}
+        return <a key={href} href={withOrganization(href, organizationId)} aria-current={active ? 'page' : undefined} className={`${item} ${active ? 'text-tendi-navy' : 'text-slate-400'}`}>
+          <span className={`relative flex h-8 w-14 items-center justify-center rounded-full transition duration-200 ${active ? 'bg-tendi-mist text-tendi-indigo' : 'group-hover:text-tendi-indigo'}`}>
+            <Icon size={20} strokeWidth={active ? 2.3 : 1.9} />
+            {href === '/inbox' && Boolean(badge) && <span className="absolute -right-0.5 -top-1 min-w-[18px] rounded-full bg-tendi-magenta px-1 text-center text-[10px] font-bold leading-[18px] text-white ring-2 ring-white">{badge! > 99 ? '99+' : badge}</span>}
           </span>
           {label}
         </a>;
       })}
       <button type="button" onClick={onMenu} className={`${item} text-slate-400`}>
-        <span className="flex h-8 w-14 items-center justify-center rounded-full"><Menu size={21} strokeWidth={1.9} /></span>
+        <span className="flex h-8 w-14 items-center justify-center rounded-full transition group-hover:text-tendi-indigo"><Menu size={20} strokeWidth={1.9} /></span>
         Menu
       </button>
     </div>

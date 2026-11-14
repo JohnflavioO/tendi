@@ -6,7 +6,7 @@ import { Bot } from 'lucide-react';
 type Usage = { enabled: boolean; used?: number; limit?: number; level?: 'ok' | 'warning' | 'reached'; trial?: boolean };
 
 /** Uso da IA no mês (respostas usadas / limite). Só aparece quando o agente de IA está liberado. */
-export function AiUsageNotice({ organizationId, compact = false }: { organizationId?: string | null; compact?: boolean }) {
+export function AiUsageNotice({ organizationId, compact = false, dark = false }: { organizationId?: string | null; compact?: boolean; dark?: boolean }) {
   const [usage, setUsage] = useState<Usage | null>(null);
 
   useEffect(() => {
@@ -26,6 +26,14 @@ export function AiUsageNotice({ organizationId, compact = false }: { organizatio
 
   const percent = Math.min(100, Math.round((usage.used / usage.limit) * 100));
   const reached = usage.level === 'reached';
+  // Versão do menu lateral escuro.
+  if (dark) return <div role="status" className="rounded-xl bg-white/[.06] p-3 text-xs text-white ring-1 ring-inset ring-white/10">
+    <p className="flex items-center gap-2 font-semibold"><Bot size={14} className="text-[#B9BBE0]" />Agente de IA</p>
+    <p className="mt-1 text-[#B9BBE0]">{usage.used.toLocaleString('pt-BR')} de {usage.limit.toLocaleString('pt-BR')} respostas no mês</p>
+    <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10"><div className={reached ? 'h-full bg-rose-400' : 'h-full bg-amber-300'} style={{ width: `${percent}%` }} /></div>
+    {reached && <a href={`/assinatura?organization=${organizationId}`} className="mt-2 inline-block font-semibold text-white underline underline-offset-2">{usage.trial ? 'Assinar um plano' : 'Ver planos'}</a>}
+  </div>;
+
   const tone = reached ? 'border-rose-200 bg-rose-50 text-rose-700' : usage.level === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-200 bg-white text-slate-600';
 
   return <div role="status" className={`rounded-xl border p-3 text-xs ${tone}`}>

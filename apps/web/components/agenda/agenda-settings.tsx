@@ -10,7 +10,7 @@ import {
 import { ReminderSettingsCard } from '@/components/agenda/reminder-settings';
 import { fieldClass, labelClass, type AgendaOrganization, type HoursRow, type Professional, type Service } from '@/components/agenda/types';
 
-const timeClass = 'w-[104px] rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-sm outline-none focus:border-[#7C7EC0]';
+const timeClass = 'td-input !w-[104px] px-2.5';
 
 type DayForm = { open: boolean; starts: string; ends: string; breakStarts: string; breakEnds: string };
 
@@ -142,9 +142,9 @@ export function AgendaSettings({ organization, professionals, services, hours, c
   const setDay = (weekday: number, patch: Partial<DayForm>) =>
     setEditingHours(current => current && { ...current, days: current.days.map((form, index) => (index === weekday ? { ...form, ...patch } : form)) });
 
-  const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm';
-  const smallButton = 'rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-40';
-  const primaryButton = 'flex items-center justify-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#003B44] disabled:opacity-40';
+  const card = 'td-card p-5';
+  const smallButton = 'td-btn td-btn-secondary td-btn-sm';
+  const primaryButton = 'td-btn td-btn-teal';
 
   return (
     <div className="space-y-5">
@@ -152,7 +152,7 @@ export function AgendaSettings({ organization, professionals, services, hours, c
       {message && <p role={message.ok ? 'status' : 'alert'} className={`rounded-xl px-4 py-3 text-sm ${message.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700'}`}>{message.text}</p>}
 
       <section className={card}>
-        <h2 className="text-base font-bold text-[#25275B]">Tipo de negócio</h2>
+        <h2 className="td-title text-base">Tipo de negócio</h2>
         <p className="mt-1 text-sm text-slate-500">Ajusta os nomes usados na agenda e oferece uma lista inicial de serviços.</p>
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <div className="min-w-[240px] flex-1">
@@ -167,16 +167,16 @@ export function AgendaSettings({ organization, professionals, services, hours, c
       </section>
 
       <section className={card}>
-        <h2 className="text-base font-bold text-[#25275B]">{professionalLabel === 'Barbeiro' ? 'Barbeiros' : 'Profissionais'}</h2>
+        <h2 className="td-title text-base">{professionalLabel === 'Barbeiro' ? 'Barbeiros' : 'Profissionais'}</h2>
         <p className="mt-1 text-sm text-slate-500">Cada pessoa tem a sua coluna na agenda e o seu horário de atendimento.</p>
-        <ul className="mt-4 divide-y divide-slate-100">
+        <ul className="mt-4 divide-y divide-tendi-line/70">
           {professionals.map(professional => {
             const days = WEEKDAY_LABELS.map((label, weekday) => ({ label, open: hours.some(row => row.professional_id === professional.id && row.weekday === weekday) }));
             return (
               <li key={professional.id} className="flex flex-wrap items-center gap-3 py-3">
                 <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: professional.color }} />
                 <div className="min-w-0 flex-1">
-                  <p className={`truncate text-sm font-semibold ${professional.is_active ? 'text-[#25275B]' : 'text-slate-400 line-through'}`}>{professional.name}</p>
+                  <p className={`truncate text-sm font-semibold ${professional.is_active ? 'text-tendi-navy' : 'text-slate-400 line-through'}`}>{professional.name}</p>
                   <p className="text-[11px] text-slate-400">{days.filter(day => day.open).map(day => day.label.slice(0, 3)).join(' · ') || 'Sem horário de atendimento'}</p>
                 </div>
                 <button type="button" disabled={!canManage} onClick={() => openHours(professional.id)} className={smallButton}>Horários</button>
@@ -192,13 +192,13 @@ export function AgendaSettings({ organization, professionals, services, hours, c
         </form>
 
         {editingHours && (
-          <div className="mt-5 rounded-xl border border-slate-200 bg-[#FBFCFE] p-4">
-            <p className="text-sm font-bold text-[#25275B]">Horário de {professionals.find(item => item.id === editingHours.professionalId)?.name}</p>
+          <div className="mt-5 rounded-xl border border-tendi-line bg-[#FBFCFE] p-4">
+            <p className="td-title">Horário de {professionals.find(item => item.id === editingHours.professionalId)?.name}</p>
             <p className="mt-0.5 text-xs text-slate-500">Marque os dias de atendimento. O intervalo (almoço) é opcional.</p>
             <div className="mt-3 space-y-2">
               {editingHours.days.map((form, weekday) => (
                 <div key={weekday} className="flex flex-wrap items-center gap-2">
-                  <label className="flex w-28 items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={form.open} onChange={event => setDay(weekday, { open: event.target.checked })} className="size-4 accent-[#004751]" />{WEEKDAY_LABELS[weekday]}</label>
+                  <label className="flex w-28 items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={form.open} onChange={event => setDay(weekday, { open: event.target.checked })} className="size-4 accent-tendi-teal" />{WEEKDAY_LABELS[weekday]}</label>
                   {form.open ? <>
                     <input type="time" value={form.starts} onChange={event => setDay(weekday, { starts: event.target.value })} aria-label={`${WEEKDAY_LABELS[weekday]}: início`} className={timeClass} />
                     <span className="text-xs text-slate-400">às</span>
@@ -220,13 +220,13 @@ export function AgendaSettings({ organization, professionals, services, hours, c
       </section>
 
       <section className={card}>
-        <h2 className="text-base font-bold text-[#25275B]">Serviços</h2>
+        <h2 className="td-title text-base">Serviços</h2>
         <p className="mt-1 text-sm text-slate-500">A duração define os horários livres oferecidos ao agendar.</p>
-        <ul className="mt-4 divide-y divide-slate-100">
+        <ul className="mt-4 divide-y divide-tendi-line/70">
           {services.map(service => (
             <li key={service.id} className="flex flex-wrap items-center gap-3 py-3">
               <div className="min-w-0 flex-1">
-                <p className={`truncate text-sm font-semibold ${service.is_active ? 'text-[#25275B]' : 'text-slate-400 line-through'}`}>{service.name}</p>
+                <p className={`truncate text-sm font-semibold ${service.is_active ? 'text-tendi-navy' : 'text-slate-400 line-through'}`}>{service.name}</p>
                 <p className="text-[11px] text-slate-400">{formatDuration(service.duration_minutes)}{service.price_cents !== null ? ` · ${formatPrice(service.price_cents)}` : ''}</p>
               </div>
               <button type="button" disabled={!canManage || busy === `s-${service.id}`} onClick={() => void toggleService(service)} className={smallButton}>{service.is_active ? <span className="flex items-center gap-1"><Trash2 size={12} />Desativar</span> : 'Reativar'}</button>

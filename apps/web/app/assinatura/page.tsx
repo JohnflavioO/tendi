@@ -79,7 +79,7 @@ export default function SubscriptionPage() {
     setError(data?.error ?? 'Não foi possível abrir o pagamento.');
   }
 
-  if (loading) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]"><Loader2 className="animate-spin" /></main>;
+  if (loading) return <main className="grid min-h-screen place-items-center bg-tendi-haze text-tendi-indigo"><Loader2 className="animate-spin" /></main>;
 
   const org = orgs.find(item => item.id === orgId) ?? null;
   const blocked = org ? isOrganizationBlocked(org) : false;
@@ -90,31 +90,31 @@ export default function SubscriptionPage() {
   const hasAnnual = plans.some(plan => plan.annual_price && plan.pagarme_annual_plan_id);
   const bestDiscount = Math.max(0, ...plans.map(plan => annualDiscountPercent(plan.monthly_price, plan.annual_price) ?? 0)) || null;
 
-  return <main className="min-h-screen bg-[#F5F6FB] text-slate-800">
-    <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-      <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain" />
+  return <main className="min-h-screen bg-tendi-haze text-slate-800">
+    <header className="sticky top-0 z-20 border-b border-tendi-line/70 bg-white/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150"><div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+      <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-10 w-auto object-contain" />
       <div className="flex items-center gap-4">
-        {!blocked && <a href="/inbox" className="inline-flex items-center gap-2 text-sm font-semibold text-[#004751]"><ArrowLeft size={16} /> Voltar ao Inbox</a>}
-        <form action="/auth/signout" method="post"><button className="text-sm text-slate-500 hover:text-slate-700">Sair</button></form>
+        {!blocked && <a href="/inbox" className="td-btn td-btn-secondary td-btn-sm"><ArrowLeft size={14} /> Voltar ao Inbox</a>}
+        <form action="/auth/signout" method="post"><button className="td-btn td-btn-ghost td-btn-sm">Sair</button></form>
       </div>
     </div></header>
 
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <p className="text-xs font-bold uppercase tracking-[.16em] text-[#CB0A9F]">Assinatura</p>
-      <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#25275B]">{hasSubscription ? 'Sua assinatura' : blocked ? 'Escolha um plano para continuar' : 'Escolha seu plano'}</h1>
-      {orgs.length > 1 && <label className="mt-4 block max-w-xs text-xs font-semibold text-slate-500">Workspace<select value={orgId} onChange={e => { setOrgId(e.target.value); void loadSubscription(e.target.value); }} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm text-[#2F316B]">{orgs.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
+    <div className="mx-auto max-w-5xl animate-fade-up px-4 pb-[calc(env(safe-area-inset-bottom)+40px)] pt-8 sm:px-6 sm:pt-12">
+      <p className="td-eyebrow !text-tendi-magenta">Assinatura</p>
+      <h1 className="mt-2 text-[28px] font-semibold tracking-tight text-tendi-navy sm:text-[32px]">{hasSubscription ? 'Sua assinatura' : blocked ? 'Escolha um plano para continuar' : 'Escolha seu plano'}</h1>
+      {orgs.length > 1 && <label className="mt-4 block max-w-xs text-xs font-semibold text-slate-500">Workspace<select value={orgId} onChange={e => { setOrgId(e.target.value); void loadSubscription(e.target.value); }} className="td-input mt-1">{orgs.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
 
       {error && <p role="alert" className="mt-5 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
-      {confirming && !hasSubscription && <div role="status" className="mt-6 flex items-center gap-3 rounded-2xl border border-[#2F316B]/10 bg-white p-5 shadow-sm"><Loader2 className="animate-spin text-[#004751]" size={22} /><div><p className="font-semibold text-[#25275B]">Confirmando seu pagamento…</p><p className="text-sm text-slate-500">A Pagar.me avisa o TendiDesk em alguns segundos. Pode deixar esta página aberta.</p></div></div>}
+      {confirming && !hasSubscription && <div role="status" className="mt-6 flex items-center gap-3 rounded-2xl border border-tendi-indigo/10 bg-white p-5 shadow-card"><Loader2 className="animate-spin text-tendi-teal" size={22} /><div><p className="font-semibold text-tendi-navy">Confirmando seu pagamento…</p><p className="text-sm text-slate-500">A Pagar.me avisa o TendiDesk em alguns segundos. Pode deixar esta página aberta.</p></div></div>}
 
       {!hasSubscription && !confirming && blocked && <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5"><Lock className="mt-0.5 shrink-0 text-amber-600" size={20} /><div><p className="font-semibold text-amber-900">{org?.status === 'suspended' ? 'O acesso deste workspace está pausado' : 'Seu teste gratuito terminou'}</p><p className="mt-1 text-sm text-amber-800">Suas conversas, contatos e configurações continuam guardados. Assine um plano para voltar a usar o TendiDesk na hora.</p></div></div>}
-      {!hasSubscription && !blocked && daysLeft !== null && <div className="mt-6 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5"><Clock3 className="text-amber-600" size={20} /><p className="text-sm text-slate-600">{daysLeft === 0 ? 'Seu teste termina hoje.' : `Faltam ${trialDaysLabel(daysLeft)} de teste gratuito.`} Assine agora e não perca o acesso.</p></div>}
+      {!hasSubscription && !blocked && daysLeft !== null && <div className="mt-6 flex items-center gap-3 td-card p-5"><Clock3 className="text-amber-600" size={20} /><p className="text-sm text-slate-600">{daysLeft === 0 ? 'Seu teste termina hoje.' : `Faltam ${trialDaysLabel(daysLeft)} de teste gratuito.`} Assine agora e não perca o acesso.</p></div>}
 
-      {hasSubscription && subscription && <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      {hasSubscription && subscription && <section className="mt-6 td-card p-6">
         <div className="flex flex-wrap items-center gap-3">
           {subscription.status === 'active' ? <CheckCircle2 className="text-emerald-600" size={24} /> : <AlertTriangle className="text-amber-600" size={24} />}
-          <div><p className="text-lg font-bold text-[#25275B]">{currentPlan?.name ?? 'Plano TendiDesk'}{subscription.billing_period === 'annual'
+          <div><p className="text-lg font-semibold tracking-tight text-tendi-navy">{currentPlan?.name ?? 'Plano TendiDesk'}{subscription.billing_period === 'annual'
             ? (currentPlan?.annual_price ? ` Anual · ${money(Number(currentPlan.annual_price))}/ano` : ' Anual')
             : (currentPlan?.monthly_price ? ` · ${money(Number(currentPlan.monthly_price))}/mês` : '')}</p>
             <p className={subscription.status === 'active' ? 'text-sm font-semibold text-emerald-700' : 'text-sm font-semibold text-amber-700'}>{subscription.status === 'active' ? 'Assinatura ativa' : 'Pagamento pendente'}</p></div>
@@ -127,9 +127,9 @@ export default function SubscriptionPage() {
         <p className="mt-4 text-xs text-slate-400">Para trocar de plano ou cancelar, fale com o suporte em suporte@tendidesk.com.br.</p>
       </section>}
 
-      {!hasSubscription && hasAnnual && <div role="radiogroup" aria-label="Período de cobrança" className="mt-8 inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-        {(['monthly', 'annual'] as const).map(value => <button key={value} type="button" role="radio" aria-checked={period === value} onClick={() => setPeriod(value)} className={period === value ? 'rounded-lg bg-[#2F316B] px-4 py-2 text-sm font-semibold text-white' : 'rounded-lg px-4 py-2 text-sm font-semibold text-slate-500 hover:text-[#2F316B]'}>
-          {value === 'monthly' ? 'Mensal' : <>Anual{bestDiscount ? <span className={period === value ? 'ml-1.5 rounded-md bg-white/20 px-1.5 py-0.5 text-[11px]' : 'ml-1.5 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] text-emerald-700'}>{bestDiscount}% off</span> : null}</>}
+      {!hasSubscription && hasAnnual && <div role="radiogroup" aria-label="Período de cobrança" className="td-tabs mt-8">
+        {(['monthly', 'annual'] as const).map(value => <button key={value} type="button" role="radio" aria-checked={period === value} onClick={() => setPeriod(value)} className={period === value ? 'td-tab td-tab-active h-9 px-4 text-[13px]' : 'td-tab h-9 px-4 text-[13px]'}>
+          {value === 'monthly' ? 'Mensal' : <>Anual{bestDiscount ? <span className={period === value ? 'ml-1.5 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] text-emerald-700' : 'ml-1.5 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] text-emerald-700'}>{bestDiscount}% off</span> : null}</>}
         </button>)}
       </div>}
 
@@ -139,23 +139,23 @@ export default function SubscriptionPage() {
           const price = annual ? plan.annual_price : plan.monthly_price;
           const available = Boolean(price && (annual ? plan.pagarme_annual_plan_id : plan.pagarme_plan_id));
           const discount = annualDiscountPercent(plan.monthly_price, plan.annual_price);
-          return <article key={plan.code} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-[#25275B]">{plan.name}{annual ? ' Anual' : ''}</h2>
+          return <article key={plan.code} className="td-card td-card-hover relative flex flex-col overflow-hidden p-6 sm:p-7"><span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-tendi-indigo via-tendi-lilac to-tendi-magenta opacity-80" />
+            <h2 className="text-xl font-semibold tracking-tight text-tendi-navy">{plan.name}{annual ? ' Anual' : ''}</h2>
             <p className="mt-2 min-h-12 text-sm leading-6 text-slate-500">{plan.description}</p>
             {annual && price && plan.monthly_price
               ? <div className="mt-4">
-                  <p className="text-3xl font-bold text-[#25275B]">{money(Number(price) / 12)}<span className="text-sm font-medium text-slate-400"> /mês</span></p>
+                  <p className="text-[34px] font-semibold tracking-tight tabular-nums text-tendi-navy">{money(Number(price) / 12)}<span className="text-sm font-medium text-slate-400"> /mês</span></p>
                   <p className="mt-1 text-sm text-slate-500"><span className="text-slate-400 line-through">{money(Number(plan.monthly_price))}</span> · {money(Number(price))} cobrados uma vez por ano</p>
                   {discount && <p className="mt-1 text-sm font-semibold text-emerald-700">Economia de {money(Number(plan.monthly_price) * 12 - Number(price))} por ano ({discount}% off)</p>}
                 </div>
-              : <p className="mt-4 text-3xl font-bold text-[#25275B]">{price ? money(Number(price)) : 'Em breve'}{price ? <span className="text-sm font-medium text-slate-400"> /{annual ? 'ano' : 'mês'}</span> : null}</p>}
-            <ul className="mt-5 space-y-2.5 text-sm text-slate-600">
-              <li className="flex items-center gap-2"><Users size={16} className="text-[#004751]" /> Até {plan.max_attendants} atendentes</li>
-              {plan.max_teams !== null && <li className="flex items-center gap-2"><Check size={16} className="text-[#004751]" /> Até {plan.max_teams} setores</li>}
-              {plan.ai_enabled && <li className="flex items-center gap-2"><Bot size={16} className="text-[#004751]" /> Agente de IA no WhatsApp</li>}
-              <li className="flex items-center gap-2"><CreditCard size={16} className="text-[#004751]" /> {period === 'annual' ? 'Cobrança anual à vista no cartão de crédito' : 'Cobrança mensal no cartão de crédito'}</li>
+              : <p className="mt-4 text-[34px] font-semibold tracking-tight tabular-nums text-tendi-navy">{price ? money(Number(price)) : 'Em breve'}{price ? <span className="text-sm font-medium text-slate-400"> /{annual ? 'ano' : 'mês'}</span> : null}</p>}
+            <ul className="mb-7 mt-6 space-y-3 border-t border-tendi-line/70 pt-5 text-sm text-slate-600">
+              <li className="flex items-center gap-2"><Users size={16} className="text-tendi-teal" /> Até {plan.max_attendants} atendentes</li>
+              {plan.max_teams !== null && <li className="flex items-center gap-2"><Check size={16} className="text-tendi-teal" /> Até {plan.max_teams} setores</li>}
+              {plan.ai_enabled && <li className="flex items-center gap-2"><Bot size={16} className="text-tendi-teal" /> Agente de IA no WhatsApp</li>}
+              <li className="flex items-center gap-2"><CreditCard size={16} className="text-tendi-teal" /> {period === 'annual' ? 'Cobrança anual à vista no cartão de crédito' : 'Cobrança mensal no cartão de crédito'}</li>
             </ul>
-            <button type="button" disabled={!available || busyPlan !== '' || !orgId} onClick={() => void subscribe(plan.code)} className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-[#004751] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#003943] disabled:opacity-50">{busyPlan === plan.code && <Loader2 size={16} className="animate-spin" />}{available ? `Assinar ${plan.name}` : 'Indisponível no momento'}</button>
+            <button type="button" disabled={!available || busyPlan !== '' || !orgId} onClick={() => void subscribe(plan.code)} className="td-btn td-btn-teal mt-auto h-11 w-full">{busyPlan === plan.code && <Loader2 size={16} className="animate-spin" />}{available ? `Assinar ${plan.name}` : 'Indisponível no momento'}</button>
           </article>;
         })}
         {!plans.length && <p className="text-sm text-slate-500">Nenhum plano disponível no momento. Fale com o suporte em suporte@tendidesk.com.br.</p>}
@@ -167,5 +167,5 @@ export default function SubscriptionPage() {
 }
 
 function Info({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl bg-[#FAFBFD] p-3"><p className="text-[11px] text-slate-400">{label}</p><p className="mt-1 text-sm font-semibold text-slate-700">{value}</p></div>;
+  return <div className="td-subtle p-3"><p className="text-[11px] text-slate-400">{label}</p><p className="mt-1 text-sm font-semibold text-slate-700">{value}</p></div>;
 }

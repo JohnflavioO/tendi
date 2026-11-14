@@ -233,13 +233,13 @@ function ForwardPanel({ messageId, hasCaption, targets, onClose, onDone }: {
 
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/70 p-4" onClick={event => { if (event.target === event.currentTarget && !sending) onClose(); }}>
-      <section role="dialog" aria-modal="true" aria-label="Encaminhar imagem" className="flex max-h-[80vh] w-full max-w-md flex-col rounded-2xl bg-white text-slate-800 shadow-2xl">
-        <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <div><h2 className="text-base font-bold text-[#25275B]">Encaminhar imagem</h2><p className="mt-0.5 text-xs text-slate-500">Escolha até {MAX_FORWARD_TARGETS} conversas deste workspace.</p></div>
-          <button type="button" onClick={onClose} disabled={sending} aria-label="Fechar" className="rounded-lg p-2 text-slate-400 hover:bg-slate-50 disabled:opacity-40"><X size={18} /></button>
+      <section role="dialog" aria-modal="true" aria-label="Encaminhar imagem" className="flex max-h-[80vh] w-full max-w-md flex-col rounded-2xl bg-white text-slate-800 shadow-pop">
+        <header className="flex items-center justify-between border-b border-tendi-line px-5 py-4">
+          <div><h2 className="td-title text-base">Encaminhar imagem</h2><p className="mt-0.5 text-xs text-slate-500">Escolha até {MAX_FORWARD_TARGETS} conversas deste workspace.</p></div>
+          <button type="button" onClick={onClose} disabled={sending} aria-label="Fechar" className="rounded-lg p-2 text-slate-400 hover:bg-tendi-haze disabled:opacity-40"><X size={18} /></button>
         </header>
-        <div className="border-b border-slate-100 px-5 py-3">
-          <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-[#FBFCFE] px-3 py-2.5 focus-within:border-[#004751]">
+        <div className="border-b border-tendi-line/70 px-5 py-3">
+          <label className="flex items-center gap-2 rounded-xl border border-tendi-line bg-[#FBFCFE] px-3 py-2.5 focus-within:border-tendi-teal">
             <Search size={15} className="shrink-0 text-slate-400" />
             <input ref={searchRef} value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar nome ou telefone" aria-label="Buscar conversa" className="w-full bg-transparent text-sm outline-none focus-visible:outline-none placeholder:text-slate-400" />
           </label>
@@ -249,18 +249,18 @@ function ForwardPanel({ messageId, hasCaption, targets, onClose, onDone }: {
             const selected = chosen.includes(target.id);
             return (
               <li key={target.id}>
-                <button type="button" role="checkbox" aria-checked={selected} onClick={() => toggle(target.id)} disabled={sending} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${selected ? 'bg-[#004751]/[.06]' : 'hover:bg-slate-50'}`}>
-                  <span className={`flex size-5 shrink-0 items-center justify-center rounded-md border ${selected ? 'border-[#004751] bg-[#004751] text-white' : 'border-slate-300 bg-white'}`}>{selected && <Check size={13} />}</span>
-                  <span className="min-w-0"><span className="block truncate text-sm font-semibold text-[#25275B]">{target.name}</span>{target.phone && target.phone !== target.name && <span className="block truncate text-[11px] text-slate-400">{target.phone}</span>}</span>
+                <button type="button" role="checkbox" aria-checked={selected} onClick={() => toggle(target.id)} disabled={sending} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${selected ? 'bg-tendi-teal/[.06]' : 'hover:bg-tendi-haze'}`}>
+                  <span className={`flex size-5 shrink-0 items-center justify-center rounded-md border ${selected ? 'border-tendi-teal bg-tendi-teal text-white' : 'border-slate-300 bg-white'}`}>{selected && <Check size={13} />}</span>
+                  <span className="min-w-0"><span className="block truncate text-sm font-semibold text-tendi-navy">{target.name}</span>{target.phone && target.phone !== target.name && <span className="block truncate text-[11px] text-slate-400">{target.phone}</span>}</span>
                 </button>
               </li>
             );
           }) : <li className="px-3 py-8 text-center text-sm text-slate-400">{targets.length ? 'Nenhuma conversa encontrada.' : 'Não há outras conversas para encaminhar.'}</li>}
         </ul>
-        <footer className="border-t border-slate-200 px-5 py-4">
-          {hasCaption && <label className="mb-3 flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={includeCaption} onChange={event => setIncludeCaption(event.target.checked)} disabled={sending} className="size-4 accent-[#004751]" />Enviar junto a legenda da imagem</label>}
+        <footer className="border-t border-tendi-line px-5 py-4">
+          {hasCaption && <label className="mb-3 flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={includeCaption} onChange={event => setIncludeCaption(event.target.checked)} disabled={sending} className="size-4 accent-tendi-teal" />Enviar junto a legenda da imagem</label>}
           {error && <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
-          <button type="button" onClick={() => void submit()} disabled={!chosen.length || sending} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#004751] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#003B44] disabled:cursor-not-allowed disabled:opacity-40">
+          <button type="button" onClick={() => void submit()} disabled={!chosen.length || sending} className="td-btn td-btn-teal w-full  disabled:cursor-not-allowed disabled:opacity-40">
             {sending ? <Loader2 size={16} className="animate-spin" /> : <Forward size={16} />}
             {sending ? 'Encaminhando…' : chosen.length > 1 ? `Encaminhar para ${chosen.length} conversas` : 'Encaminhar'}
           </button>

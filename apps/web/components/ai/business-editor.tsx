@@ -39,9 +39,9 @@ export const EMPTY_PROFILE: BusinessProfile = {
   business_hours: DEFAULT_BUSINESS_HOURS,
 };
 
-const inputClass = 'mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[#A7A8D0]';
+const inputClass = 'td-input mt-1';
 const labelClass = 'block text-xs font-semibold text-slate-600';
-const cardClass = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6';
+const cardClass = 'td-card p-5 sm:p-6';
 
 type Notice = { kind: 'ok' | 'error'; text: string } | null;
 
@@ -156,35 +156,35 @@ export function BusinessEditor({ organizationId, onChange }: { organizationId: s
     onChange?.({ profile, knowledge: next });
   }
 
-  if (loading) return <div className="grid h-40 place-items-center"><Loader2 className="animate-spin text-[#2F316B]" /></div>;
+  if (loading) return <div className="grid h-40 place-items-center"><Loader2 className="animate-spin text-tendi-indigo" /></div>;
 
   const used = countKnowledgeChars(items);
   const overBudget = used > MAX_KNOWLEDGE_CHARS;
 
   return <div className="space-y-5">
-    {notice && <p role={notice.kind === 'error' ? 'alert' : 'status'} className={notice.kind === 'error' ? 'rounded-xl bg-rose-50 p-3 text-xs text-rose-700' : 'rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700'}>{notice.text}</p>}
+    {notice && <p role={notice.kind === 'error' ? 'alert' : 'status'} className={notice.kind === 'error' ? 'rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-700 ring-1 ring-inset ring-rose-600/10' : 'rounded-xl bg-emerald-50 px-4 py-3 text-xs text-emerald-700 ring-1 ring-inset ring-emerald-600/10'}>{notice.text}</p>}
 
     <section className={cardClass}>
-      <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#F0F0FA] p-3 text-[#2F316B]"><Building2 size={20} /></span><div><h3 className="text-sm font-bold text-[#2F316B]">Sobre o negócio</h3><p className="text-xs text-slate-400">O agente usa estas informações para responder. Quanto mais claro, melhor.</p></div></div>
+      <div className="mb-4 flex items-center gap-3"><span className="td-icon"><Building2 size={20} /></span><div><h3 className="td-title">Sobre o negócio</h3><p className="text-xs text-slate-400">O agente usa estas informações para responder. Quanto mais claro, melhor.</p></div></div>
       <div className="grid gap-4">
         <label className={labelClass}>Descrição da empresa<textarea rows={3} maxLength={4000} value={profile.company_description} onChange={e => setField('company_description', e.target.value)} className={inputClass} placeholder="Quem somos, onde atuamos, diferenciais..." /></label>
         <label className={labelClass}>Produtos e serviços (com preços, se puder informar)<textarea rows={5} maxLength={8000} value={profile.products_services} onChange={e => setField('products_services', e.target.value)} className={inputClass} placeholder="Limpeza dental: R$ 150&#10;Clareamento: R$ 800" /></label>
         <label className={labelClass}>Políticas (pagamento, entrega, trocas, cancelamento)<textarea rows={3} maxLength={4000} value={profile.policies} onChange={e => setField('policies', e.target.value)} className={inputClass} /></label>
         <label className={labelClass}>Saudação inicial (opcional)<input maxLength={600} value={profile.greeting_message} onChange={e => setField('greeting_message', e.target.value)} className={inputClass} placeholder="Olá! Sou a assistente virtual da empresa. Como posso ajudar?" /></label>
       </div>
-      <button type="button" onClick={() => void saveProfile()} disabled={saving} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Salvar</button>
+      <button type="button" onClick={() => void saveProfile()} disabled={saving} className="mt-5 inline-flex items-center gap-2 td-btn td-btn-teal disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Salvar</button>
     </section>
 
     <section className={cardClass}>
-      <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#E8F4F2] p-3 text-[#004751]"><Clock3 size={20} /></span><div><h3 className="text-sm font-bold text-[#2F316B]">Atendimento humano e transferência</h3><p className="text-xs text-slate-400">Dentro deste horário o agente pode passar a conversa para um atendente.</p></div></div>
+      <div className="mb-4 flex items-center gap-3"><span className="td-icon td-icon-teal"><Clock3 size={20} /></span><div><h3 className="td-title">Atendimento humano e transferência</h3><p className="text-xs text-slate-400">Dentro deste horário o agente pode passar a conversa para um atendente.</p></div></div>
       <label className={labelClass}>Fuso horário<select value={profile.timezone} onChange={e => setField('timezone', e.target.value)} className={inputClass}>{BRAZIL_TIMEZONES.map(zone => <option key={zone.value} value={zone.value}>{zone.label}</option>)}{!BRAZIL_TIMEZONES.some(zone => zone.value === profile.timezone) && <option value={profile.timezone}>{profile.timezone}</option>}</select></label>
-      <div className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-100">
+      <div className="mt-4 divide-y divide-tendi-line/70 rounded-xl border border-tendi-line/70">
         {WEEK_DAYS.map(({ key, label }) => {
           const day = profile.business_hours[key];
           return <div key={key} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
             <label className="flex w-40 items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={day.enabled} onChange={e => setDay(key, { enabled: e.target.checked })} />{label}</label>
             {day.enabled
-              ? <div className="flex items-center gap-2 text-xs text-slate-500"><input type="time" value={day.start} onChange={e => setDay(key, { start: e.target.value })} className="rounded-lg border border-slate-200 px-2 py-1 text-xs" />até<input type="time" value={day.end} onChange={e => setDay(key, { end: e.target.value })} className="rounded-lg border border-slate-200 px-2 py-1 text-xs" /></div>
+              ? <div className="flex items-center gap-2 text-xs text-slate-500"><input type="time" value={day.start} onChange={e => setDay(key, { start: e.target.value })} className="rounded-lg border border-tendi-line px-2 py-1 text-xs" />até<input type="time" value={day.end} onChange={e => setDay(key, { end: e.target.value })} className="rounded-lg border border-tendi-line px-2 py-1 text-xs" /></div>
               : <span className="text-xs text-slate-400">Sem atendimento humano</span>}
           </div>;
         })}
@@ -193,18 +193,18 @@ export function BusinessEditor({ organizationId, onChange }: { organizationId: s
         <label className={labelClass}>Mensagem ao transferir para um atendente (dentro do horário)<input maxLength={600} value={profile.handoff_message} onChange={e => setField('handoff_message', e.target.value)} className={inputClass} /></label>
         <label className={labelClass}>Mensagem quando pedirem um atendente fora do horário<input maxLength={600} value={profile.outside_hours_message} onChange={e => setField('outside_hours_message', e.target.value)} className={inputClass} /></label>
       </div>
-      <button type="button" onClick={() => void saveProfile()} disabled={saving} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Salvar</button>
+      <button type="button" onClick={() => void saveProfile()} disabled={saving} className="mt-5 inline-flex items-center gap-2 td-btn td-btn-teal disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Salvar</button>
     </section>
 
     <section className={cardClass}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><BookOpen size={20} /></span><div><h3 className="text-sm font-bold text-[#2F316B]">Base de conhecimento</h3><p className="text-xs text-slate-400">Perguntas frequentes, regras, horários especiais, convênios, prazos...</p></div></div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><span className="td-icon td-icon-magenta"><BookOpen size={20} /></span><div><h3 className="td-title">Base de conhecimento</h3><p className="text-xs text-slate-400">Perguntas frequentes, regras, horários especiais, convênios, prazos...</p></div></div>
         <p className={overBudget ? 'text-xs font-semibold text-rose-600' : 'text-xs text-slate-400'}>{used.toLocaleString('pt-BR')} de {MAX_KNOWLEDGE_CHARS.toLocaleString('pt-BR')} caracteres{overBudget ? ' (o excedente não será enviado ao agente)' : ''}</p></div>
       <ul className="space-y-3">
-        {items.length === 0 && <li className="rounded-xl bg-[#FAFBFD] p-4 text-xs text-slate-400">Nenhum item ainda. Adicione abaixo as respostas que o agente deve conhecer.</li>}
-        {items.map(item => <li key={item.id} className={item.is_active ? 'rounded-xl border border-slate-200 p-4' : 'rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 opacity-70'}>
+        {items.length === 0 && <li className="rounded-xl bg-tendi-haze/60 p-4 text-xs text-slate-400">Nenhum item ainda. Adicione abaixo as respostas que o agente deve conhecer.</li>}
+        {items.map(item => <li key={item.id} className={item.is_active ? 'rounded-xl border border-tendi-line p-4' : 'rounded-xl border border-dashed border-tendi-line bg-slate-50 p-4 opacity-70'}>
           {editingId === item.id
             ? <div className="space-y-3"><input maxLength={160} value={editDraft.title} onChange={e => setEditDraft(d => ({ ...d, title: e.target.value }))} className={inputClass} /><textarea rows={4} maxLength={6000} value={editDraft.content} onChange={e => setEditDraft(d => ({ ...d, content: e.target.value }))} className={inputClass} />
-                <div className="flex gap-2"><button type="button" disabled={saving || !editDraft.title.trim() || !editDraft.content.trim()} onClick={() => void saveItem(item.id, { title: editDraft.title.trim(), content: editDraft.content.trim() })} className="inline-flex items-center gap-1.5 rounded-lg bg-[#004751] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"><Save size={13} />Salvar</button><button type="button" onClick={() => setEditingId(null)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600"><X size={13} />Cancelar</button></div></div>
+                <div className="flex gap-2"><button type="button" disabled={saving || !editDraft.title.trim() || !editDraft.content.trim()} onClick={() => void saveItem(item.id, { title: editDraft.title.trim(), content: editDraft.content.trim() })} className="inline-flex items-center gap-1.5 rounded-lg bg-tendi-teal px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"><Save size={13} />Salvar</button><button type="button" onClick={() => setEditingId(null)} className="inline-flex items-center gap-1.5 rounded-lg border border-tendi-line px-3 py-2 text-xs font-semibold text-slate-600"><X size={13} />Cancelar</button></div></div>
             : <div><div className="flex items-start justify-between gap-3"><p className="text-sm font-semibold text-slate-800">{item.title}</p><div className="flex shrink-0 items-center gap-1">
                 <label className="mr-2 flex items-center gap-1.5 text-[11px] text-slate-500"><input type="checkbox" checked={item.is_active} disabled={saving} onChange={e => void saveItem(item.id, { is_active: e.target.checked })} />Ativo</label>
                 <button type="button" title="Editar" onClick={() => { setEditingId(item.id); setEditDraft({ title: item.title, content: item.content }); }} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><Pencil size={14} /></button>
@@ -212,10 +212,10 @@ export function BusinessEditor({ organizationId, onChange }: { organizationId: s
               <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-slate-600">{item.content}</p></div>}
         </li>)}
       </ul>
-      <form onSubmit={e => void addItem(e)} className="mt-5 space-y-3 rounded-xl bg-[#FAFBFD] p-4">
+      <form onSubmit={e => void addItem(e)} className="mt-5 space-y-3 rounded-xl bg-tendi-haze/60 p-4">
         <label className={labelClass}>Título<input maxLength={160} value={draft.title} onChange={e => setDraft(d => ({ ...d, title: e.target.value }))} className={inputClass} placeholder="Ex.: Quais convênios vocês aceitam?" /></label>
         <label className={labelClass}>Resposta / conteúdo<textarea rows={4} maxLength={6000} value={draft.content} onChange={e => setDraft(d => ({ ...d, content: e.target.value }))} className={inputClass} /></label>
-        <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#2F316B] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#25275B] disabled:opacity-50"><Plus size={14} />Adicionar item</button>
+        <button type="submit" disabled={saving} className="inline-flex items-center gap-2 td-btn td-btn-primary hover:bg-tendi-deep disabled:opacity-50"><Plus size={14} />Adicionar item</button>
       </form>
     </section>
   </div>;

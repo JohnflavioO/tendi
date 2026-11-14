@@ -37,7 +37,7 @@ export function AmountEditor({ value, onSave, size = 'md', label = 'Valor da opo
   const text = size === 'sm' ? 'text-xs' : 'text-sm';
   if (!editing) {
     const empty = !Number(value ?? 0);
-    return <button type="button" onClick={start} title="Editar valor" aria-label={`${label}: ${formatBRL(value)}. Editar`} className={`group inline-flex items-center gap-1.5 rounded-lg px-1.5 py-1 -mx-1.5 font-bold transition hover:bg-[#E8F4F2] ${text} ${empty ? 'text-slate-400' : 'text-[#004751]'}`}>
+    return <button type="button" onClick={start} title="Editar valor" aria-label={`${label}: ${formatBRL(value)}. Editar`} className={`group inline-flex items-center gap-1.5 rounded-lg px-1.5 py-1 -mx-1.5 font-bold transition hover:bg-tendi-tealsoft ${text} ${empty ? 'text-slate-400' : 'text-tendi-teal'}`}>
       {empty ? 'Definir valor' : formatBRL(value)}
       <PenLine size={12} className="opacity-50 transition group-hover:opacity-100" />
     </button>;
@@ -55,7 +55,7 @@ export function AmountEditor({ value, onSave, size = 'md', label = 'Valor da opo
         autoComplete="off"
         placeholder="0,00"
         aria-label={label}
-        className={`min-w-0 flex-1 rounded-lg border border-[#A7A8D0] bg-white px-2 py-1.5 font-semibold text-slate-800 outline-none focus:border-[#004751] ${text}`}
+        className={`min-w-0 flex-1 rounded-lg border border-[#A7A8D0] bg-white px-2 py-1.5 font-semibold text-slate-800 outline-none focus:border-tendi-lilac focus:shadow-focus ${text}`}
       />
       <button type="submit" disabled={busy} aria-label="Salvar valor" className="rounded-lg p-1.5 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">{busy ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}</button>
       <button type="button" onClick={() => setEditing(false)} aria-label="Cancelar" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><X size={15} /></button>
@@ -92,7 +92,7 @@ export function TitleEditor({ value, onSave }: { value: string; onSave: (title: 
   }
   return <div>
     <form onSubmit={event => { event.preventDefault(); void save(); }} className="flex items-center gap-1">
-      <input ref={input} value={draft} maxLength={120} onChange={event => { setDraft(event.target.value); setError(''); }} onKeyDown={event => { if (event.key === 'Escape') setEditing(false); }} aria-label="Título da oportunidade" autoComplete="off" className="min-w-0 flex-1 rounded-lg border border-[#A7A8D0] bg-white px-2 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-[#004751]" />
+      <input ref={input} value={draft} maxLength={120} onChange={event => { setDraft(event.target.value); setError(''); }} onKeyDown={event => { if (event.key === 'Escape') setEditing(false); }} aria-label="Título da oportunidade" autoComplete="off" className="min-w-0 flex-1 rounded-lg border border-[#A7A8D0] bg-white px-2 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-tendi-lilac focus:shadow-focus" />
       <button type="submit" disabled={busy} aria-label="Salvar título" className="rounded-lg p-1.5 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">{busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}</button>
       <button type="button" onClick={() => setEditing(false)} aria-label="Cancelar" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><X size={14} /></button>
     </form>

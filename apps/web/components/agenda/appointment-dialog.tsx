@@ -17,9 +17,9 @@ export type AppointmentDraft = { appointment?: Appointment; professionalId?: str
 
 const STATUS_ACTIONS: Array<{ status: AppointmentStatus; label: string; className: string }> = [
   { status: 'confirmed', label: 'Confirmar', className: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
-  { status: 'completed', label: 'Atendido', className: 'border-slate-300 text-slate-700 hover:bg-slate-50' },
+  { status: 'completed', label: 'Atendido', className: 'border-slate-300 text-slate-700 hover:bg-tendi-haze' },
   { status: 'no_show', label: 'Faltou', className: 'border-rose-200 text-rose-700 hover:bg-rose-50' },
-  { status: 'cancelled', label: 'Cancelar', className: 'border-slate-200 text-slate-500 hover:bg-slate-50' },
+  { status: 'cancelled', label: 'Cancelar', className: 'border-tendi-line text-slate-500 hover:bg-tendi-haze' },
 ];
 
 /** Criar ou editar um agendamento: cliente, serviço, profissional, dia, horário e situação. */
@@ -171,13 +171,13 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4 sm:items-center" onClick={event => { if (event.target === event.currentTarget && !saving) onClose(); }}>
-      <section role="dialog" aria-modal="true" aria-label={editing ? 'Editar agendamento' : 'Novo agendamento'} className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-        <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+      <section role="dialog" aria-modal="true" aria-label={editing ? 'Editar agendamento' : 'Novo agendamento'} className="w-full max-w-lg rounded-2xl bg-white shadow-pop">
+        <header className="flex items-center justify-between border-b border-tendi-line px-5 py-4">
           <div>
-            <h2 className="text-base font-bold text-[#25275B]">{editing ? 'Agendamento' : 'Novo agendamento'}</h2>
+            <h2 className="td-title text-base">{editing ? 'Agendamento' : 'Novo agendamento'}</h2>
             {currentStatus && <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500"><span className={`size-2 rounded-full ${STATUS_INFO[currentStatus].dot}`} />{STATUS_INFO[currentStatus].label}{editing?.source === 'ai' ? ' · marcado pela IA' : ''}</p>}
           </div>
-          <button type="button" onClick={onClose} disabled={saving} aria-label="Fechar" className="rounded-lg p-2 text-slate-400 hover:bg-slate-50 disabled:opacity-40"><X size={18} /></button>
+          <button type="button" onClick={onClose} disabled={saving} aria-label="Fechar" className="rounded-lg p-2 text-slate-400 hover:bg-tendi-haze disabled:opacity-40"><X size={18} /></button>
         </header>
 
         <form onSubmit={event => { event.preventDefault(); void save(); }} className="space-y-4 px-5 py-4">
@@ -195,9 +195,9 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
               <label htmlFor="appointment-name" className={labelClass}>{customerLabel}</label>
               <input id="appointment-name" ref={nameRef} value={name} onChange={event => { setName(event.target.value); setContactId(null); }} autoComplete="off" maxLength={120} placeholder="Nome" className={fieldClass} />
               {hits.length > 0 && (
-                <ul className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                <ul className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-tendi-line bg-white shadow-lg">
                   {hits.map(hit => (
-                    <li key={hit.id}><button type="button" onClick={() => { setName(hit.full_name); setPhone(hit.phone_e164 ?? ''); setContactId(hit.id); setHits([]); }} className="block w-full px-3 py-2 text-left hover:bg-slate-50"><span className="block truncate text-sm font-semibold text-[#25275B]">{hit.full_name}</span><span className="block text-[11px] text-slate-400">{hit.phone_e164 ?? 'Sem telefone'}</span></button></li>
+                    <li key={hit.id}><button type="button" onClick={() => { setName(hit.full_name); setPhone(hit.phone_e164 ?? ''); setContactId(hit.id); setHits([]); }} className="block w-full px-3 py-2 text-left hover:bg-tendi-haze"><span className="block truncate text-sm font-semibold text-tendi-navy">{hit.full_name}</span><span className="block text-[11px] text-slate-400">{hit.phone_e164 ?? 'Sem telefone'}</span></button></li>
                   ))}
                 </ul>
               )}
@@ -250,7 +250,7 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
               <div className="flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
                 {suggestions.map(slot => {
                   const label = formatMinutes(slot);
-                  return <button key={slot} type="button" onClick={() => setTime(label)} className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${time === label ? 'border-[#004751] bg-[#004751] text-white' : 'border-slate-200 text-slate-600 hover:border-[#004751] hover:text-[#004751]'}`}>{label}</button>;
+                  return <button key={slot} type="button" onClick={() => setTime(label)} className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${time === label ? 'border-tendi-teal bg-tendi-teal text-white' : 'border-tendi-line text-slate-600 hover:border-tendi-teal hover:text-tendi-teal'}`}>{label}</button>;
                 })}
               </div>
             ) : <p className="text-xs text-slate-400">{shifts.length ? 'Nenhum horário livre neste dia para essa duração.' : `Este ${professionalLabel.toLowerCase()} não atende neste dia da semana.`}</p>}
@@ -266,20 +266,20 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
           {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
 
           {editing && (
-            <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+            <div className="flex flex-wrap items-center gap-2 border-t border-tendi-line/70 pt-4">
               {STATUS_ACTIONS.filter(action => action.status !== currentStatus).map(action => (
                 <button key={action.status} type="button" disabled={saving} onClick={() => void save(action.status)} className={`rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:opacity-40 ${action.className}`}>{action.label}</button>
               ))}
               {currentStatus && currentStatus !== 'scheduled' && <button type="button" disabled={saving} onClick={() => void save('scheduled')} className="rounded-lg border border-sky-200 px-3 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-50 disabled:opacity-40">Voltar para agendado</button>}
-              {editing.contact_id && <a href={`/inbox?contact=${editing.contact_id}`} className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-[#004751] hover:bg-slate-50"><MessageCircle size={14} />Abrir conversa</a>}
+              {editing.contact_id && <a href={`/inbox?contact=${editing.contact_id}`} className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-tendi-teal hover:bg-tendi-haze"><MessageCircle size={14} />Abrir conversa</a>}
             </div>
           )}
 
           <div className="flex items-center justify-between gap-3 pt-1">
             <p className="text-xs text-slate-400">{price.trim() && !Number.isNaN(parsePrice(price)) ? formatPrice(parsePrice(price)) : ''}</p>
             <div className="flex gap-2">
-              <button type="button" onClick={onClose} disabled={saving} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40">Fechar</button>
-              <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#003B44] disabled:opacity-40">{saving && <Loader2 size={15} className="animate-spin" />}{editing ? 'Salvar alterações' : 'Agendar'}</button>
+              <button type="button" onClick={onClose} disabled={saving} className="td-btn td-btn-secondary  disabled:opacity-40">Fechar</button>
+              <button type="submit" disabled={saving} className="td-btn td-btn-teal  disabled:opacity-40">{saving && <Loader2 size={15} className="animate-spin" />}{editing ? 'Salvar alterações' : 'Agendar'}</button>
             </div>
           </div>
         </form>

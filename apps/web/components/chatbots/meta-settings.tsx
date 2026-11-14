@@ -92,7 +92,7 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
     await onChanged();
   }
 
-  const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6';
+  const card = 'td-card p-5 md:p-6';
   const statusTag = (status: string) => status === 'connected'
     ? <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">Conectado</span>
     : <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-500">Não conectado</span>;
@@ -100,34 +100,34 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
   return (
     <section className={card}>
       <div className="flex items-start gap-4">
-        <span className="rounded-2xl bg-[#F0F0FA] p-4 text-[#2F316B]"><Instagram size={22} /></span>
+        <span className="rounded-2xl bg-tendi-mist p-4 text-tendi-indigo"><Instagram size={22} /></span>
         <div>
-          <h2 className="text-lg font-bold text-[#25275B]">Instagram e Messenger</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-tendi-navy">Instagram e Messenger</h2>
           <p className="mt-1 text-xs text-slate-500">São dois cadastros separados pela própria Meta, cada um com seu login: o Messenger pela página do Facebook, o Instagram direto pela conta.</p>
         </div>
       </div>
 
-      {error && <p role="alert" className="mt-4 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">{error}</p>}
+      {error && <p role="alert" className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-700 ring-1 ring-inset ring-rose-600/10">{error}</p>}
       {notice && <p role="status" className="mt-4 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-700">{notice}</p>}
 
       {configured === null ? (
         <p className="mt-5 flex items-center gap-2 text-xs text-slate-400"><Loader2 size={14} className="animate-spin" />Verificando configuração…</p>
       ) : step === 'choose' ? (
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-[#FBFCFE] p-4">
-          <p className="text-xs font-bold text-[#25275B]">Escolha a página do Facebook (Messenger)</p>
+        <div className="mt-5 rounded-2xl border border-tendi-line bg-[#FBFCFE] p-4">
+          <p className="text-xs font-bold text-tendi-navy">Escolha a página do Facebook (Messenger)</p>
           {pages === null ? <p className="mt-3 flex items-center gap-2 text-xs text-slate-400"><Loader2 size={14} className="animate-spin" />Carregando páginas…</p>
             : pages.length === 0 ? <p className="mt-3 text-xs text-slate-500">Nenhuma página encontrada. Confira se a conta usada administra uma página do Facebook.</p>
             : <ul className="mt-3 space-y-2">{pages.map(page => (
-                <li key={page.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                  <p className="text-sm font-semibold text-[#25275B]">{page.name}</p>
-                  <button type="button" onClick={() => void connectPage(page.id)} disabled={busy === page.id} className="flex items-center gap-2 rounded-lg bg-[#004751] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{busy === page.id && <Loader2 size={13} className="animate-spin" />}Conectar</button>
+                <li key={page.id} className="flex items-center justify-between gap-3 rounded-xl border border-tendi-line bg-white p-3">
+                  <p className="text-sm font-semibold text-tendi-navy">{page.name}</p>
+                  <button type="button" onClick={() => void connectPage(page.id)} disabled={busy === page.id} className="flex items-center gap-2 rounded-lg bg-tendi-teal px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{busy === page.id && <Loader2 size={13} className="animate-spin" />}Conectar</button>
                 </li>
               ))}</ul>}
         </div>
       ) : (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 p-3">
-            <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-sm font-semibold text-[#25275B]"><Facebook size={16} />Messenger</span>{statusTag(messenger?.status ?? 'disconnected')}</div>
+          <div className="rounded-xl border border-tendi-line p-3">
+            <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-sm font-semibold text-tendi-navy"><Facebook size={16} />Messenger</span>{statusTag(messenger?.status ?? 'disconnected')}</div>
             {messenger?.status === 'connected' && <p className="mt-1 truncate text-[11px] text-slate-400">{messenger.display_name}</p>}
             <div className="mt-3">
               {messenger?.status === 'connected' ? (
@@ -139,8 +139,8 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
               )}
             </div>
           </div>
-          <div className="rounded-xl border border-slate-200 p-3">
-            <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-sm font-semibold text-[#25275B]"><Instagram size={16} />Instagram</span>{statusTag(instagram?.status ?? 'disconnected')}</div>
+          <div className="rounded-xl border border-tendi-line p-3">
+            <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-sm font-semibold text-tendi-navy"><Instagram size={16} />Instagram</span>{statusTag(instagram?.status ?? 'disconnected')}</div>
             {instagram?.status === 'connected' && <p className="mt-1 truncate text-[11px] text-slate-400">{instagram.display_name}</p>}
             <div className="mt-3">
               {instagram?.status === 'connected' ? (

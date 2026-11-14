@@ -80,19 +80,19 @@ export function SupportAccessCard({ organizationId }: { organizationId: string }
   if (!available || role === undefined) return null;
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+    <section className="td-card p-5 xl:col-span-2">
       <div className="flex items-start gap-3">
-        <span className="rounded-xl bg-[#FDF0FA] p-3 text-[#CB0A9F]"><LifeBuoy size={20} /></span>
+        <span className="td-icon td-icon-magenta"><LifeBuoy size={20} /></span>
         <div>
-          <h2 className="text-sm font-bold text-[#2F316B]">Acesso do suporte TendiDesk</h2>
+          <h2 className="td-title">Acesso do suporte TendiDesk</h2>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">A equipe da TendiDesk não vê suas conversas, contatos, CRM nem agenda. Se você precisar de ajuda dentro da sua conta, gere um código e passe para o suporte: ele libera o acesso por tempo limitado, e você pode encerrar quando quiser.</p>
         </div>
       </div>
 
       {active && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#CB0A9F]/30 bg-[#FDF0FA] px-4 py-3">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-tendi-magenta/30 bg-[#FDF0FA] px-4 py-3">
           <p className="text-sm text-[#7A0760]"><strong>O suporte está com acesso à sua conta</strong> até {active.access_expires_at ? dateTime(active.access_expires_at) : '—'}.</p>
-          {canManage && <button type="button" onClick={() => void end()} disabled={busy === 'end'} className="flex items-center gap-2 rounded-xl bg-[#CB0A9F] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#A8087F] disabled:opacity-50">{busy === 'end' && <Loader2 size={14} className="animate-spin" />}Encerrar acesso agora</button>}
+          {canManage && <button type="button" onClick={() => void end()} disabled={busy === 'end'} className="flex items-center gap-2 rounded-xl bg-tendi-magenta px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#A8087F] disabled:opacity-50">{busy === 'end' && <Loader2 size={14} className="animate-spin" />}Encerrar acesso agora</button>}
         </div>
       )}
 
@@ -112,30 +112,30 @@ export function SupportAccessCard({ organizationId }: { organizationId: string }
 
       {canManage && !active && (
         <div className="mt-4 grid gap-3 sm:grid-cols-[170px_1fr_auto] sm:items-end">
-          <label className="block"><span className="mb-1.5 block text-xs font-semibold text-slate-600">Liberar por</span>
-            <select value={hours} onChange={event => setHours(Number(event.target.value))} disabled={busy === 'generate'} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#7C7EC0]">
+          <label className="block"><span className="td-label">Liberar por</span>
+            <select value={hours} onChange={event => setHours(Number(event.target.value))} disabled={busy === 'generate'} className="td-input">
               {SUPPORT_HOUR_OPTIONS.map(option => <option key={option} value={option}>{hoursLabel(option)}</option>)}
             </select>
           </label>
-          <label className="block"><span className="mb-1.5 block text-xs font-semibold text-slate-600">Motivo (opcional)</span>
-            <input value={reason} onChange={event => setReason(event.target.value)} maxLength={300} disabled={busy === 'generate'} placeholder="Ex.: ajuda para configurar a agenda" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#7C7EC0]" />
+          <label className="block"><span className="td-label">Motivo (opcional)</span>
+            <input value={reason} onChange={event => setReason(event.target.value)} maxLength={300} disabled={busy === 'generate'} placeholder="Ex.: ajuda para configurar a agenda" className="td-input" />
           </label>
-          <button type="button" onClick={() => void generate()} disabled={busy === 'generate'} className="flex items-center justify-center gap-2 rounded-xl bg-[#2F316B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#25275B] disabled:opacity-50">{busy === 'generate' && <Loader2 size={15} className="animate-spin" />}{waiting ? 'Gerar novo código' : 'Gerar código de suporte'}</button>
+          <button type="button" onClick={() => void generate()} disabled={busy === 'generate'} className="td-btn td-btn-primary  disabled:opacity-50">{busy === 'generate' && <Loader2 size={15} className="animate-spin" />}{waiting ? 'Gerar novo código' : 'Gerar código de suporte'}</button>
         </div>
       )}
       {!canManage && !supportUntil && <p className="mt-4 text-xs text-slate-400">Somente o dono ou um administrador da empresa pode liberar ou encerrar o acesso do suporte.</p>}
       {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
 
       {grants.length > 0 && (
-        <div className="mt-5 border-t border-slate-100 pt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Últimos acessos</p>
-          <ul className="mt-2 divide-y divide-slate-100">
+        <div className="mt-5 border-t border-tendi-line/70 pt-4">
+          <p className="td-eyebrow">Últimos acessos</p>
+          <ul className="mt-2 divide-y divide-tendi-line/70">
             {grants.map(grant => {
               const state = supportGrantState(grant, now);
               return (
                 <li key={grant.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-xs">
                   <span className="text-slate-600">{dateTime(grant.created_at)} · {hoursLabel(grant.access_hours)}{grant.reason ? ` · ${grant.reason}` : ''}</span>
-                  <span className={state === 'active' ? 'font-semibold text-[#CB0A9F]' : state === 'waiting' ? 'font-semibold text-amber-700' : 'text-slate-400'}>{SUPPORT_STATE_LABEL[state]}{state === 'finished' && grant.redeemed_at ? ` · usado em ${dateTime(grant.redeemed_at)}` : ''}</span>
+                  <span className={state === 'active' ? 'font-semibold text-tendi-magenta' : state === 'waiting' ? 'font-semibold text-amber-700' : 'text-slate-400'}>{SUPPORT_STATE_LABEL[state]}{state === 'finished' && grant.redeemed_at ? ` · usado em ${dateTime(grant.redeemed_at)}` : ''}</span>
                 </li>
               );
             })}

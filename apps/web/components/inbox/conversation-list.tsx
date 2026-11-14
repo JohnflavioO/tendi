@@ -78,61 +78,61 @@ export function ConversationList({ conversations, userId, selectedId, onSelect, 
   return <>
     <header className="px-4 pb-3 pt-5">
       <div className="flex items-center justify-between px-1">
-        <div><p className="text-lg font-bold tracking-tight text-[#1D1F4E]">Atendimento</p><p className="text-xs text-slate-500">{conversations.length} conversas · <b className="font-semibold text-rose-600">{unreadTotal} não lidas</b></p></div>
-        <button onClick={onRefresh} className="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:border-[#CB0A9F]/30 hover:bg-[#FCF5FA] hover:text-[#CB0A9F]" title="Atualizar" aria-label="Atualizar conversas"><RefreshCw size={15} /></button>
+        <div><p className="text-[17px] font-semibold tracking-tight text-tendi-navy">Atendimento</p><p className="mt-0.5 text-xs text-slate-500">{conversations.length} conversas{unreadTotal > 0 && <> · <b className="font-semibold text-tendi-magenta">{unreadTotal} não lidas</b></>}</p></div>
+        <button onClick={onRefresh} className="td-icon-btn border border-tendi-line bg-white" title="Atualizar" aria-label="Atualizar conversas"><RefreshCw size={15} /></button>
       </div>
 
-      <div role="tablist" aria-label="Filas de atendimento" className="mt-4 grid grid-cols-4 gap-1 rounded-2xl bg-[#EEF0F7] p-1">
+      <div role="tablist" aria-label="Filas de atendimento" className="mt-4 grid grid-cols-4 gap-1 rounded-xl bg-tendi-haze p-1 ring-1 ring-inset ring-tendi-line/80">
         {TABS.map(item => {
           const active = activeTab === item.key;
           const count = counts[item.key];
-          return <button key={item.key} type="button" role="tab" aria-selected={active} title={item.hint} onClick={() => setTab(item.key)} className={active ? 'flex items-center justify-center gap-1.5 rounded-xl bg-white px-1 py-2 text-[12px] font-bold text-[#1D1F4E] shadow-sm' : 'flex items-center justify-center gap-1.5 rounded-xl px-1 py-2 text-[12px] font-semibold text-slate-500 transition hover:text-[#1D1F4E]'}>
+          return <button key={item.key} type="button" role="tab" aria-selected={active} title={item.hint} onClick={() => setTab(item.key)} className={active ? 'td-tab td-tab-active justify-center px-1 text-[12px]' : 'td-tab justify-center px-1 text-[12px]'}>
             {item.label}
-            {item.key !== 'todas' && count > 0 && <span className={item.key === 'novos' ? 'min-w-[18px] rounded-full bg-rose-600 px-1.5 text-[10px] font-bold leading-[18px] text-white' : 'min-w-[18px] rounded-full bg-[#1D1F4E] px-1.5 text-[10px] font-bold leading-[18px] text-white'}>{count}</span>}
+            {item.key !== 'todas' && count > 0 && <span className={item.key === 'novos' ? 'min-w-[18px] rounded-full bg-tendi-magenta px-1.5 text-[10px] font-bold leading-[18px] text-white' : 'min-w-[18px] rounded-full bg-tendi-navy px-1.5 text-[10px] font-bold leading-[18px] text-white'}>{count}</span>}
           </button>;
         })}
       </div>
 
       <div className="mt-3 flex items-center gap-2">
-        <label className="flex flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 transition focus-within:border-[#7C7EC0] focus-within:ring-2 focus-within:ring-[#2F316B]/5">
+        <label className="flex h-10 flex-1 items-center gap-2 rounded-xl border border-tendi-line bg-white px-3 transition hover:border-slate-300 focus-within:border-tendi-lilac focus-within:shadow-focus">
           <Search size={15} className="shrink-0 text-slate-400" />
           <input placeholder="Buscar nome ou telefone" value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-transparent text-[13px] outline-none placeholder:text-slate-400" />
           {search && <button type="button" onClick={() => setSearch('')} aria-label="Limpar busca" className="text-slate-400 hover:text-slate-600"><X size={14} /></button>}
         </label>
-        <button type="button" onClick={() => setShowFilters(open => !open)} aria-expanded={showFilters} aria-label="Filtros" title="Filtros" className={filtersOn ? 'relative rounded-xl border border-[#1D1F4E] bg-[#1D1F4E] p-2.5 text-white' : 'relative rounded-xl border border-slate-200 bg-white p-2.5 text-slate-500 hover:text-[#1D1F4E]'}><SlidersHorizontal size={15} /></button>
+        <button type="button" onClick={() => setShowFilters(open => !open)} aria-expanded={showFilters} aria-label="Filtros" title="Filtros" className={filtersOn ? 'relative flex size-10 items-center justify-center rounded-xl bg-tendi-indigo text-white shadow-card' : 'relative flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:text-tendi-indigo'}><SlidersHorizontal size={15} /></button>
       </div>
-      {showFilters && <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5">
-        <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600"><input type="checkbox" checked={unreadOnly} onChange={e => setUnreadOnly(e.target.checked)} className="accent-[#CB0A9F]" />Só não lidas</label>
-        <select aria-label="Status" value={status} onChange={e => setStatus(e.target.value)} className="ml-auto rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600">{STATUS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+      {showFilters && <div className="mt-2 flex animate-pop flex-wrap items-center gap-2 rounded-xl border border-tendi-line bg-tendi-haze/70 p-2.5">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600"><input type="checkbox" checked={unreadOnly} onChange={e => setUnreadOnly(e.target.checked)} className="accent-tendi-magenta" />Só não lidas</label>
+        <select aria-label="Status" value={status} onChange={e => setStatus(e.target.value)} className="ml-auto h-8 rounded-lg border border-tendi-line bg-white px-2 text-xs text-slate-600 outline-none focus:border-tendi-lilac">{STATUS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
       </div>}
     </header>
 
-    <div className="min-h-0 flex-1 overflow-y-auto border-t border-slate-100">
+    <div className="min-h-0 flex-1 overflow-y-auto border-t border-tendi-line/70 px-2 py-2">
       {filtered.map(item => {
         const selected = selectedId === item.id;
         const tags = conversationTags({ aiMode: item.ai_mode, contactTags: item.contacts?.tags });
         const unread = item.unread_count > 0;
         const owner = item.assigned_to && item.assigned_to !== userId ? memberNames[item.assigned_to] : null;
-        return <button key={item.id} type="button" onClick={() => onSelect(item.id)} className={selected ? 'relative flex w-full gap-3 border-b border-slate-100 bg-[#ECEEFE] px-4 py-3.5 text-left' : 'relative flex w-full gap-3 border-b border-slate-100 px-4 py-3.5 text-left transition hover:bg-slate-50'}>
-          {selected && <span className="absolute inset-y-0 left-0 w-[3px] bg-[#4F46E5]" />}
+        return <button key={item.id} type="button" onClick={() => onSelect(item.id)} className={selected ? 'relative mb-0.5 flex w-full gap-3 rounded-xl bg-tendi-mist px-3 py-3 text-left ring-1 ring-inset ring-tendi-indigo/[.06]' : 'relative mb-0.5 flex w-full gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-tendi-haze'}>
+          {selected && <span className="absolute inset-y-3 -left-2 w-[3px] rounded-r-full bg-tendi-magenta" />}
           <ContactAvatar contactId={item.contact_id} name={item.contacts?.full_name} className="size-11 rounded-full text-[12px]" whatsapp />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <p className={unread ? 'truncate text-[14px] font-bold text-slate-900' : 'truncate text-[14px] font-semibold text-slate-800'}>{item.contacts?.full_name ?? 'Contato'}</p>
+              <p className={unread ? 'truncate text-[14px] font-semibold text-tendi-navy' : 'truncate text-[14px] font-medium text-slate-700'}>{item.contacts?.full_name ?? 'Contato'}</p>
               {item.teams && <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${item.teams.color}1F`, color: item.teams.color }}>{item.teams.name}</span>}
             </div>
             {tags.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{tags.slice(0, 3).map(tag => <span key={tag.label} className={`rounded px-1.5 py-[3px] text-[9.5px] font-bold uppercase leading-none tracking-wide ${tag.className}`}>{tag.label}</span>)}{tags.length > 3 && <span className="rounded bg-slate-200 px-1.5 py-[3px] text-[9.5px] font-bold leading-none text-slate-600">+{tags.length - 3}</span>}</div>}
             <div className="mt-1 flex items-center gap-2">
-              <p className={unread ? 'min-w-0 flex-1 truncate text-[12.5px] font-medium text-[#3730A3]' : 'min-w-0 flex-1 truncate text-[12.5px] text-slate-500'}>{preview(item.id)}</p>
-              <span className={unread ? 'shrink-0 text-[11px] font-semibold text-rose-600' : 'shrink-0 text-[11px] text-slate-400'}>{relativeTime(item.last_message_at)}</span>
-              {unread && <span className="flex min-w-[20px] shrink-0 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-bold leading-5 text-white">{item.unread_count}</span>}
+              <p className={unread ? 'min-w-0 flex-1 truncate text-[12.5px] font-medium text-tendi-indigo' : 'min-w-0 flex-1 truncate text-[12.5px] text-slate-500'}>{preview(item.id)}</p>
+              <span className={unread ? 'shrink-0 text-[11px] font-semibold text-tendi-magenta' : 'shrink-0 text-[11px] text-slate-400'}>{relativeTime(item.last_message_at)}</span>
+              {unread && <span className="flex min-w-[20px] shrink-0 items-center justify-center rounded-full bg-tendi-magenta px-1.5 text-[11px] font-bold leading-5 text-white shadow-[0_2px_6px_-2px_rgba(203,10,159,.6)]">{item.unread_count}</span>}
             </div>
             {owner && <p className="mt-1 text-[11px] text-slate-500">Com <b className="font-semibold text-slate-700">{owner}</b></p>}
           </div>
         </button>;
       })}
-      {!filtered.length && <div className="px-6 py-12 text-center"><div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-[#F3F4FA] text-slate-400"><MessageCircle size={22} /></div><p className="mt-4 text-sm font-semibold text-slate-700">{activeTab === 'novos' ? 'Nenhuma conversa na fila' : activeTab === 'meus' ? 'Nenhuma conversa com você' : 'Nenhuma conversa encontrada'}</p><p className="mt-1 text-xs leading-5 text-slate-400">{activeTab === 'novos' ? 'Conversas sem responsável aparecem aqui.' : 'Troque de aba ou ajuste a busca.'}</p></div>}
+      {!filtered.length && <div className="px-6 py-12 text-center"><div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-white text-tendi-lilac shadow-card ring-1 ring-tendi-line"><MessageCircle size={22} /></div><p className="mt-4 text-sm font-semibold text-tendi-navy">{activeTab === 'novos' ? 'Nenhuma conversa na fila' : activeTab === 'meus' ? 'Nenhuma conversa com você' : 'Nenhuma conversa encontrada'}</p><p className="mt-1 text-xs leading-5 text-slate-400">{activeTab === 'novos' ? 'Conversas sem responsável aparecem aqui.' : 'Troque de aba ou ajuste a busca.'}</p></div>}
     </div>
-    <div className="border-t border-slate-100 px-4 py-2.5 text-[10px] text-slate-400">Atualização em tempo real</div>
+    <div className="flex items-center gap-2 border-t border-tendi-line/70 px-4 py-2.5 text-[10.5px] text-slate-400"><span className="size-1.5 rounded-full bg-emerald-500" />Atualização em tempo real</div>
   </>;
 }

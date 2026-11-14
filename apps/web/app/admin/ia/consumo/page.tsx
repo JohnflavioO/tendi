@@ -14,8 +14,8 @@ type Org = { id: string; name: string; status: string; plan_code: string | null 
 type Agent = { organization_id: string; is_enabled: boolean; model: string | null; monthly_reply_limit: number | null };
 type Usage = { organization_id: string; replies: number; limit_hits: number; errors: number; input_tokens: number; output_tokens: number; cost_usd: number };
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6';
-const input = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#A7A8D0]';
+const card = 'td-card p-5 sm:p-6';
+const input = 'td-input';
 const brl = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: value < 1 ? 4 : 2 });
 const num = (value: number) => value.toLocaleString('pt-BR');
 const parse = (value: string) => Number(value.replace(/\./g, '').replace(',', '.'));
@@ -122,8 +122,8 @@ export default function AiUsagePage() {
     } finally { setSaving(false); }
   }
 
-  if (loading) return <main className="grid min-h-screen place-items-center bg-[#F6F7FB] text-[#2F316B]"><Loader2 className="animate-spin" size={28} /></main>;
-  if (!authorized) return <main className="grid min-h-screen place-items-center bg-[#F6F7FB] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><ShieldCheck className="mx-auto text-[#CB0A9F]" size={32} /><h1 className="mt-4 text-xl font-semibold text-[#2F316B]">Acesso restrito</h1><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-[#004751]">Voltar ao Inbox</a></div></main>;
+  if (loading) return <main className="grid min-h-screen place-items-center bg-tendi-haze text-tendi-indigo"><Loader2 className="animate-spin" size={28} /></main>;
+  if (!authorized) return <main className="grid min-h-screen place-items-center bg-tendi-haze p-6"><div className="td-card p-8 text-center"><ShieldCheck className="mx-auto text-tendi-magenta" size={32} /><h1 className="mt-4 text-xl font-semibold tracking-tight text-tendi-navy">Acesso restrito</h1><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-tendi-teal">Voltar ao Inbox</a></div></main>;
 
   const replyCost = typicalReplyCostBrl(pricing, globalModel);
   const totalCost = rows.reduce((sum, row) => sum + row.cost, 0);
@@ -133,7 +133,7 @@ export default function AiUsagePage() {
   return <AdminShell title="Consumo da IA">
 
     <div className="space-y-6">
-      {message && <p role="status" className={message.ok ? 'rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700' : 'rounded-xl bg-rose-50 p-3 text-xs text-rose-700'}>{message.text}</p>}
+      {message && <p role="status" className={message.ok ? 'rounded-xl bg-emerald-50 px-4 py-3 text-xs text-emerald-700 ring-1 ring-inset ring-emerald-600/10' : 'rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-700 ring-1 ring-inset ring-rose-600/10'}>{message.text}</p>}
 
       <section className="grid gap-4 sm:grid-cols-3">
         <Stat label="Respostas da IA neste mês" value={num(totalReplies)} detail="Todas as empresas clientes" />
@@ -142,16 +142,16 @@ export default function AiUsagePage() {
       </section>
 
       <section className={card}>
-        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#F0F0FA] p-3 text-[#2F316B]"><Gauge size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Uso deste mês por empresa</h2><p className="text-xs text-slate-400">Ao atingir o limite, a IA para de responder e as conversas novas vão para “Aguardando atendente”. O mês vira no dia 1º (horário de Brasília).</p></div></div>
+        <div className="mb-4 flex items-center gap-3"><span className="td-icon"><Gauge size={20} /></span><div><h2 className="td-title">Uso deste mês por empresa</h2><p className="text-xs text-slate-400">Ao atingir o limite, a IA para de responder e as conversas novas vão para “Aguardando atendente”. O mês vira no dia 1º (horário de Brasília).</p></div></div>
         {rows.length ? <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-xs">
           <thead className="text-[10px] uppercase tracking-wide text-slate-400"><tr><th className="py-2">Empresa</th><th>Plano</th><th>Respostas / limite</th><th>Custo IA</th><th>% da mensalidade</th><th>Modelo</th></tr></thead>
           <tbody>{rows.map(row => {
             const used = row.used?.replies ?? 0;
             const level = usageLevel(used, row.limit);
-            return <tr key={row.org.id} className="border-t border-slate-100 align-middle">
+            return <tr key={row.org.id} className="border-t border-tendi-line/70 align-middle">
               <td className="py-3 font-semibold text-slate-700">{row.org.name}{row.org.status === 'trial' && <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">teste</span>}{!row.agent?.is_enabled && <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">IA desligada</span>}</td>
               <td>{row.plan?.name ?? row.org.plan_code ?? '—'}</td>
-              <td className="min-w-[180px]"><div className="flex items-center gap-2"><span className={level === 'reached' ? 'font-semibold text-rose-600' : level === 'warning' ? 'font-semibold text-amber-700' : 'text-slate-700'}>{num(used)} / {num(row.limit)}</span>{row.agent?.monthly_reply_limit ? <span className="text-[10px] text-slate-400">(exceção)</span> : null}</div><div className="mt-1 h-1.5 w-36 overflow-hidden rounded-full bg-slate-100"><div className={level === 'reached' ? 'h-full bg-rose-500' : level === 'warning' ? 'h-full bg-amber-500' : 'h-full bg-[#004751]'} style={{ width: `${Math.min(100, (used / row.limit) * 100)}%` }} /></div>{row.used?.limit_hits ? <p className="mt-1 text-[10px] text-rose-600">{row.used.limit_hits} mensagem(ns) sem resposta por limite</p> : null}</td>
+              <td className="min-w-[180px]"><div className="flex items-center gap-2"><span className={level === 'reached' ? 'font-semibold text-rose-600' : level === 'warning' ? 'font-semibold text-amber-700' : 'text-slate-700'}>{num(used)} / {num(row.limit)}</span>{row.agent?.monthly_reply_limit ? <span className="text-[10px] text-slate-400">(exceção)</span> : null}</div><div className="mt-1 h-1.5 w-36 overflow-hidden rounded-full bg-slate-100"><div className={level === 'reached' ? 'h-full bg-rose-500' : level === 'warning' ? 'h-full bg-amber-500' : 'h-full bg-tendi-teal'} style={{ width: `${Math.min(100, (used / row.limit) * 100)}%` }} /></div>{row.used?.limit_hits ? <p className="mt-1 text-[10px] text-rose-600">{row.used.limit_hits} mensagem(ns) sem resposta por limite</p> : null}</td>
               <td>{brl(row.cost)}</td>
               <td>{row.share === null ? '—' : <span className={row.share > COST_ALERT ? 'font-semibold text-rose-600' : 'text-slate-700'}>{(row.share * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>}</td>
               <td className="font-mono text-[11px] text-slate-500">{row.model}</td>
@@ -160,12 +160,12 @@ export default function AiUsagePage() {
       </section>
 
       <section className={card}>
-        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><Wallet size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Limites por plano</h2><p className="text-xs text-slate-400">Respostas da IA por mês. Para liberar mais para um cliente específico, use “Limite mensal desta empresa” em Agentes de IA.</p></div></div>
+        <div className="mb-4 flex items-center gap-3"><span className="td-icon td-icon-magenta"><Wallet size={20} /></span><div><h2 className="td-title">Limites por plano</h2><p className="text-xs text-slate-400">Respostas da IA por mês. Para liberar mais para um cliente específico, use “Limite mensal desta empresa” em Agentes de IA.</p></div></div>
         <div className="space-y-3">{plans.map(plan => {
           const limit = Math.round(parse(form[`plan:${plan.code}`] ?? '')) || 0;
           const worst = replyCost !== null && limit ? limit * replyCost : null;
           const share = worst !== null && plan.monthly_price ? worst / Number(plan.monthly_price) : null;
-          return <div key={plan.code} className="flex flex-wrap items-center gap-3 rounded-xl bg-[#FAFBFD] p-3">
+          return <div key={plan.code} className="flex flex-wrap items-center gap-3 td-subtle p-3">
             <div className="min-w-[160px] flex-1"><p className="text-sm font-semibold text-slate-700">{plan.name}</p><p className="text-[11px] text-slate-400">{plan.monthly_price ? `${brl(Number(plan.monthly_price))}/mês` : 'sem preço'}</p></div>
             <label className="flex items-center gap-2 text-xs text-slate-500">{field(`plan:${plan.code}`, 'w-28')} respostas/mês</label>
             <p className={share !== null && share > COST_ALERT ? 'text-[11px] font-semibold text-rose-600' : 'text-[11px] text-slate-500'}>{worst !== null ? <>Custo máximo com {globalModel}: <b>{brl(worst)}</b>{share !== null ? ` (${(share * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% da mensalidade)` : ''}</> : 'Sem limite definido: usa o padrão abaixo.'}</p>
@@ -178,18 +178,18 @@ export default function AiUsagePage() {
       </section>
 
       <section className={card}>
-        <h2 className="text-sm font-bold text-[#2F316B]">Preço dos modelos (para estimar o custo)</h2>
+        <h2 className="td-title">Preço dos modelos (para estimar o custo)</h2>
         <p className="mt-1 text-xs text-slate-400">US$ por 1 milhão de tokens, preço de tabela do provedor. Atualize a cotação do dólar de vez em quando. O custo real aparece na fatura do provedor.</p>
         <label className="mt-4 block max-w-xs text-xs font-semibold text-slate-600">Cotação: R$ por US$ 1{field('usd', 'mt-1')}</label>
         <div className="mt-4 space-y-2">{Object.keys(pricing.models).map(model => <div key={model} className="flex flex-wrap items-center gap-3 text-xs text-slate-500"><span className="w-44 font-mono text-[11px] text-slate-700">{model}</span><label className="flex items-center gap-2">entrada {field(`in:${model}`, 'w-24')}</label><label className="flex items-center gap-2">saída {field(`out:${model}`, 'w-24')}</label></div>)}</div>
         {!pricing.models[globalModel] && <p className="mt-3 flex items-center gap-2 text-xs text-amber-700"><TriangleAlert size={14} />O modelo padrão ({globalModel}) não tem preço cadastrado: o custo dele aparece como zero.</p>}
       </section>
 
-      <button type="button" onClick={() => void save()} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#004751] px-5 py-3 text-sm font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}Salvar limites e preços</button>
+      <button type="button" onClick={() => void save()} disabled={saving} className="td-btn td-btn-teal  disabled:opacity-50">{saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}Salvar limites e preços</button>
     </div>
   </AdminShell>;
 }
 
 function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-2 text-2xl font-bold text-[#25275B]">{value}</p><p className="mt-1 text-[11px] text-slate-400">{detail}</p></article>;
+  return <article className="td-card p-5"><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-2 text-2xl font-bold text-tendi-navy">{value}</p><p className="mt-1 text-[11px] text-slate-400">{detail}</p></article>;
 }
