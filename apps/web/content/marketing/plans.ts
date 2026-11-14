@@ -15,7 +15,7 @@ export const planCopy: Record<string, { label: string; description: string; feat
   },
 };
 
-export const fallbackCopy = { label: 'Plano Tendi', description: 'Atendimento, CRM e IA em um só lugar.', featured: false };
+export const fallbackCopy = { label: 'Plano TendiDesk', description: 'Atendimento, CRM e IA em um só lugar.', featured: false };
 
 const int = (value: number) => value.toLocaleString('pt-BR');
 

@@ -52,7 +52,7 @@ export function tooManyWebchatMessages(recentCount: number): boolean {
 }
 
 /**
- * O widget roda no site do cliente, numa origem diferente da do Tendi: sem isto, o navegador
+ * O widget roda no site do cliente, numa origem diferente da do TendiDesk: sem isto, o navegador
  * bloqueia as chamadas por CORS antes mesmo de chegarem ao servidor. Liberado para qualquer
  * origem de propósito (não usa cookies; quem autoriza é o token da sessão, dentro do corpo/consulta).
  */

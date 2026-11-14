@@ -12,9 +12,9 @@ import {
 const dateTime = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 /**
- * Configurações > Acesso do suporte Tendi.
+ * Configurações > Acesso do suporte TendiDesk.
  * O dono ou administrador gera um código, passa para o suporte e pode encerrar o acesso quando quiser.
- * Sem esse código, a equipe da Tendi não vê conversas, contatos, CRM nem agenda da empresa.
+ * Sem esse código, a equipe da TendiDesk não vê conversas, contatos, CRM nem agenda da empresa.
  */
 export function SupportAccessCard({ organizationId }: { organizationId: string }) {
   const supabase = useMemo(() => createClient() as any, []);
@@ -84,8 +84,8 @@ export function SupportAccessCard({ organizationId }: { organizationId: string }
       <div className="flex items-start gap-3">
         <span className="rounded-xl bg-[#FDF0FA] p-3 text-[#CB0A9F]"><LifeBuoy size={20} /></span>
         <div>
-          <h2 className="text-sm font-bold text-[#2F316B]">Acesso do suporte Tendi</h2>
-          <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">A equipe da Tendi não vê suas conversas, contatos, CRM nem agenda. Se você precisar de ajuda dentro da sua conta, gere um código e passe para o suporte: ele libera o acesso por tempo limitado, e você pode encerrar quando quiser.</p>
+          <h2 className="text-sm font-bold text-[#2F316B]">Acesso do suporte TendiDesk</h2>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">A equipe da TendiDesk não vê suas conversas, contatos, CRM nem agenda. Se você precisar de ajuda dentro da sua conta, gere um código e passe para o suporte: ele libera o acesso por tempo limitado, e você pode encerrar quando quiser.</p>
         </div>
       </div>
 
@@ -98,7 +98,7 @@ export function SupportAccessCard({ organizationId }: { organizationId: string }
 
       {codeStillValid && generated && (
         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
-          <p className="text-xs font-semibold text-emerald-900">Passe este código para o suporte da Tendi</p>
+          <p className="text-xs font-semibold text-emerald-900">Passe este código para o suporte da TendiDesk</p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <span className="font-mono text-3xl font-bold tracking-[.18em] text-emerald-900" aria-label={`Código ${generated.code.split('').join(' ')}`}>{formatSupportCode(generated.code)}</span>
             <button type="button" onClick={() => void copy()} className="flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? 'Copiado' : 'Copiar'}</button>

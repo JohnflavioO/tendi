@@ -57,7 +57,7 @@ export default function OrganizationSetupPage() {
 
   return <AdminShell title="Responsável da empresa" width="max-w-3xl">
     <div className="mx-auto max-w-2xl">
-      <div className="mt-7 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9"><img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain"/>
+      <div className="mt-7 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9"><img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain"/>
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf0fb] text-[#2F316B]"><ShieldCheck size={23}/></div>
         <p className="mt-6 text-xs font-bold uppercase tracking-[.16em] text-[#CB0A9F]">Configuração inicial</p>
         <h1 className="mt-2 text-2xl font-bold text-[#2F316B]">{organization?.name ?? 'Empresa'}</h1>

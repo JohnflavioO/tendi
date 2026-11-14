@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Bot, Building2, Check, Clock3, Loader2, MessageCircle, Users } from 'lucide-react';
+import { ArrowRight, Bot, Building2, Check, Clock3, Loader2, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useTrialDays } from '@/lib/use-trial-days';
 import { rememberPendingSignupEmail } from '@/lib/pending-signup';
@@ -109,8 +109,7 @@ export default function RegisterPage() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/login" className="flex items-center gap-3">
-            <span className="rounded-xl bg-[#2F316B] p-2.5 text-white"><MessageCircle size={20}/></span>
-            <span className="text-xl font-bold text-[#2F316B]">Tendi</span>
+            <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain" />
           </Link>
           <Link href="/login" className="text-sm font-semibold text-[#004751] hover:underline">Já tenho uma conta</Link>
         </div>
@@ -120,7 +119,7 @@ export default function RegisterPage() {
         <section className="flex flex-col justify-center">
           <p className="text-xs font-bold uppercase tracking-[.18em] text-[#CB0A9F]">Comece gratuitamente</p>
           <h1 className="mt-3 max-w-lg text-4xl font-bold leading-tight text-[#25275B] sm:text-5xl">Seu atendimento organizado começa aqui.</h1>
-          <p className="mt-5 max-w-lg text-base leading-7 text-slate-500">Crie seu ambiente, escolha o plano e experimente o Tendi por {trialLabel}. Sem cartão de crédito e sem cobrança automática.</p>
+          <p className="mt-5 max-w-lg text-base leading-7 text-slate-500">Crie seu ambiente, escolha o plano e experimente o TendiDesk por {trialLabel}. Sem cartão de crédito e sem cobrança automática.</p>
           <div className="mt-8 space-y-4">
             <div className="flex items-center gap-3 text-sm text-slate-600"><span className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Clock3 size={18}/></span>{trialLabel} de teste gratuito</div>
             <div className="flex items-center gap-3 text-sm text-slate-600"><span className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Bot size={18}/></span>Agente de IA que responde no WhatsApp nos dois planos</div>
@@ -131,7 +130,7 @@ export default function RegisterPage() {
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-7">
             <p className="text-sm font-semibold text-[#004751]">Cadastro da empresa</p>
-            <h2 className="mt-2 text-2xl font-bold text-[#25275B]">Crie sua conta Tendi</h2>
+            <h2 className="mt-2 text-2xl font-bold text-[#25275B]">Crie sua conta TendiDesk</h2>
             <p className="mt-2 text-sm text-slate-500">Preencha os dados para preparar seu ambiente de atendimento.</p>
           </div>
 

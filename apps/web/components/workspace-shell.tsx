@@ -69,7 +69,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
   }
 
   const sidebar = <aside className="flex h-full w-[238px] shrink-0 flex-col border-r border-slate-200 bg-white px-4 py-5">
-    <a href={consoleOnly ? '/admin' : withOrganization('/inbox', organization?.id)} className="mb-8 flex items-center px-2"><img src="/brand/Logo%20Tendi.png" alt="Tendi" className="h-9 w-auto object-contain"/></a>
+    <a href={consoleOnly ? '/admin' : withOrganization('/inbox', organization?.id)} className="mb-8 flex items-center px-2"><img src="/brand/tendidesk-logo.png" alt="TendiDesk" className="h-11 w-auto object-contain"/></a>
     <div className="mb-6 rounded-xl border border-slate-200 bg-[#FAFBFD] p-3">
       <span className="mb-2 block text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Workspace</span>
       <div className="flex items-center gap-2 text-sm font-semibold text-[#2F316B]"><Building2 size={16}/><span className="truncate">{organization?.name ?? 'Carregando...'}</span><ChevronDown size={14} className="ml-auto text-slate-400"/></div>

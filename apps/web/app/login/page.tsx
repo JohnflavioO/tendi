@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Loader2, MessageCircle, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useTrialDays } from '@/lib/use-trial-days';
 import { provisionPendingWorkspace } from '@/lib/ensure-workspace';
@@ -58,8 +58,8 @@ export default function LoginPage() {
       <section className="relative hidden flex-col justify-between overflow-hidden bg-[#2F316B] p-14 text-white lg:flex">
         <div className="absolute -right-28 -top-28 h-96 w-96 rounded-full border border-white/10" />
         <div className="absolute -bottom-40 -left-20 h-[30rem] w-[30rem] rounded-full border border-white/10" />
-        <div className="relative flex items-center gap-3 text-2xl font-bold">
-          <span className="rounded-xl bg-white/10 p-3"><MessageCircle /></span>Tendi
+        <div className="relative flex items-center">
+          <img src="/brand/tendidesk-logo-branca.png" alt="TendiDesk" width="1291" height="640" className="h-14 w-auto object-contain" />
         </div>
         <div className="relative max-w-xl">
           <p className="text-sm font-semibold uppercase tracking-[.22em] text-[#F4A8E1]">Atendimento que aproxima</p>
@@ -67,13 +67,13 @@ export default function LoginPage() {
           <p className="mt-6 max-w-lg text-lg leading-8 text-white/75">Organize conversas, acompanhe oportunidades e mantenha sua equipe conectada em um só lugar.</p>
           <div className="mt-10 h-1.5 w-32 rounded-full bg-[#CB0A9F]" />
         </div>
-        <p className="relative text-sm text-white/55">Tendi · Atendimento e CRM conversacional</p>
+        <p className="relative text-sm text-white/55">TendiDesk · Atendimento e CRM conversacional</p>
       </section>
 
       <section className="flex items-center justify-center px-6 py-12">
         <form onSubmit={submit} className="w-full max-w-md">
-          <div className="mb-10 flex items-center gap-3 text-2xl font-bold text-[#2F316B] lg:hidden"><MessageCircle />Tendi</div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-[#004751]">Bem-vindo ao Tendi</p>
+          <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="mb-10 h-12 w-auto object-contain lg:hidden" />
+          <p className="text-sm font-semibold uppercase tracking-wider text-[#004751]">Bem-vindo ao TendiDesk</p>
           <h2 className="mt-3 text-3xl font-semibold text-slate-900">Acesse sua conta</h2>
           <p className="mt-2 text-sm text-slate-500">Entre para continuar seus atendimentos ou administrar a plataforma.</p>
 

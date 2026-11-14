@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
-<title>Convite para a equipe no Tendi</title>
+<title>Convite para a equipe no TendiDesk</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F3F4F9;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">{{ if .Data.inviter_name }}{{ .Data.inviter_name }} convidou você para a equipe {{ if .Data.organization_name }}da {{ .Data.organization_name }} {{ end }}no Tendi. Aceite e crie sua senha.{{ else }}Você foi convidado(a) para uma equipe no Tendi. Aceite e crie sua senha.{{ end }}</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">{{ if .Data.inviter_name }}{{ .Data.inviter_name }} convidou você para a equipe {{ if .Data.organization_name }}da {{ .Data.organization_name }} {{ end }}no TendiDesk. Aceite e crie sua senha.{{ else }}Você foi convidado(a) para uma equipe no TendiDesk. Aceite e crie sua senha.{{ end }}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F3F4F9;">
   <tr>
     <td align="center" style="padding:32px 16px 40px 16px;">
@@ -17,7 +17,7 @@
         <!-- Logo -->
         <tr>
           <td align="left" style="padding:0 4px 22px 4px;">
-            <img src="{{ .SiteURL }}/brand/Logo%20Tendi.png" alt="Tendi" height="34" style="display:block;height:34px;width:auto;border:0;font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:700;color:#1D1F4E;">
+            <img src="{{ .SiteURL }}/brand/tendidesk-logo.png" alt="TendiDesk" height="46" style="display:block;height:46px;width:auto;border:0;font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:700;color:#1D1F4E;">
           </td>
         </tr>
 
@@ -30,14 +30,14 @@
               <tr>
                 <td bgcolor="#1D1F4E" style="background-color:#1D1F4E;background-image:linear-gradient(135deg,#1D1F4E 0%,#2F316B 55%,#7A1468 100%);padding:34px 32px 30px 32px;">
                   <p style="margin:0 0 10px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#F4A8DF;">Convite para a equipe</p>
-                  <h1 style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:34px;font-weight:700;color:#FFFFFF;">{{ if .Data.inviter_name }}{{ .Data.inviter_name }} convidou você para o Tendi{{ else }}Você foi convidado(a) para o Tendi{{ end }}</h1>
-                  <p style="margin:12px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#D6D7F0;">{{ if .Data.organization_name }}{{ if .Data.invite_role }}Administre a conta da <strong style="color:#FFFFFF;">{{ .Data.organization_name }}</strong> no Tendi.{{ else }}Faça parte da equipe de atendimento da <strong style="color:#FFFFFF;">{{ .Data.organization_name }}</strong>.{{ end }}{{ else }}Faça parte da equipe de atendimento da sua empresa.{{ end }}</p>
+                  <h1 style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:34px;font-weight:700;color:#FFFFFF;">{{ if .Data.inviter_name }}{{ .Data.inviter_name }} convidou você para o TendiDesk{{ else }}Você foi convidado(a) para o TendiDesk{{ end }}</h1>
+                  <p style="margin:12px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#D6D7F0;">{{ if .Data.organization_name }}{{ if .Data.invite_role }}Administre a conta da <strong style="color:#FFFFFF;">{{ .Data.organization_name }}</strong> no TendiDesk.{{ else }}Faça parte da equipe de atendimento da <strong style="color:#FFFFFF;">{{ .Data.organization_name }}</strong>.{{ end }}{{ else }}Faça parte da equipe de atendimento da sua empresa.{{ end }}</p>
                 </td>
               </tr>
 
               <tr>
                 <td style="padding:30px 32px 8px 32px;">
-                  <p style="margin:0 0 20px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#334155;">Olá{{ if .Data.full_name }}, {{ .Data.full_name }}{{ end }}! O Tendi reúne o WhatsApp da empresa, o CRM e o agente de IA em um só lugar, para a equipe atender melhor e não perder nenhuma conversa.{{ if .Data.invite_role }} Como administrador(a), você conecta o WhatsApp da empresa, convida a equipe e acompanha os atendimentos.{{ end }} O acesso é individual: depois, entre sempre com este e-mail.</p>
+                  <p style="margin:0 0 20px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#334155;">Olá{{ if .Data.full_name }}, {{ .Data.full_name }}{{ end }}! O TendiDesk reúne o WhatsApp da empresa, o CRM e o agente de IA em um só lugar, para a equipe atender melhor e não perder nenhuma conversa.{{ if .Data.invite_role }} Como administrador(a), você conecta o WhatsApp da empresa, convida a equipe e acompanha os atendimentos.{{ end }} O acesso é individual: depois, entre sempre com este e-mail.</p>
 
                   <!-- Detalhes do convite -->
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F7F8FC;border:1px solid #E6E8F2;border-radius:14px;">
@@ -123,7 +123,7 @@
         <!-- Rodapé -->
         <tr>
           <td align="center" style="padding:24px 8px 0 8px;">
-            <p style="margin:0 0 4px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#94A3B8;">Tendi · Atendimento, CRM e IA no WhatsApp em um só lugar.</p>
+            <p style="margin:0 0 4px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#94A3B8;">TendiDesk · Atendimento, CRM e IA no WhatsApp em um só lugar.</p>
             <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#94A3B8;">Precisa de ajuda? <a href="mailto:suporte@tendidesk.com.br" style="color:#64748B;">suporte@tendidesk.com.br</a></p>
           </td>
         </tr>

@@ -1,7 +1,7 @@
 import type { PublicPlan } from '@/lib/public-plans';
 
 export const siteContent = {
-  brand: 'Tendi',
+  brand: 'TendiDesk',
   eyebrow: 'ATENDIMENTO E GESTÃO COMERCIAL',
   heroTitle: 'Sua equipe atende melhor quando tudo está conectado.',
   heroDescription: 'Organize o WhatsApp da empresa, coloque um agente de IA para responder seus clientes e acompanhe cada oportunidade no CRM. Tudo em uma única plataforma.',
@@ -24,7 +24,7 @@ export const features = [
   { id: 'crm', eyebrow: 'COMERCIAL', title: 'CRM com funil de vendas', description: 'Quem chama pela primeira vez já vira oportunidade no funil. Acompanhe cada negociação até o fechamento.', detail: 'Etapas, valores e conversa a um clique.' },
   { id: 'ai', eyebrow: 'INTELIGÊNCIA ARTIFICIAL', title: 'Agente de IA que responde no WhatsApp', description: 'A IA aprende sobre o seu negócio, responde no seu tom, respeita o horário de atendimento e chama um atendente quando precisa.', detail: 'Incluído nos dois planos, com respostas mensais por plano.' },
   { id: 'teams', eyebrow: 'EQUIPE', title: 'Equipe com papéis e permissões', description: 'Convide pessoas por e-mail e defina quem é dono, administrador, supervisor ou atendente. Cada um vê só o que precisa.', detail: 'Setores para organizar a operação.' },
-  { id: 'billing', eyebrow: 'AUTOMAÇÃO', title: 'Segunda via de boleto', description: 'No Tendi Pro, prepare a operação para atender pedidos de segunda via de boleto.', detail: 'Integrações financeiras definidas por provedor.' },
+  { id: 'billing', eyebrow: 'AUTOMAÇÃO', title: 'Segunda via de boleto', description: 'No TendiDesk Pro, prepare a operação para atender pedidos de segunda via de boleto.', detail: 'Integrações financeiras definidas por provedor.' },
   { id: 'integrations', eyebrow: 'CONECTIVIDADE', title: 'Integrações conforme sua operação', description: 'Planeje conexões com ferramentas e serviços usados pela sua empresa.', detail: 'Integrações adicionais têm configuração e valores próprios.' },
 ] as const;
 
@@ -46,8 +46,8 @@ export const getFaqs = (trialLabel: string, plans: PublicPlan[] = []) => {
   const replies = [start, pro].filter(plan => plan?.aiMonthlyReplies).map(plan => `${int(plan!.aiMonthlyReplies!)} no ${plan!.name}`).join(' e ');
   const prices = [start, pro].filter(plan => plan?.monthlyPrice).map(plan => `${plan!.name}: ${money(plan!.monthlyPrice!)}/mês`).join('; ');
   return [
-    { question: 'Como funciona o teste gratuito?', answer: `Você tem ${trialLabel} para usar o Tendi com a sua equipe, inclusive o agente de IA (com um limite menor de respostas durante o teste). O cadastro não pede cartão e nada é cobrado.` },
-    { question: 'Quanto custa depois do teste?', answer: `${prices || 'Os valores aparecem na seção de planos'}.${annualPercent > 0 ? ` No plano anual você paga uma vez por ano, com ${annualPercent}% de desconto.` : ''} A assinatura é feita dentro do Tendi, no cartão de crédito, com pagamento processado pela Pagar.me.` },
+    { question: 'Como funciona o teste gratuito?', answer: `Você tem ${trialLabel} para usar o TendiDesk com a sua equipe, inclusive o agente de IA (com um limite menor de respostas durante o teste). O cadastro não pede cartão e nada é cobrado.` },
+    { question: 'Quanto custa depois do teste?', answer: `${prices || 'Os valores aparecem na seção de planos'}.${annualPercent > 0 ? ` No plano anual você paga uma vez por ano, com ${annualPercent}% de desconto.` : ''} A assinatura é feita dentro do TendiDesk, no cartão de crédito, com pagamento processado pela Pagar.me.` },
     { question: 'O que acontece quando o teste termina?', answer: 'O acesso fica pausado até você escolher um plano. Suas conversas, contatos e configurações continuam guardados e voltam assim que a assinatura é confirmada.' },
     { question: 'Quantas pessoas posso ter na equipe?', answer: `${users ? users.charAt(0).toUpperCase() + users.slice(1) : 'Depende do plano'}. Você convida por e-mail e escolhe o papel de cada um: dono, administrador, supervisor ou atendente.` },
     { question: 'Como funciona o agente de IA?', answer: 'Você conta para a IA sobre o seu negócio (produtos, preços, horários e regras). Ela responde os clientes no WhatsApp no tom que você escolher e, quando o assunto pede uma pessoa, avisa o cliente e passa a conversa para a equipe.' },

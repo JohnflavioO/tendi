@@ -201,7 +201,7 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
                   ))}
                 </ul>
               )}
-              {contactId && <p className="mt-1 text-[11px] text-emerald-700">Ligado ao contato do Tendi</p>}
+              {contactId && <p className="mt-1 text-[11px] text-emerald-700">Ligado ao contato do TendiDesk</p>}
             </div>
             <div>
               <label htmlFor="appointment-phone" className={labelClass}>WhatsApp (opcional)</label>

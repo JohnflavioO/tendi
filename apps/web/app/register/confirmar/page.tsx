@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, MailCheck, MessageCircle } from 'lucide-react';
+import { Loader2, MailCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { readPendingSignupEmail } from '@/lib/pending-signup';
 
@@ -49,8 +49,7 @@ export default function ConfirmEmailPage() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
-            <span className="rounded-xl bg-[#2F316B] p-2.5 text-white"><MessageCircle size={20}/></span>
-            <span className="text-xl font-bold text-[#2F316B]">Tendi</span>
+            <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain" />
           </Link>
           <Link href="/login" className="text-sm font-semibold text-[#004751] hover:underline">Já confirmei, entrar</Link>
         </div>

@@ -12,7 +12,7 @@ const REUSE_MS = 30 * 60 * 1000;
 /**
  * POST /api/billing/checkout { organizationId, planCode, period? ('monthly' | 'annual') }
  * Dono ou admin do workspace pede o checkout de um plano. Devolve a URL do checkout da Pagar.me
- * (página hospedada por ela: o Tendi nunca vê dados de cartão).
+ * (página hospedada por ela: o TendiDesk nunca vê dados de cartão).
  */
 export async function POST(request: Request) {
   const supabase = (await createClient()) as any;
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
         customerName: (profile?.full_name as string | undefined)?.trim() || org.name,
         customerEmail: email,
         successUrl: `${origin}/assinatura?organization=${organizationId}&checkout=concluido`,
-        logoUrl: `${origin}/brand/tendi-logo-light.png`,
+        logoUrl: `${origin}/brand/tendidesk-logo.png`,
       }),
     });
     if (!link?.id || !link.url) throw new PagarmeError('A Pagar.me não devolveu o link de pagamento.', 502);

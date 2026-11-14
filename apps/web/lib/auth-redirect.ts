@@ -1,6 +1,6 @@
 /**
  * Destinos permitidos depois de um link de e-mail (login, redefinição de senha, convite).
- * Só caminhos internos: impede usar o link do Tendi para mandar a pessoa a outro site.
+ * Só caminhos internos: impede usar o link do TendiDesk para mandar a pessoa a outro site.
  */
 export function safeNext(value: string | null | undefined): string | null {
   if (!value) return null;

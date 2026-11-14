@@ -22,7 +22,7 @@ export function SidebarFooter({ organizationId, role, superAdmin, onSignOut }: {
     <TrialNotice organizationId={organizationId} />
     {manager && <AiUsageNotice organizationId={organizationId} compact />}
     {canAccess(role, 'assinatura') && <a href={organizationId ? `/assinatura?organization=${organizationId}` : '/assinatura'} className={link}><CreditCard size={15} className="text-[#004751]" />Plano e assinatura</a>}
-    <a href="/" target="_blank" rel="noopener" className={link}><ExternalLink size={15} className="text-[#004751]" />Ver site do Tendi</a>
+    <a href="/" target="_blank" rel="noopener" className={link}><ExternalLink size={15} className="text-[#004751]" />Ver site do TendiDesk</a>
     {superAdmin && <a href="/admin" className={link}><ShieldCheck size={15} className="text-[#CB0A9F]" />Console Super Admin</a>}
     {role && !superAdmin && <p className="px-2 text-[10px] text-slate-400">Logado como <b className="text-slate-500">{ROLE_INFO[role].label}</b></p>}
     {onSignOut

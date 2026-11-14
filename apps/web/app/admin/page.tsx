@@ -180,7 +180,7 @@ export default function AdminPage() {
         <div>
           <p className="text-sm text-white/60">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{greeting}{firstName ? `, ${firstName}` : ''}.</h2>
-          <p className="mt-2 max-w-xl text-sm text-white/70">{attention ? `${attention} ${attention === 1 ? 'cliente pede' : 'clientes pedem'} atenção hoje.` : trials ? `${trials} ${trials === 1 ? 'empresa está' : 'empresas estão'} testando o Tendi agora.` : 'Tudo em ordem na plataforma.'}</p>
+          <p className="mt-2 max-w-xl text-sm text-white/70">{attention ? `${attention} ${attention === 1 ? 'cliente pede' : 'clientes pedem'} atenção hoje.` : trials ? `${trials} ${trials === 1 ? 'empresa está' : 'empresas estão'} testando o TendiDesk agora.` : 'Tudo em ordem na plataforma.'}</p>
         </div>
         <div className="flex gap-8">
           <div><p className="text-xs font-medium uppercase tracking-wider text-white/50">Receita mensal</p><p className="mt-1 text-3xl font-semibold tracking-tight">{brl(mrr)}</p><p className="text-xs text-white/50">{brl(mrr * 12)} por ano</p></div>

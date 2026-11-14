@@ -159,7 +159,7 @@ export default function OrganizationAdminPage() {
               <span className="rounded-xl bg-[#FDF0FA] p-3 text-[#CB0A9F]"><LifeBuoy size={20} /></span>
               <div>
                 <h2 className="text-base font-bold text-[#25275B]">Acesso de suporte</h2>
-                <p className="mt-1 max-w-2xl text-sm text-slate-500">Conversas, contatos, CRM e agenda deste cliente são confidenciais. Para entrar na conta dele, peça que gere um código em Configurações → Acesso do suporte Tendi e informe abaixo.</p>
+                <p className="mt-1 max-w-2xl text-sm text-slate-500">Conversas, contatos, CRM e agenda deste cliente são confidenciais. Para entrar na conta dele, peça que gere um código em Configurações → Acesso do suporte TendiDesk e informe abaixo.</p>
               </div>
             </div>
 
@@ -210,7 +210,7 @@ export default function OrganizationAdminPage() {
             {!internal && (
               <div className="mt-5 border-t border-slate-100 pt-4">
                 {organization.status === 'suspended' ? <>
-                  <p className="text-sm text-slate-600">A empresa está <strong>bloqueada</strong>: ninguém da equipe dela entra no Tendi. Os dados continuam guardados.</p>
+                  <p className="text-sm text-slate-600">A empresa está <strong>bloqueada</strong>: ninguém da equipe dela entra no TendiDesk. Os dados continuam guardados.</p>
                   <button type="button" disabled={busy === 'status'} onClick={async () => { if (await call('status', 'PATCH', { action: 'reactivate' }, 'Empresa reativada.')) await load(); }} className={`${primary} mt-3`}>{busy === 'status' && <Loader2 size={14} className="animate-spin" />}Reativar empresa</button>
                 </> : <>
                   <p className="text-sm text-slate-600">Bloquear impede o acesso de toda a equipe da empresa e pausa a IA e os lembretes automáticos. Nada é apagado, e você pode reativar depois.</p>

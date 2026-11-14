@@ -1,6 +1,6 @@
 # E-mails de autenticação
 
-Os e-mails de cadastro, convite e senha são enviados pelo Supabase Auth. Os modelos com a marca Tendi ficam em `supabase/templates/`. O projeto hospedado não lê esses arquivos sozinho: o conteúdo precisa ser colado no painel do Supabase.
+Os e-mails de cadastro, convite e senha são enviados pelo Supabase Auth. Os modelos com a marca TendiDesk ficam em `supabase/templates/`. O projeto hospedado não lê esses arquivos sozinho: o conteúdo precisa ser colado no painel do Supabase.
 
 ## Onde colar
 
@@ -8,16 +8,16 @@ Painel do Supabase → **Authentication** → **Emails** → **Templates**. Para
 
 | Modelo no painel | Arquivo | Assunto |
 | --- | --- | --- |
-| Confirm signup | `confirmacao-cadastro.html` | Confirme seu e-mail para começar no Tendi |
-| Invite user | `convite.html` | {{ if .Data.inviter_name }}{{ .Data.inviter_name }} convidou você para a equipe no Tendi{{ else }}Você foi convidado para o Tendi{{ end }} |
-| Reset password | `redefinir-senha.html` (link via `/auth/confirm`, funciona em qualquer aparelho) | Redefinir sua senha do Tendi |
-| Magic link | `link-de-acesso.html` | {{ if .Data.needs_password }}Seu convite para o Tendi{{ else }}Seu link de acesso ao Tendi{{ end }} |
-| Change email address | `alteracao-de-email.html` | Confirme seu novo e-mail no Tendi |
+| Confirm signup | `confirmacao-cadastro.html` | Confirme seu e-mail para começar no TendiDesk |
+| Invite user | `convite.html` | {{ if .Data.inviter_name }}{{ .Data.inviter_name }} convidou você para a equipe no TendiDesk{{ else }}Você foi convidado para o TendiDesk{{ end }} |
+| Reset password | `redefinir-senha.html` (link via `/auth/confirm`, funciona em qualquer aparelho) | Redefinir sua senha do TendiDesk |
+| Magic link | `link-de-acesso.html` | {{ if .Data.needs_password }}Seu convite para o TendiDesk{{ else }}Seu link de acesso ao TendiDesk{{ end }} |
+| Change email address | `alteracao-de-email.html` | Confirme seu novo e-mail no TendiDesk |
 
 ## Pré-requisitos
 
-- **Site URL** (Authentication → URL Configuration) deve ser o endereço público do app. O logo do e-mail é carregado de `{Site URL}/brand/Logo%20Tendi.png`; com outro endereço, aparece só o texto "Tendi".
-- **Remetente próprio**: para o e-mail sair como "Tendi" de um domínio da empresa, e não como "Supabase Auth", configure um SMTP próprio em Authentication → Emails → SMTP Settings. O envio padrão do Supabase é destinado a testes e tem limite baixo de mensagens por hora.
+- **Site URL** (Authentication → URL Configuration) deve ser o endereço público do app. O logo do e-mail é carregado de `{Site URL}/brand/tendidesk-logo.png`; com outro endereço, aparece só o texto "TendiDesk".
+- **Remetente próprio**: para o e-mail sair como "TendiDesk" de um domínio da empresa, e não como "Supabase Auth", configure um SMTP próprio em Authentication → Emails → SMTP Settings. O envio padrão do Supabase é destinado a testes e tem limite baixo de mensagens por hora.
 
 ### SMTP com uma caixa de e-mail da Hostinger
 
@@ -26,7 +26,7 @@ Sem SMTP próprio o Supabase não deixa editar os modelos. Com uma caixa de e-ma
 | Campo no Supabase | Valor |
 | --- | --- |
 | Sender email address | o endereço da caixa (o mesmo do Username) |
-| Sender name | `Tendi` |
+| Sender name | `TendiDesk` |
 | Host | `smtp.hostinger.com` |
 | Port number | `465` |
 | Username | o endereço completo da caixa |
@@ -46,6 +46,6 @@ O convite enviado pela tela **Equipe** (e pelo Console, para o responsável da e
 
 **Reenviar convite** (botão na tela Equipe) manda o modelo **Magic link**: para quem ainda não criou a senha (`needs_password`), ele aparece como "Seu convite continua de pé". O link leva a `/auth/callback`, que ativa o convite e abre `/definir-senha`.
 
-Se o painel não aceitar os blocos `{{ if }}` no **assunto**, use um assunto fixo (ex.: "Você foi convidado para uma equipe no Tendi").
+Se o painel não aceitar os blocos `{{ if }}` no **assunto**, use um assunto fixo (ex.: "Você foi convidado para uma equipe no TendiDesk").
 
 O convite do administrador da empresa (pelo Console) também envia `{{ .Data.invite_role }}`, que troca o texto para "Administre a conta da ..." e explica o papel; a tela de boas-vindas (`/definir-senha`) usa o mesmo campo.

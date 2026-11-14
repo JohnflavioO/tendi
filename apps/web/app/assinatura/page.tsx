@@ -92,7 +92,7 @@ export default function SubscriptionPage() {
 
   return <main className="min-h-screen bg-[#F5F6FB] text-slate-800">
     <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-      <img src="/brand/Logo%20Tendi.png" alt="Tendi" width="797" height="304" className="h-9 w-auto object-contain" />
+      <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain" />
       <div className="flex items-center gap-4">
         {!blocked && <a href="/inbox" className="inline-flex items-center gap-2 text-sm font-semibold text-[#004751]"><ArrowLeft size={16} /> Voltar ao Inbox</a>}
         <form action="/auth/signout" method="post"><button className="text-sm text-slate-500 hover:text-slate-700">Sair</button></form>
@@ -106,15 +106,15 @@ export default function SubscriptionPage() {
 
       {error && <p role="alert" className="mt-5 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
-      {confirming && !hasSubscription && <div role="status" className="mt-6 flex items-center gap-3 rounded-2xl border border-[#2F316B]/10 bg-white p-5 shadow-sm"><Loader2 className="animate-spin text-[#004751]" size={22} /><div><p className="font-semibold text-[#25275B]">Confirmando seu pagamento…</p><p className="text-sm text-slate-500">A Pagar.me avisa o Tendi em alguns segundos. Pode deixar esta página aberta.</p></div></div>}
+      {confirming && !hasSubscription && <div role="status" className="mt-6 flex items-center gap-3 rounded-2xl border border-[#2F316B]/10 bg-white p-5 shadow-sm"><Loader2 className="animate-spin text-[#004751]" size={22} /><div><p className="font-semibold text-[#25275B]">Confirmando seu pagamento…</p><p className="text-sm text-slate-500">A Pagar.me avisa o TendiDesk em alguns segundos. Pode deixar esta página aberta.</p></div></div>}
 
-      {!hasSubscription && !confirming && blocked && <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5"><Lock className="mt-0.5 shrink-0 text-amber-600" size={20} /><div><p className="font-semibold text-amber-900">{org?.status === 'suspended' ? 'O acesso deste workspace está pausado' : 'Seu teste gratuito terminou'}</p><p className="mt-1 text-sm text-amber-800">Suas conversas, contatos e configurações continuam guardados. Assine um plano para voltar a usar o Tendi na hora.</p></div></div>}
+      {!hasSubscription && !confirming && blocked && <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5"><Lock className="mt-0.5 shrink-0 text-amber-600" size={20} /><div><p className="font-semibold text-amber-900">{org?.status === 'suspended' ? 'O acesso deste workspace está pausado' : 'Seu teste gratuito terminou'}</p><p className="mt-1 text-sm text-amber-800">Suas conversas, contatos e configurações continuam guardados. Assine um plano para voltar a usar o TendiDesk na hora.</p></div></div>}
       {!hasSubscription && !blocked && daysLeft !== null && <div className="mt-6 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5"><Clock3 className="text-amber-600" size={20} /><p className="text-sm text-slate-600">{daysLeft === 0 ? 'Seu teste termina hoje.' : `Faltam ${trialDaysLabel(daysLeft)} de teste gratuito.`} Assine agora e não perca o acesso.</p></div>}
 
       {hasSubscription && subscription && <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           {subscription.status === 'active' ? <CheckCircle2 className="text-emerald-600" size={24} /> : <AlertTriangle className="text-amber-600" size={24} />}
-          <div><p className="text-lg font-bold text-[#25275B]">{currentPlan?.name ?? 'Plano Tendi'}{subscription.billing_period === 'annual'
+          <div><p className="text-lg font-bold text-[#25275B]">{currentPlan?.name ?? 'Plano TendiDesk'}{subscription.billing_period === 'annual'
             ? (currentPlan?.annual_price ? ` Anual · ${money(Number(currentPlan.annual_price))}/ano` : ' Anual')
             : (currentPlan?.monthly_price ? ` · ${money(Number(currentPlan.monthly_price))}/mês` : '')}</p>
             <p className={subscription.status === 'active' ? 'text-sm font-semibold text-emerald-700' : 'text-sm font-semibold text-amber-700'}>{subscription.status === 'active' ? 'Assinatura ativa' : 'Pagamento pendente'}</p></div>
@@ -161,7 +161,7 @@ export default function SubscriptionPage() {
         {!plans.length && <p className="text-sm text-slate-500">Nenhum plano disponível no momento. Fale com o suporte em suporte@tendidesk.com.br.</p>}
       </section>}
 
-      <p className="mt-8 flex items-center gap-2 text-xs text-slate-400"><ShieldCheck size={14} /> Pagamento processado pela Pagar.me. O Tendi não armazena dados do seu cartão.</p>
+      <p className="mt-8 flex items-center gap-2 text-xs text-slate-400"><ShieldCheck size={14} /> Pagamento processado pela Pagar.me. O TendiDesk não armazena dados do seu cartão.</p>
     </div>
   </main>;
 }
