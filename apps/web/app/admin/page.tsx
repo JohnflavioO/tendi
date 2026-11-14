@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, ArrowRight, ArrowUpRight, Building2, Check, CheckCircle2, CircleDollarSign, Clock3,
-  CreditCard, Loader2, MessageSquare, Plus, Search, ShieldCheck, Sparkles, TrendingUp, Users, X,
+  CreditCard, Loader2, MessageSquare, Plus, Search, ShieldCheck, Bot, TrendingUp, Users, X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { AdminShell } from '@/components/admin/admin-shell';
@@ -192,7 +192,7 @@ export default function AdminPage() {
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <Kpi icon={Building2} label="Clientes" value={String(customers.length)} detail={`${paying} pagantes · ${trials} em teste`} accent="text-[#2F316B] bg-[#F1F1FB]" />
       <Kpi icon={AlertTriangle} label="Pedem atenção" value={String(attention)} detail="Pagamento pendente, teste vencido ou suspensas" accent={attention ? 'text-amber-700 bg-amber-50' : 'text-slate-400 bg-slate-50'} onClick={attention ? () => setFilter('attention') : undefined} />
-      <Kpi icon={Sparkles} label="Custo de IA no mês" value={brl(aiCost)} detail={mrr ? `${((aiCost / mrr) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% da receita mensal` : 'Sem receita para comparar'} accent="text-[#CB0A9F] bg-[#FDF0FA]" href="/admin/ia/consumo" />
+      <Kpi icon={Bot} label="Custo de IA no mês" value={brl(aiCost)} detail={mrr ? `${((aiCost / mrr) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% da receita mensal` : 'Sem receita para comparar'} accent="text-[#CB0A9F] bg-[#FDF0FA]" href="/admin/ia/consumo" />
       <Kpi icon={MessageSquare} label="Conversas" value={counts.conversations.toLocaleString('pt-BR')} detail={`${counts.contacts.toLocaleString('pt-BR')} contatos atendidos`} accent="text-[#004751] bg-[#E8F4F2]" />
     </section>
 

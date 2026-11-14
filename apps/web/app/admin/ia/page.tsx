@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Bot, CircleCheck, CircleX, Loader2, Save, ShieldCheck, Sparkles, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, Bot, CircleCheck, CircleX, Loader2, Save, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { AdminShell } from '@/components/admin/admin-shell';
 import { BusinessEditor, EMPTY_PROFILE, type BusinessData } from '@/components/ai/business-editor';
@@ -192,7 +192,7 @@ export default function AdminAiPage() {
       {keysMissing && <p className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-800"><TriangleAlert size={16} className="mt-0.5 shrink-0" />Nenhum provedor de IA conectado. Cole a chave de API abaixo para os agentes começarem a responder.</p>}
 
       <section className={cardClass}>
-        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><Sparkles size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Provedor de IA (padrão da plataforma)</h2><p className="text-xs text-slate-400">Conecte a IA colando a chave de API do provedor. Ela fica criptografada no cofre do Supabase e nunca volta para o navegador. Cada empresa pode usar outro provedor ou modelo no próprio agente.</p></div></div>
+        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><Bot size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Provedor de IA (padrão da plataforma)</h2><p className="text-xs text-slate-400">Conecte a IA colando a chave de API do provedor. Ela fica criptografada no cofre do Supabase e nunca volta para o navegador. Cada empresa pode usar outro provedor ou modelo no próprio agente.</p></div></div>
         <div className="grid gap-4 md:grid-cols-3">
           <label className={labelClass}>Provedor padrão<select value={global.provider} onChange={e => setGlobal(current => ({ ...current, provider: e.target.value as AiProvider }))} className={inputClass}>{AI_PROVIDERS.map(provider => <option key={provider.value} value={provider.value}>{provider.label}</option>)}</select></label>
           <label className={labelClass}>Modelo padrão do Claude<input value={global.models.anthropic} onChange={e => setGlobal(current => ({ ...current, models: { ...current.models, anthropic: e.target.value } }))} className={inputClass} placeholder="claude-haiku-5-5" /></label>

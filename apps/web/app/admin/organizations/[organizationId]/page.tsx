@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Ban, LifeBuoy, Loader2, MessageCircle, ShieldCheck, Sparkles, Trash2, UserPlus, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Ban, LifeBuoy, Loader2, MessageCircle, ShieldCheck, Bot, Trash2, UserPlus, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { AdminShell } from '@/components/admin/admin-shell';
 import { ROLE_INFO, isRole } from '@/lib/team';
@@ -224,7 +224,7 @@ export default function OrganizationAdminPage() {
             <h2 className="flex items-center gap-2 text-base font-bold text-[#25275B]"><MessageCircle size={17} className="text-[#004751]" />Conexões</h2>
             <dl className="mt-4 space-y-3 text-sm">
               <div className="flex items-center justify-between"><dt className="text-slate-500">WhatsApp</dt><dd className={whatsapp === 'connected' ? 'font-semibold text-emerald-700' : 'font-semibold text-slate-500'}>{whatsapp === 'connected' ? 'Conectado' : whatsapp === 'pending' ? 'Aguardando QR Code' : whatsapp ? 'Desconectado' : 'Não configurado'}</dd></div>
-              <div className="flex items-center justify-between"><dt className="flex items-center gap-1.5 text-slate-500"><Sparkles size={14} />Agente de IA</dt><dd className={aiEnabled ? 'font-semibold text-emerald-700' : 'font-semibold text-slate-500'}>{aiEnabled ? 'Liberado' : 'Não liberado'}</dd></div>
+              <div className="flex items-center justify-between"><dt className="flex items-center gap-1.5 text-slate-500"><Bot size={14} />Agente de IA</dt><dd className={aiEnabled ? 'font-semibold text-emerald-700' : 'font-semibold text-slate-500'}>{aiEnabled ? 'Liberado' : 'Não liberado'}</dd></div>
             </dl>
             <div className="mt-4 flex flex-wrap gap-2">
               <a href={`/chatbots?organization=${organization.id}`} className={secondary}>Conexão do WhatsApp</a>

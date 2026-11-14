@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 type Usage = { enabled: boolean; used?: number; limit?: number; level?: 'ok' | 'warning' | 'reached'; trial?: boolean };
 
@@ -29,7 +29,7 @@ export function AiUsageNotice({ organizationId, compact = false }: { organizatio
   const tone = reached ? 'border-rose-200 bg-rose-50 text-rose-700' : usage.level === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-200 bg-white text-slate-600';
 
   return <div role="status" className={`rounded-xl border p-3 text-xs ${tone}`}>
-    <p className="flex items-center gap-2 font-semibold"><Sparkles size={14} />Agente de IA</p>
+    <p className="flex items-center gap-2 font-semibold"><Bot size={14} />Agente de IA</p>
     <p className="mt-1">{usage.used.toLocaleString('pt-BR')} de {usage.limit.toLocaleString('pt-BR')} respostas neste mês</p>
     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/5"><div className={reached ? 'h-full bg-rose-500' : usage.level === 'warning' ? 'h-full bg-amber-500' : 'h-full bg-[#004751]'} style={{ width: `${percent}%` }} /></div>
     {reached
