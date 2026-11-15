@@ -11,7 +11,7 @@ export type LeadResult = { created: boolean; reason?: 'already_has_opportunity' 
  */
 export async function ensureLeadForContact(
   db: Db,
-  input: { organizationId: string; contactId: string; title: string },
+  input: { organizationId: string; contactId: string; title: string; description?: string },
 ): Promise<LeadResult> {
   const existing = await db
     .from('opportunities')
@@ -51,7 +51,7 @@ export async function ensureLeadForContact(
     stage_id: (stage.data as { id: string }).id,
     contact_id: input.contactId,
     title: input.title.slice(0, 160),
-    description: 'Criada automaticamente a partir de uma nova conversa no WhatsApp.',
+    description: input.description ?? 'Criada automaticamente a partir de uma nova conversa no WhatsApp.',
   });
   if (inserted.error) throw new Error(`opportunities.insert: ${inserted.error.message}`);
   return { created: true };

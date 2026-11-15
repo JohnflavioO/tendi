@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { MAX_BUTTON_LABEL, MAX_NOTICE, MAX_QUICK_REPLIES, MAX_QUICK_TEXT, normalizeWebchatSettings, type WebchatSettings } from '@/lib/webchat-config';
+import { MAX_BUTTON_LABEL, MAX_NOTICE, MAX_QUICK_REPLIES, MAX_QUICK_TEXT, normalizeWebchatSettings, type FieldRule, type WebchatSettings } from '@/lib/webchat-config';
 
 const field = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#7C7EC0] disabled:bg-slate-50 disabled:text-slate-400';
 const label = 'mb-1.5 block text-xs font-semibold text-slate-600';
@@ -33,17 +33,31 @@ export function WebchatButtonsSettings({ widgetId, initial, canManage, onSaved }
     if (error) { setMessage({ ok: false, text: 'Não foi possível salvar os botões.' }); return; }
     setSettings(clean);
     onSaved?.(clean);
-    setMessage({ ok: true, text: 'Botões e fila salvos. O chat do site já usa a nova configuração.' });
+    setMessage({ ok: true, text: 'Configuração salva. O chat do site já usa a nova configuração.' });
   }
 
   const quick = settings.quickReplies;
   const setQuick = (index: number, patch: Partial<{ label: string; text: string }>) => update({ quickReplies: quick.map((item, i) => (i === index ? { ...item, ...patch } : item)) });
 
   return <div className="mt-5 border-t border-slate-100 pt-5">
-    <h3 className="text-sm font-bold text-[#25275B]">Botões e fila</h3>
-    <p className="mt-0.5 text-xs text-slate-500">Atalhos que aparecem acima do campo de mensagem e o aviso de fila quando o visitante espera por uma pessoa.</p>
+    <h3 className="text-sm font-bold text-[#25275B]">Identificação, botões e fila</h3>
+    <p className="mt-0.5 text-xs text-slate-500">Os dados que o visitante informa antes de conversar, os atalhos acima do campo de mensagem e o aviso de fila.</p>
 
     <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="space-y-4 rounded-2xl border border-slate-200 p-4 lg:col-span-2">
+        <Row title="Identificação do visitante" text="Antes da primeira mensagem, o visitante informa nome e contato. O lead entra no CRM com os dados certos e a IA já chama pelo nome. Se o WhatsApp já existe nos contatos, a conversa fica no mesmo cadastro.">
+          <Switch title="Pedir identificação antes da conversa" checked={settings.form.enabled} disabled={!canManage} onChange={enabled => update({ form: { ...settings.form, enabled } })} />
+        </Row>
+        <div className="grid gap-3 md:grid-cols-[1fr_180px_180px]">
+          <label><span className={label}>Título do formulário</span><input value={settings.form.title} maxLength={MAX_NOTICE} disabled={!canManage || !settings.form.enabled} onChange={e => update({ form: { ...settings.form, title: e.target.value } })} className={field} /></label>
+          {([['phone', 'WhatsApp'], ['email', 'E-mail']] as const).map(([key, name]) => <label key={key}><span className={label}>{name}</span>
+            <select value={settings.form[key]} disabled={!canManage || !settings.form.enabled} onChange={e => update({ form: { ...settings.form, [key]: e.target.value as FieldRule } })} className={field}>
+              <option value="required">Obrigatório</option><option value="optional">Opcional</option><option value="hidden">Não pedir</option>
+            </select></label>)}
+        </div>
+        <p className="text-[11px] text-slate-400">O nome é sempre pedido quando a identificação está ligada.</p>
+      </div>
+
       <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
         <Row title="Falar com atendente" text="Tira a IA da conversa e coloca o visitante na fila da equipe.">
           <Switch title="Mostrar botão Falar com atendente" checked={settings.handoffButton.enabled} disabled={!canManage} onChange={enabled => update({ handoffButton: { ...settings.handoffButton, enabled } })} />
@@ -79,7 +93,7 @@ export function WebchatButtonsSettings({ widgetId, initial, canManage, onSaved }
     </div>
 
     {canManage && <div className="mt-4 flex flex-wrap items-center gap-3">
-      <button type="button" onClick={() => void save()} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving && <Loader2 size={14} className="animate-spin" />}Salvar botões e fila</button>
+      <button type="button" onClick={() => void save()} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving && <Loader2 size={14} className="animate-spin" />}Salvar identificação, botões e fila</button>
       {message && <p role={message.ok ? 'status' : 'alert'} className={message.ok ? 'text-xs text-emerald-700' : 'text-xs text-rose-600'}>{message.text}</p>}
     </div>}
   </div>;

@@ -30,3 +30,21 @@ describe('prompt do agente', () => {
     expect(text).toContain(HANDOFF_MARKER);
   });
 });
+
+describe('nome do cliente para a IA', () => {
+  it('primeiro nome, ignorando nomes genéricos ou só o telefone', async () => {
+    const { customerFirstName } = await import('./ai-agent');
+    expect(customerFirstName('isabelly oliveira')).toBe('Isabelly');
+    expect(customerFirstName('Visitante do site')).toBeNull();
+    expect(customerFirstName('558587349599', '+558587349599')).toBeNull();
+    expect(customerFirstName('')).toBeNull();
+  });
+
+  it('entra no prompt quando existe', () => {
+    const text = buildSystemPrompt({
+      agentName: 'Duda', companyName: 'TendiDesk', niche: '', tone: 'cordial', instructions: '', profile: {}, knowledge: [],
+      hours: normalizeBusinessHours(null), timezone: 'America/Fortaleza', customerName: 'Isabelly',
+    });
+    expect(text).toContain('Nome do cliente nesta conversa: Isabelly');
+  });
+});
