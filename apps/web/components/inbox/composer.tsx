@@ -89,21 +89,21 @@ export function Composer({ conversation, onSent, onError }: {
   const audioPending = pending?.kind === 'audio';
   const placeholder = audioPending ? 'Áudios não têm legenda' : pending ? 'Legenda (opcional)…' : 'Escreva sua mensagem...';
 
-  return <form onSubmit={event => void send(event)} className="border-t border-slate-200/80 bg-white p-3 pb-[calc(env(safe-area-inset-bottom)+12px)] md:p-4 md:px-6">
-    <div className="rounded-2xl border border-slate-200 bg-[#FBFCFE] p-3 shadow-[0_4px_18px_rgba(35,45,90,.04)] focus-within:border-[#A7A8D0]">
-      {pending && <div className="mb-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-2">
+  return <form onSubmit={event => void send(event)} className="border-t border-tendi-line/80 bg-white p-3 pb-[calc(env(safe-area-inset-bottom)+12px)] md:p-4 md:px-6">
+    <div className="rounded-2xl border border-tendi-line bg-[#FBFCFE] p-3 shadow-[0_4px_18px_rgba(35,45,90,.04)] focus-within:border-[#A7A8D0]">
+      {pending && <div className="mb-2 flex items-center gap-3 rounded-xl border border-tendi-line bg-white p-2">
         {pending.kind === 'image' && pending.previewUrl && <img src={pending.previewUrl} alt="Prévia do anexo" className="size-14 rounded-lg object-cover" />}
         {pending.kind === 'video' && pending.previewUrl && <video src={pending.previewUrl} className="size-14 rounded-lg object-cover" muted />}
         {pending.kind === 'audio' && pending.previewUrl && <audio src={pending.previewUrl} controls className="h-10 w-56 max-w-full" />}
-        {pending.kind === 'document' && <span className="flex size-14 items-center justify-center rounded-lg bg-slate-100 text-slate-500"><FileText size={22} /></span>}
+        {pending.kind === 'document' && <span className="flex size-14 items-center justify-center rounded-lg bg-slate-50 text-slate-500"><FileText size={22} /></span>}
         <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-slate-700">{pending.file.name}</p><p className="text-[10px] text-slate-400">{KIND_LABEL[pending.kind]}{pending.voice ? ' · nota de voz' : ''} · {sizeLabel(pending.file.size)}</p></div>
-        <button type="button" onClick={dropPending} disabled={sending} aria-label="Remover anexo" className="rounded-lg p-2 text-slate-400 hover:bg-slate-50"><X size={16} /></button>
+        <button type="button" onClick={dropPending} disabled={sending} aria-label="Remover anexo" className="rounded-lg p-2 text-slate-400 hover:bg-tendi-haze"><X size={16} /></button>
       </div>}
       <textarea ref={textareaRef} value={draft} disabled={audioPending} maxLength={pending ? MAX_CAPTION_LENGTH : undefined} onChange={e => setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
         onPaste={e => { const image = Array.from(e.clipboardData?.files ?? []).find(file => file.type.startsWith('image/')); if (image) { e.preventDefault(); selectFile(image); } }}
         placeholder={placeholder} rows={2} className="w-full resize-none bg-transparent px-1 py-1 text-[13px] leading-6 outline-none focus-visible:outline-none placeholder:text-slate-400 disabled:cursor-not-allowed" />
-      <div className="flex items-center justify-between border-t border-slate-100 pt-2">
+      <div className="flex items-center justify-between border-t border-tendi-line/70 pt-2">
         <div className="flex items-center gap-1 text-slate-400">
           <input ref={fileInputRef} type="file" accept={ATTACHMENT_ACCEPT} hidden aria-label="Escolher arquivo" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) selectFile(file); }} />
           <button type="button" onClick={() => fileInputRef.current?.click()} disabled={sending || !!pending} aria-label="Anexar arquivo" title="Anexar imagem, vídeo, áudio ou documento" className="rounded-lg p-2 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"><Paperclip size={16} /></button>
@@ -111,7 +111,7 @@ export function Composer({ conversation, onSent, onError }: {
           <VoiceRecorder disabled={sending || !!pending} onError={onError} onRecorded={(audio: RecordedAudio) => selectFile(audio.file, audio.voice)} />
           <span className="ml-2 hidden text-[10px] sm:inline">Enter para enviar · Shift + Enter para nova linha</span>
         </div>
-        <button disabled={sending || (!draft.trim() && !pending)} className="flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#003B44] disabled:cursor-not-allowed disabled:opacity-40">{sending ? <Loader2 className="animate-spin" size={15} /> : <Send size={15} />}Enviar</button>
+        <button disabled={sending || (!draft.trim() && !pending)} className="td-btn td-btn-teal  disabled:cursor-not-allowed disabled:opacity-40">{sending ? <Loader2 className="animate-spin" size={15} /> : <Send size={15} />}Enviar</button>
       </div>
     </div>
     <SenderName />

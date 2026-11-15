@@ -17,10 +17,10 @@ type Grant = SupportGrant & { redeemed_by: string | null };
 const day = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const dateTime = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm';
-const field = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#7C7EC0] disabled:bg-slate-50';
-const primary = 'flex items-center justify-center gap-2 rounded-xl bg-[#1D1F4E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2F316B] disabled:opacity-40';
-const secondary = 'flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40';
+const card = 'td-card p-5';
+const field = 'td-input';
+const primary = 'td-btn td-btn-primary';
+const secondary = 'td-btn td-btn-secondary';
 
 /**
  * Ficha da empresa no Console: situação, plano, equipe, conexões, acesso de suporte e exclusão.
@@ -127,17 +127,17 @@ export default function OrganizationAdminPage() {
   }
 
   if (loading) return <AdminShell title="Empresa"><p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />Carregando…</p></AdminShell>;
-  if (!organization) return <AdminShell title="Empresa"><div className={card}><p className="text-sm text-slate-600">Empresa não encontrada. Ela pode ter sido excluída.</p><a href="/admin" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#004751] hover:underline"><ArrowLeft size={14} />Voltar para a visão geral</a></div></AdminShell>;
+  if (!organization) return <AdminShell title="Empresa"><div className={card}><p className="text-sm text-slate-600">Empresa não encontrada. Ela pode ter sido excluída.</p><a href="/admin" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-tendi-teal hover:underline"><ArrowLeft size={14} />Voltar para a visão geral</a></div></AdminShell>;
 
   return (
     <AdminShell title={organization.name}>
       <div className="space-y-5">
-        <a href="/admin" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#004751]"><ArrowLeft size={13} />Visão geral</a>
+        <a href="/admin" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-tendi-teal"><ArrowLeft size={13} />Visão geral</a>
 
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[.16em] text-[#CB0A9F]">{internal ? 'Workspace interno' : 'Cliente'}</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#25275B]">{organization.name}</h1>
+            <p className="text-xs font-bold uppercase tracking-[.16em] text-tendi-magenta">{internal ? 'Workspace interno' : 'Cliente'}</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-tendi-navy">{organization.name}</h1>
             <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
               {status && <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${status.tone}`}>{status.label}</span>}
               <span>Plano {plans.find(plan => plan.code === organization.plan_code)?.name ?? '—'}</span>
@@ -154,11 +154,11 @@ export default function OrganizationAdminPage() {
         {message && <p role={message.ok ? 'status' : 'alert'} className={`rounded-xl px-4 py-3 text-sm ${message.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700'}`}>{message.text}</p>}
 
         {!internal && (
-          <section className={`${card} border-[#CB0A9F]/25`}>
+          <section className={`${card} border-tendi-magenta/25`}>
             <div className="flex items-start gap-3">
-              <span className="rounded-xl bg-[#FDF0FA] p-3 text-[#CB0A9F]"><LifeBuoy size={20} /></span>
+              <span className="td-icon td-icon-magenta"><LifeBuoy size={20} /></span>
               <div>
-                <h2 className="text-base font-bold text-[#25275B]">Acesso de suporte</h2>
+                <h2 className="td-title text-base">Acesso de suporte</h2>
                 <p className="mt-1 max-w-2xl text-sm text-slate-500">Conversas, contatos, CRM e agenda deste cliente são confidenciais. Para entrar na conta dele, peça que gere um código em Configurações → Acesso do suporte TendiDesk e informe abaixo.</p>
               </div>
             </div>
@@ -173,7 +173,7 @@ export default function OrganizationAdminPage() {
               </div>
             ) : (
               <form onSubmit={redeem} className="mt-4 flex flex-wrap items-end gap-3">
-                <label className="block"><span className="mb-1.5 block text-xs font-semibold text-slate-600">Código de suporte (8 dígitos)</span>
+                <label className="block"><span className="td-label">Código de suporte (8 dígitos)</span>
                   <input value={formatSupportCode(code)} onChange={event => setCode(cleanSupportCode(event.target.value))} inputMode="numeric" autoComplete="off" placeholder="0000 0000" aria-label="Código de suporte" className={`${field} w-48 font-mono text-lg tracking-[.15em]`} />
                 </label>
                 <button disabled={code.length !== 8 || busy === 'redeem'} className={primary}>{busy === 'redeem' && <Loader2 size={15} className="animate-spin" />}Liberar acesso</button>
@@ -182,12 +182,12 @@ export default function OrganizationAdminPage() {
             )}
 
             {grants.length > 0 && (
-              <div className="mt-5 border-t border-slate-100 pt-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Histórico</p>
-                <ul className="mt-2 divide-y divide-slate-100">
+              <div className="mt-5 border-t border-tendi-line/70 pt-4">
+                <p className="td-eyebrow">Histórico</p>
+                <ul className="mt-2 divide-y divide-tendi-line/70">
                   {grants.map(grant => {
                     const state = supportGrantState(grant, now);
-                    return <li key={grant.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-xs"><span className="text-slate-600">{dateTime(grant.created_at)} · {hoursLabel(grant.access_hours)}{grant.reason ? ` · ${grant.reason}` : ''}</span><span className={state === 'active' ? 'font-semibold text-[#CB0A9F]' : state === 'waiting' ? 'font-semibold text-amber-700' : 'text-slate-400'}>{SUPPORT_STATE_LABEL[state]}</span></li>;
+                    return <li key={grant.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-xs"><span className="text-slate-600">{dateTime(grant.created_at)} · {hoursLabel(grant.access_hours)}{grant.reason ? ` · ${grant.reason}` : ''}</span><span className={state === 'active' ? 'font-semibold text-tendi-magenta' : state === 'waiting' ? 'font-semibold text-amber-700' : 'text-slate-400'}>{SUPPORT_STATE_LABEL[state]}</span></li>;
                   })}
                 </ul>
               </div>
@@ -197,9 +197,9 @@ export default function OrganizationAdminPage() {
 
         <div className="grid gap-5 lg:grid-cols-2">
           <section className={card}>
-            <h2 className="flex items-center gap-2 text-base font-bold text-[#25275B]"><ShieldCheck size={17} className="text-[#004751]" />Conta</h2>
+            <h2 className="flex items-center gap-2 td-title text-base"><ShieldCheck size={17} className="text-tendi-teal" />Conta</h2>
             <div className="mt-4 flex flex-wrap items-end gap-3">
-              <label className="block min-w-[200px] flex-1"><span className="mb-1.5 block text-xs font-semibold text-slate-600">Plano</span>
+              <label className="block min-w-[200px] flex-1"><span className="td-label">Plano</span>
                 <select value={planCode} onChange={event => setPlanCode(event.target.value)} disabled={busy === 'plan'} className={field}>
                   {!planCode && <option value="">Sem plano</option>}
                   {plans.map(plan => <option key={plan.code} value={plan.code}>{plan.name}</option>)}
@@ -208,7 +208,7 @@ export default function OrganizationAdminPage() {
               <button type="button" disabled={!planCode || planCode === (organization.plan_code ?? '') || busy === 'plan'} onClick={async () => { if (await call('plan', 'PATCH', { action: 'set_plan', planCode }, 'Plano atualizado.')) await load(); }} className={secondary}>{busy === 'plan' && <Loader2 size={14} className="animate-spin" />}Salvar plano</button>
             </div>
             {!internal && (
-              <div className="mt-5 border-t border-slate-100 pt-4">
+              <div className="mt-5 border-t border-tendi-line/70 pt-4">
                 {organization.status === 'suspended' ? <>
                   <p className="text-sm text-slate-600">A empresa está <strong>bloqueada</strong>: ninguém da equipe dela entra no TendiDesk. Os dados continuam guardados.</p>
                   <button type="button" disabled={busy === 'status'} onClick={async () => { if (await call('status', 'PATCH', { action: 'reactivate' }, 'Empresa reativada.')) await load(); }} className={`${primary} mt-3`}>{busy === 'status' && <Loader2 size={14} className="animate-spin" />}Reativar empresa</button>
@@ -221,7 +221,7 @@ export default function OrganizationAdminPage() {
           </section>
 
           <section className={card}>
-            <h2 className="flex items-center gap-2 text-base font-bold text-[#25275B]"><MessageCircle size={17} className="text-[#004751]" />Conexões</h2>
+            <h2 className="flex items-center gap-2 td-title text-base"><MessageCircle size={17} className="text-tendi-teal" />Conexões</h2>
             <dl className="mt-4 space-y-3 text-sm">
               <div className="flex items-center justify-between"><dt className="text-slate-500">WhatsApp</dt><dd className={whatsapp === 'connected' ? 'font-semibold text-emerald-700' : 'font-semibold text-slate-500'}>{whatsapp === 'connected' ? 'Conectado' : whatsapp === 'pending' ? 'Aguardando QR Code' : whatsapp ? 'Desconectado' : 'Não configurado'}</dd></div>
               <div className="flex items-center justify-between"><dt className="flex items-center gap-1.5 text-slate-500"><Bot size={14} />Agente de IA</dt><dd className={aiEnabled ? 'font-semibold text-emerald-700' : 'font-semibold text-slate-500'}>{aiEnabled ? 'Liberado' : 'Não liberado'}</dd></div>
@@ -234,26 +234,26 @@ export default function OrganizationAdminPage() {
         </div>
 
         <section className={card}>
-          <h2 className="flex items-center gap-2 text-base font-bold text-[#25275B]"><Users size={17} className="text-[#004751]" />Equipe ({members.length})</h2>
+          <h2 className="flex items-center gap-2 td-title text-base"><Users size={17} className="text-tendi-teal" />Equipe ({members.length})</h2>
           {members.length ? (
-            <ul className="mt-3 divide-y divide-slate-100">
+            <ul className="mt-3 divide-y divide-tendi-line/70">
               {members.map(member => (
                 <li key={member.user_id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
-                  <span className="min-w-0"><span className="block truncate font-semibold text-[#25275B]">{member.name}</span><span className="block truncate text-xs text-slate-400">{member.email}</span></span>
+                  <span className="min-w-0"><span className="block truncate font-semibold text-tendi-navy">{member.name}</span><span className="block truncate text-xs text-slate-400">{member.email}</span></span>
                   <span className="text-xs text-slate-500">{isRole(member.role) ? ROLE_INFO[member.role].label : member.role}{member.status !== 'active' ? ` · ${member.status === 'invited' ? 'convite pendente' : member.status}` : ''}</span>
                 </li>
               ))}
             </ul>
           ) : <p className="mt-3 text-sm text-slate-500">Ninguém vinculado ainda. Convide o responsável pela empresa para ela começar a usar.</p>}
-          <a href={`/equipe?organization=${organization.id}`} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#004751] hover:underline">Gerenciar equipe<ArrowRight size={13} /></a>
+          <a href={`/equipe?organization=${organization.id}`} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-tendi-teal hover:underline">Gerenciar equipe<ArrowRight size={13} /></a>
         </section>
 
         {!internal && (
-          <section className="rounded-2xl border border-rose-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-rose-200 bg-white p-5 shadow-card">
             <h2 className="flex items-center gap-2 text-base font-bold text-rose-800"><Trash2 size={17} />Excluir empresa</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">Apaga a empresa e <strong>todos os dados dela</strong>: conversas, contatos, CRM, agenda, equipe e arquivos. Desconecta o WhatsApp. Não tem como desfazer. As contas de login das pessoas não são apagadas. Para só impedir o acesso, use Bloquear.</p>
             <div className="mt-4 flex flex-wrap items-end gap-3">
-              <label className="block min-w-[240px] flex-1"><span className="mb-1.5 block text-xs font-semibold text-slate-600">Digite <strong>{organization.name}</strong> para confirmar</span>
+              <label className="block min-w-[240px] flex-1"><span className="td-label">Digite <strong>{organization.name}</strong> para confirmar</span>
                 <input value={confirmName} onChange={event => setConfirmName(event.target.value)} autoComplete="off" disabled={busy === 'delete'} className={field} />
               </label>
               <button type="button" disabled={!confirmsDeletion(confirmName, organization.name) || busy === 'delete'} onClick={async () => { if (await call('delete', 'DELETE', { confirmName }, 'Empresa excluída.')) router.replace('/admin'); }} className="flex items-center justify-center gap-2 rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:opacity-40">{busy === 'delete' ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}Excluir definitivamente</button>

@@ -106,27 +106,27 @@ export function OnboardingTour({ organizationId, role, superAdmin }: { organizat
       : <div className="fixed inset-0 bg-[#0F1132]/55 backdrop-blur-[2px] transition-opacity" />}
     <button aria-label="Fechar guia" className="fixed inset-0 cursor-default" onClick={finish} />
 
-    <div ref={popover} key={step.id} className="tendi-tour-pop fixed overflow-visible rounded-2xl bg-white shadow-2xl shadow-[#0F1132]/30 ring-1 ring-slate-900/5" style={{ width: `min(${WIDTH}px, calc(100vw - 24px))`, top: placement?.top ?? -9999, left: placement?.left ?? -9999 }}>
+    <div ref={popover} key={step.id} className="tendi-tour-pop fixed overflow-visible rounded-2xl bg-white shadow-pop shadow-[#0F1132]/30 ring-1 ring-slate-900/5" style={{ width: `min(${WIDTH}px, calc(100vw - 24px))`, top: placement?.top ?? -9999, left: placement?.left ?? -9999 }}>
       {side !== 'center' && <span aria-hidden className="absolute size-3.5 rotate-45 rounded-[3px] bg-white" style={arrowStyle} />}
       <div className="relative overflow-hidden rounded-2xl">
-        {(index === 0 || last) && <div className="h-1.5 bg-gradient-to-r from-[#2F316B] via-[#7C7EC0] to-[#CB0A9F]" />}
+        {(index === 0 || last) && <div className="h-1.5 bg-gradient-to-r from-[#2F316B] via-[#7C7EC0] to-tendi-magenta" />}
         <div className="p-5">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FCEAF7] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] text-[#CB0A9F]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-tendi-blush px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] text-tendi-magenta">
               <Compass size={11} />{stepNumber > 0 ? `Passo ${stepNumber} de ${numbered.length}` : 'Primeiros passos'}
             </span>
             <button onClick={finish} aria-label="Fechar guia" className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"><X size={16} /></button>
           </div>
-          <h2 id="tour-title" className="text-base font-bold tracking-tight text-[#25275B]">{step.title}</h2>
+          <h2 id="tour-title" className="text-base font-bold tracking-tight text-tendi-navy">{step.title}</h2>
           <p className="mt-1.5 text-[13px] leading-5 text-slate-500">{step.body}</p>
-          {step.action && <a href={withOrganization(step.action.href, organizationId)} onClick={finish} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#004751] hover:underline">{step.action.label}<ArrowRight size={12} /></a>}
+          {step.action && <a href={withOrganization(step.action.href, organizationId)} onClick={finish} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-tendi-teal hover:underline">{step.action.label}<ArrowRight size={12} /></a>}
           <div className="mt-5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1" aria-hidden>{steps.map((item, i) => <span key={item.id} className={i === index ? 'h-1.5 w-4 rounded-full bg-[#2F316B] transition-all' : i < index ? 'size-1.5 rounded-full bg-[#7C7EC0] transition-all' : 'size-1.5 rounded-full bg-slate-200 transition-all'} />)}</div>
+            <div className="flex items-center gap-1" aria-hidden>{steps.map((item, i) => <span key={item.id} className={i === index ? 'h-1.5 w-4 rounded-full bg-tendi-indigo transition-all' : i < index ? 'size-1.5 rounded-full bg-tendi-lilac transition-all' : 'size-1.5 rounded-full bg-slate-200 transition-all'} />)}</div>
             <div className="flex items-center gap-1.5">
               {index === 0
                 ? <button onClick={finish} className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100">Pular</button>
                 : <button onClick={back} aria-label="Voltar" className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"><ArrowLeft size={15} /></button>}
-              <button onClick={next} autoFocus className="inline-flex items-center gap-1.5 rounded-xl bg-[#2F316B] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#25275B]">
+              <button onClick={next} autoFocus className="inline-flex items-center gap-1.5 rounded-xl bg-tendi-indigo px-4 py-2 text-xs font-semibold text-white shadow-card transition hover:bg-tendi-deep">
                 {index === 0 ? 'Começar' : last ? 'Concluir' : 'Próximo'}{!last && <ArrowRight size={13} />}
               </button>
             </div>

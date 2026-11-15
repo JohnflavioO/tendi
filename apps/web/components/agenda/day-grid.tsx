@@ -43,10 +43,10 @@ export function DayGrid({ day, timeZone, professionals, hours, appointments, now
   if (!professionals.length) return null;
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-x-auto td-card">
       <div className="flex min-w-max">
-        <div className="sticky left-0 z-20 w-14 shrink-0 border-r border-slate-100 bg-white">
-          <div className="h-12 border-b border-slate-100" />
+        <div className="sticky left-0 z-20 w-14 shrink-0 border-r border-tendi-line/70 bg-white">
+          <div className="h-12 border-b border-tendi-line/70" />
           <div className="relative" style={{ height }}>
             {hourMarks.map(minute => (
               <span key={minute} className="absolute right-2 -translate-y-1/2 text-[10px] font-medium text-slate-400" style={{ top: (minute - from) * PX_PER_MINUTE }}>
@@ -60,10 +60,10 @@ export function DayGrid({ day, timeZone, professionals, hours, appointments, now
           const shifts = shiftsFor(hours, professional.id, weekday);
           const mine = placed.filter(item => item.appointment.professional_id === professional.id);
           return (
-            <div key={professional.id} className="min-w-[190px] flex-1 border-r border-slate-100 last:border-r-0">
-              <div className="flex h-12 items-center gap-2 border-b border-slate-100 px-3">
+            <div key={professional.id} className="min-w-[190px] flex-1 border-r border-tendi-line/70 last:border-r-0">
+              <div className="flex h-12 items-center gap-2 border-b border-tendi-line/70 px-3">
                 <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: professional.color }} />
-                <span className="truncate text-sm font-semibold text-[#25275B]">{professional.name}</span>
+                <span className="truncate text-sm font-semibold text-tendi-navy">{professional.name}</span>
                 {!shifts.length && <span className="ml-auto flex shrink-0 items-center gap-1 text-[10px] text-slate-400"><CalendarOff size={12} />Folga</span>}
               </div>
               <div
@@ -85,10 +85,10 @@ export function DayGrid({ day, timeZone, professionals, hours, appointments, now
                   <div key={`${shift.start}-${shift.end}`} data-free="1" className="absolute inset-x-0 bg-white" style={{ top: (shift.start - from) * PX_PER_MINUTE, height: (shift.end - shift.start) * PX_PER_MINUTE }} />
                 ))}
                 {hourMarks.map(minute => (
-                  <div key={minute} className="pointer-events-none absolute inset-x-0 border-t border-slate-100" style={{ top: (minute - from) * PX_PER_MINUTE }} />
+                  <div key={minute} className="pointer-events-none absolute inset-x-0 border-t border-tendi-line/70" style={{ top: (minute - from) * PX_PER_MINUTE }} />
                 ))}
                 {nowMinutes !== null && nowMinutes >= from && nowMinutes <= to && (
-                  <div className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-[#CB0A9F]" style={{ top: (nowMinutes - from) * PX_PER_MINUTE }} />
+                  <div className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-tendi-magenta" style={{ top: (nowMinutes - from) * PX_PER_MINUTE }} />
                 )}
                 {mine.map(({ appointment, start, end }) => {
                   const info = STATUS_INFO[appointment.status] ?? STATUS_INFO.scheduled;
@@ -100,7 +100,7 @@ export function DayGrid({ day, timeZone, professionals, hours, appointments, now
                       type="button"
                       onClick={() => onOpen(appointment)}
                       title={`${formatMinutes(start)}–${formatMinutes(end)} · ${appointment.customer_name} · ${wantsReschedule ? 'Pediu para remarcar' : info.label}`}
-                      className={`absolute inset-x-1 overflow-hidden rounded-lg border px-2 py-1 text-left shadow-sm transition hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#CB0A9F] ${wantsReschedule ? 'border-amber-300 bg-amber-50 text-amber-900' : info.tone}`}
+                      className={`absolute inset-x-1 overflow-hidden rounded-lg border px-2 py-1 text-left shadow-card transition hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#CB0A9F] ${wantsReschedule ? 'border-amber-300 bg-amber-50 text-amber-900' : info.tone}`}
                       style={{ top: (start - from) * PX_PER_MINUTE + 1, height: blockHeight, borderLeftWidth: 4, borderLeftColor: professional.color }}
                     >
                       <span className="block truncate text-[11px] font-bold leading-4">{formatMinutes(start)} {appointment.customer_name}</span>

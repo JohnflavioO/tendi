@@ -68,59 +68,65 @@ export function AdminShell({ title, description, actions, children, width = 'max
   const current = ALL_ITEMS.filter(item => pathname === item.href || pathname.startsWith(item.href + '/')).sort((a, b) => b.href.length - a.href.length)[0];
   const group = NAV.find(entry => entry.items.includes(current ?? ALL_ITEMS[0]!))?.group;
 
-  const sidebar = <aside className="flex h-full w-64 shrink-0 flex-col border-r border-slate-200/80 bg-white">
-    <div className="flex h-16 items-center gap-2.5 px-5">
-      <a href="/admin" className="flex items-center gap-2.5"><img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-10 w-auto object-contain" /></a>
-      <span className="rounded-md bg-[#25275B] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">Console</span>
+  // Gaveta aberta no celular: trava a rolagem da página por baixo.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [mobileOpen]);
+
+  const sidebar = (mobile: boolean) => <aside className="td-sidebar flex h-full w-[264px] shrink-0 flex-col overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+12px)] pt-[env(safe-area-inset-top)] text-white">
+    <div className="flex h-[72px] items-center justify-between gap-2 px-5">
+      <a href="/admin" className="flex items-center gap-2.5"><img src="/brand/tendidesk-logo-branca.png" alt="TendiDesk" width="1291" height="640" className="h-9 w-auto object-contain" /><span className="rounded-md bg-tendi-magenta/20 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[.14em] text-[#F7A8E2] ring-1 ring-inset ring-tendi-magenta/30">Console</span></a>
+      {mobile && <button onClick={() => setMobileOpen(false)} aria-label="Fechar menu" className="rounded-lg p-2 text-[#B9BBE0] hover:bg-white/10 hover:text-white"><X size={18} /></button>}
     </div>
     <div className="px-3">
-      <button type="button" onClick={() => setPaletteOpen(true)} className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-left text-[13px] text-slate-400 transition hover:border-slate-300 hover:bg-white">
-        <Search size={15} /> Buscar ou ir para…<kbd className="ml-auto rounded-md border border-slate-200 bg-white px-1.5 text-[10px] font-medium text-slate-400">Ctrl K</kbd>
+      <button type="button" onClick={() => { setMobileOpen(false); setPaletteOpen(true); }} className="flex h-10 w-full items-center gap-2 rounded-xl bg-white/[.06] px-3 text-left text-[13px] text-[#B9BBE0] ring-1 ring-inset ring-white/10 transition hover:bg-white/[.10] hover:text-white">
+        <Search size={15} /> Buscar ou ir para…<kbd className="ml-auto rounded-md bg-white/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-[#B9BBE0]">Ctrl K</kbd>
       </button>
     </div>
-    <nav className="mt-4 flex-1 space-y-5 overflow-y-auto px-3 pb-4">
+    <nav aria-label="Menu do Console" className="mt-5 flex-1 space-y-5 px-3 pb-4">
       {NAV.map(entry => <div key={entry.group}>
-        <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[.14em] text-slate-400">{entry.group}</p>
+        <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[.16em] text-[#7275B0]">{entry.group}</p>
         <ul className="space-y-0.5">{entry.items.map(item => {
           const active = current?.href === item.href;
           const Icon = item.icon;
-          return <li key={item.href}><a href={item.href} onClick={() => setMobileOpen(false)} aria-current={active ? 'page' : undefined} className={active
-            ? 'relative flex items-center gap-3 rounded-xl bg-[#F1F1FB] px-3 py-2 text-[13px] font-semibold text-[#25275B] before:absolute before:-left-3 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-r-full before:bg-[#CB0A9F]'
-            : 'flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium text-slate-600 transition hover:bg-slate-50 hover:text-[#25275B]'}><Icon size={17} className={active ? 'text-[#CB0A9F]' : 'text-slate-400'} />{item.label}</a></li>;
+          return <li key={item.href}><a href={item.href} onClick={() => setMobileOpen(false)} aria-current={active ? 'page' : undefined} className={`td-nav-item ${active ? 'td-nav-item-active' : ''}`}><Icon size={17} strokeWidth={active ? 2.1 : 1.8} className={active ? 'text-white' : 'text-[#8E91C4]'} /><span className="truncate">{item.label}</span></a></li>;
         })}</ul>
       </div>)}
     </nav>
-    <div className="space-y-2 border-t border-slate-100 p-3">
-      {internalOrg && <a href={`/inbox?organization=${internalOrg}`} className="group flex items-center gap-3 rounded-xl bg-gradient-to-br from-[#F4F4FC] to-[#FBF2F9] p-3 transition hover:from-[#EEEEFA]"><span className="rounded-lg bg-white p-1.5 text-[#25275B] shadow-sm"><Building2 size={15} /></span><span className="min-w-0"><span className="block text-xs font-semibold text-[#25275B]">Workspace TendiDesk</span><span className="block text-[10px] text-slate-500">Ambiente interno de testes</span></span><ArrowRight size={14} className="ml-auto text-slate-400 transition group-hover:translate-x-0.5" /></a>}
-      <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-[#004751]"><ExternalLink size={14} /> Ver site do TendiDesk</a>
-      <div className="flex items-center gap-2.5 rounded-xl px-2 py-1.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#25275B] to-[#CB0A9F] text-[11px] font-bold text-white">{(user?.name || 'S').slice(0, 1).toUpperCase()}</span>
-        <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-slate-700">{user?.name || 'Super Admin'}</span><span className="block truncate text-[10px] text-slate-400">{user?.email || 'Super Admin'}</span></span>
-        <form action="/auth/signout" method="post"><button title="Sair" aria-label="Sair da plataforma" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><LogOut size={15} /></button></form>
+    <div className="space-y-2 border-t border-white/[.08] p-3">
+      {internalOrg && <a href={`/inbox?organization=${internalOrg}`} className="group flex items-center gap-3 rounded-xl bg-white/[.06] p-2.5 ring-1 ring-inset ring-white/10 transition hover:bg-white/[.10]"><span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-tendi-magenta to-tendi-lilac text-white"><Building2 size={15} /></span><span className="min-w-0"><span className="block text-xs font-semibold text-white">Workspace TendiDesk</span><span className="block text-[10.5px] text-[#8E91C4]">Ambiente interno de testes</span></span><ArrowRight size={14} className="ml-auto text-[#8E91C4] transition group-hover:translate-x-0.5 group-hover:text-white" /></a>}
+      <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] font-medium text-[#B9BBE0] transition hover:bg-white/[.06] hover:text-white"><ExternalLink size={15} /> Ver site do TendiDesk</a>
+      <div className="flex items-center gap-2.5 rounded-xl bg-white/[.04] px-2.5 py-2 ring-1 ring-inset ring-white/[.06]">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-tendi-lilac to-tendi-magenta text-[11px] font-bold text-white">{(user?.name || 'S').slice(0, 1).toUpperCase()}</span>
+        <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-white">{user?.name || 'Super Admin'}</span><span className="block truncate text-[10.5px] text-[#8E91C4]">{user?.email || 'Super Admin'}</span></span>
+        <form action="/auth/signout" method="post"><button title="Sair" aria-label="Sair da plataforma" className="rounded-lg p-1.5 text-[#8E91C4] transition hover:bg-rose-500/10 hover:text-rose-200"><LogOut size={15} /></button></form>
       </div>
     </div>
   </aside>;
 
-  return <div className="min-h-screen bg-[#F7F8FC] text-slate-800">
-    <div className="fixed inset-y-0 left-0 z-30 hidden lg:flex">{sidebar}</div>
-    {mobileOpen && <div className="fixed inset-0 z-40 flex lg:hidden"><button aria-label="Fechar menu" className="absolute inset-0 bg-slate-950/30 backdrop-blur-[2px]" onClick={() => setMobileOpen(false)} /><div className="relative z-10 animate-pop">{sidebar}<button onClick={() => setMobileOpen(false)} aria-label="Fechar menu" className="absolute right-3 top-4 rounded-lg p-1.5 text-slate-500"><X size={18} /></button></div></div>}
+  return <div className="min-h-screen bg-tendi-haze text-slate-800">
+    <div className="fixed inset-y-0 left-0 z-30 hidden lg:flex">{sidebar(false)}</div>
+    {mobileOpen && <div className="fixed inset-0 z-40 flex lg:hidden"><button aria-label="Fechar menu" className="absolute inset-0 bg-tendi-night/50 backdrop-blur-[2px]" onClick={() => setMobileOpen(false)} /><div className="relative z-10 flex h-full animate-pop shadow-2xl">{sidebar(true)}</div></div>}
 
-    <div className="lg:pl-64">
-      <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-[#F7F8FC]/85 backdrop-blur-md">
-        <div className={`mx-auto flex min-h-16 w-full ${width} flex-wrap items-center gap-3 px-5 py-3 sm:px-8`}>
-          <button onClick={() => setMobileOpen(true)} className="rounded-lg p-2 text-slate-500 hover:bg-white lg:hidden" aria-label="Abrir menu"><Menu size={19} /></button>
+    <div className="lg:pl-[264px]">
+      <header className="sticky top-0 z-20 border-b border-tendi-line/70 bg-white/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150">
+        <div className={`mx-auto flex min-h-[64px] w-full ${width} flex-wrap items-center gap-3 px-4 py-3 sm:px-8 md:min-h-[72px]`}>
+          <button onClick={() => setMobileOpen(true)} className="td-icon-btn -ml-1 lg:hidden" aria-label="Abrir menu"><Menu size={19} /></button>
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1 text-[11px] font-medium text-slate-400">Console{group && <><ChevronRight size={12} />{group}</>}</p>
-            <h1 className="truncate text-lg font-semibold tracking-tight text-[#1D1F4E]">{title}</h1>
+            <h1 className="truncate text-[17px] font-semibold tracking-tight text-tendi-navy md:text-[19px]">{title}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setPaletteOpen(true)} className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:text-[#25275B] lg:hidden" aria-label="Buscar"><Search size={16} /></button>
+            <button type="button" onClick={() => setPaletteOpen(true)} className="td-icon-btn border border-tendi-line bg-white lg:hidden" aria-label="Buscar"><Search size={16} /></button>
             {actions}
           </div>
         </div>
       </header>
-      <main className={`mx-auto w-full ${width} px-5 py-7 sm:px-8 sm:py-8`}>
-        {description && <p className="-mt-2 mb-6 max-w-3xl text-sm leading-6 text-slate-500">{description}</p>}
+      <main className={`mx-auto w-full ${width} px-4 pb-[calc(env(safe-area-inset-bottom)+32px)] pt-6 sm:px-8 sm:pt-8`}>
+        {description && <p className="mb-6 max-w-3xl text-[13.5px] leading-6 text-slate-500">{description}</p>}
         <div className="animate-fade-up">{children}</div>
       </main>
     </div>
@@ -164,8 +170,8 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
   const go = (command?: Command) => { if (command) window.location.assign(command.href); };
 
   return <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/25 p-4 pt-[12vh] backdrop-blur-[2px]" onMouseDown={onClose}>
-    <div role="dialog" aria-modal="true" aria-label="Buscar no Console" onMouseDown={event => event.stopPropagation()} className="animate-pop w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20">
-      <div className="flex items-center gap-3 border-b border-slate-100 px-4">
+    <div role="dialog" aria-modal="true" aria-label="Buscar no Console" onMouseDown={event => event.stopPropagation()} className="animate-pop w-full max-w-xl overflow-hidden rounded-card border border-tendi-line bg-white shadow-pop">
+      <div className="flex items-center gap-3 border-b border-tendi-line/70 px-4">
         <Search size={17} className="text-slate-400" />
         <input ref={inputRef} value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => {
           if (event.key === 'Escape') onClose();
@@ -173,12 +179,12 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
           if (event.key === 'ArrowUp') { event.preventDefault(); setIndex(i => Math.max(i - 1, 0)); }
           if (event.key === 'Enter') { event.preventDefault(); go(results[index]); }
         }} placeholder="Buscar empresa, página ou ação…" className="h-14 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400" />
-        <kbd className="rounded-md border border-slate-200 px-1.5 text-[10px] text-slate-400">Esc</kbd>
+        <kbd className="rounded-md border border-tendi-line px-1.5 text-[10px] text-slate-400">Esc</kbd>
       </div>
       <ul className="max-h-[380px] overflow-y-auto p-2">
         {results.map((command, i) => { const Icon = command.icon; return <li key={command.id}>
-          <button type="button" onMouseEnter={() => setIndex(i)} onClick={() => go(command)} className={i === index ? 'flex w-full items-center gap-3 rounded-xl bg-[#F1F1FB] px-3 py-2.5 text-left' : 'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left'}>
-            <span className={i === index ? 'rounded-lg bg-white p-1.5 text-[#CB0A9F] shadow-sm' : 'rounded-lg bg-slate-50 p-1.5 text-slate-400'}><Icon size={15} /></span>
+          <button type="button" onMouseEnter={() => setIndex(i)} onClick={() => go(command)} className={i === index ? 'flex w-full items-center gap-3 rounded-xl bg-tendi-mist px-3 py-2.5 text-left' : 'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left'}>
+            <span className={i === index ? 'rounded-lg bg-white p-1.5 text-tendi-magenta shadow-card' : 'rounded-lg bg-slate-50 p-1.5 text-slate-400'}><Icon size={15} /></span>
             <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-slate-800">{command.label}</span><span className="block truncate text-[11px] text-slate-400">{command.hint}</span></span>
             {i === index && <ArrowRight size={14} className="text-slate-400" />}
           </button>

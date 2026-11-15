@@ -41,7 +41,7 @@ export function SupportBanner({ organizationId, organizationName, supportUntil }
   const minutesLeft = Math.max(0, Math.round((Date.parse(supportUntil) - now) / 60_000));
 
   return (
-    <div role="status" className="flex flex-wrap items-center justify-between gap-2 bg-[#CB0A9F] px-4 py-2 text-xs font-medium text-white">
+    <div role="status" className="flex flex-wrap items-center justify-between gap-2 bg-tendi-magenta px-4 py-2 text-xs font-medium text-white">
       <p className="flex min-w-0 items-center gap-2">
         <LifeBuoy size={15} className="shrink-0" />
         <span className="truncate">Acesso de suporte a <strong>{organizationName}</strong>, liberado pelo cliente até {until}{minutesLeft <= 15 ? ` (faltam ${minutesLeft} min)` : ''}.</span>

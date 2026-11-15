@@ -53,21 +53,21 @@ export default function OrganizationSetupPage() {
     }
   }
 
-  if (loading) return <main className="grid min-h-screen place-items-center bg-[#F7F8FC] text-[#2F316B]"><Loader2 className="animate-spin"/></main>;
+  if (loading) return <main className="grid min-h-screen place-items-center bg-tendi-haze text-tendi-indigo"><Loader2 className="animate-spin"/></main>;
 
   return <AdminShell title="Responsável da empresa" width="max-w-3xl">
     <div className="mx-auto max-w-2xl">
-      <div className="mt-7 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9"><img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain"/>
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf0fb] text-[#2F316B]"><ShieldCheck size={23}/></div>
-        <p className="mt-6 text-xs font-bold uppercase tracking-[.16em] text-[#CB0A9F]">Configuração inicial</p>
-        <h1 className="mt-2 text-2xl font-bold text-[#2F316B]">{organization?.name ?? 'Empresa'}</h1>
+      <div className="mt-7 td-card p-7 sm:p-9"><img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-11 w-auto object-contain"/>
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf0fb] text-tendi-indigo"><ShieldCheck size={23}/></div>
+        <p className="mt-6 text-xs font-bold uppercase tracking-[.16em] text-tendi-magenta">Configuração inicial</p>
+        <h1 className="mt-2 text-2xl font-bold text-tendi-indigo">{organization?.name ?? 'Empresa'}</h1>
         <p className="mt-2 text-sm leading-6 text-slate-500">Convide o responsável pela operação. Ele receberá um link por e-mail para ativar o acesso como administrador da empresa.</p>
 
-        {success ? <div role="status" className="mt-7 rounded-xl border border-emerald-200 bg-emerald-50 p-5"><div className="flex items-center gap-2 font-semibold text-emerald-900"><CheckCircle2 size={19}/> Etapa concluída</div><p className="mt-2 text-sm text-emerald-800">{success}</p><div className="mt-5 flex flex-wrap gap-3"><button onClick={() => setSuccess('')} className="rounded-lg bg-[#004751] px-4 py-2.5 text-sm font-semibold text-white">Convidar outra pessoa</button><a href={`/inbox?organization=${params.organizationId}`} className="rounded-lg border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-900">Abrir Inbox</a></div></div> : <form onSubmit={submit} className="mt-7 space-y-5">
-          <div><label htmlFor="admin-name" className="text-sm font-semibold text-slate-700">Nome do administrador</label><div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 px-3"><UserRound size={17} className="text-slate-400"/><input id="admin-name" required minLength={2} maxLength={120} value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Nome completo" className="w-full py-3 text-sm outline-none"/></div></div>
-          <div><label htmlFor="admin-email" className="text-sm font-semibold text-slate-700">E-mail de acesso</label><div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 px-3"><Mail size={17} className="text-slate-400"/><input id="admin-email" required type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="administrador@empresa.com.br" className="w-full py-3 text-sm outline-none"/></div></div>
+        {success ? <div role="status" className="mt-7 rounded-xl border border-emerald-200 bg-emerald-50 p-5"><div className="flex items-center gap-2 font-semibold text-emerald-900"><CheckCircle2 size={19}/> Etapa concluída</div><p className="mt-2 text-sm text-emerald-800">{success}</p><div className="mt-5 flex flex-wrap gap-3"><button onClick={() => setSuccess('')} className="rounded-lg bg-tendi-teal px-4 py-2.5 text-sm font-semibold text-white">Convidar outra pessoa</button><a href={`/inbox?organization=${params.organizationId}`} className="rounded-lg border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-900">Abrir Inbox</a></div></div> : <form onSubmit={submit} className="mt-7 space-y-5">
+          <div><label htmlFor="admin-name" className="text-sm font-semibold text-slate-700">Nome do administrador</label><div className="mt-2 flex items-center gap-2 rounded-xl border border-tendi-line px-3"><UserRound size={17} className="text-slate-400"/><input id="admin-name" required minLength={2} maxLength={120} value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Nome completo" className="w-full py-3 text-sm outline-none"/></div></div>
+          <div><label htmlFor="admin-email" className="text-sm font-semibold text-slate-700">E-mail de acesso</label><div className="mt-2 flex items-center gap-2 rounded-xl border border-tendi-line px-3"><Mail size={17} className="text-slate-400"/><input id="admin-email" required type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="administrador@empresa.com.br" className="w-full py-3 text-sm outline-none"/></div></div>
           {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <button disabled={sending || !organization} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#004751] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60">{sending ? <Loader2 className="animate-spin" size={17}/> : <Mail size={17}/>} {sending ? 'Preparando convite...' : 'Enviar convite e vincular administrador'}</button>
+          <button disabled={sending || !organization} className="td-btn td-btn-teal w-full  disabled:opacity-60">{sending ? <Loader2 className="animate-spin" size={17}/> : <Mail size={17}/>} {sending ? 'Preparando convite...' : 'Enviar convite e vincular administrador'}</button>
         </form>}
       </div>
       <p className="mt-4 text-center text-xs text-slate-400">O administrador será vinculado à empresa e à equipe principal de atendimento.</p>

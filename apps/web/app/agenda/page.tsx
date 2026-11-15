@@ -123,7 +123,7 @@ export default function AgendaPage() {
   const firstOpen = shown.find(item => shiftsFor(hours, item.id, day ? weekdayOf(day) : 0).length) ?? shown[0];
 
   const actions = organization && tab === 'day' && activeProfessionals.length > 0
-    ? <button type="button" onClick={() => setDraft({ day, professionalId: firstOpen?.id })} className="flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#003B44]"><Plus size={15} />Novo agendamento</button>
+    ? <button type="button" onClick={() => setDraft({ day, professionalId: firstOpen?.id })} className="td-btn td-btn-teal"><Plus size={15} />Novo agendamento</button>
     : undefined;
 
   return (
@@ -131,27 +131,27 @@ export default function AgendaPage() {
       {loading ? (
         <p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />Carregando agenda…</p>
       ) : !organization ? (
-        <p className="rounded-2xl bg-white p-6 text-sm text-slate-500 shadow-sm">{error || 'Sua conta não tem vínculo ativo com uma empresa.'}</p>
+        <p className="rounded-2xl bg-white p-6 text-sm text-slate-500 shadow-card">{error || 'Sua conta não tem vínculo ativo com uma empresa.'}</p>
       ) : (
         <div className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
-              <button type="button" onClick={() => setTab('day')} aria-pressed={tab === 'day'} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${tab === 'day' ? 'bg-[#2F316B] text-white' : 'text-slate-500 hover:text-[#2F316B]'}`}><CalendarDays size={14} />Dia</button>
-              <button type="button" onClick={() => setTab('settings')} aria-pressed={tab === 'settings'} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${tab === 'settings' ? 'bg-[#2F316B] text-white' : 'text-slate-500 hover:text-[#2F316B]'}`}><Settings2 size={14} />Configurar</button>
+            <div className="td-tabs">
+              <button type="button" onClick={() => setTab('day')} aria-pressed={tab === 'day'} className={`td-tab ${tab === 'day' ? 'td-tab-active' : ''}`}><CalendarDays size={14} />Dia</button>
+              <button type="button" onClick={() => setTab('settings')} aria-pressed={tab === 'settings'} className={`td-tab ${tab === 'settings' ? 'td-tab-active' : ''}`}><Settings2 size={14} />Configurar</button>
             </div>
             {tab === 'day' && (
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setDay(shiftDay(day, -1))} aria-label="Dia anterior" className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-500 hover:bg-slate-50"><ChevronLeft size={16} /></button>
-                <input type="date" value={day} onChange={event => { if (event.target.value) setDay(event.target.value); }} aria-label="Dia" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-[#25275B] outline-none focus:border-[#7C7EC0]" />
-                <button type="button" onClick={() => setDay(shiftDay(day, 1))} aria-label="Próximo dia" className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-500 hover:bg-slate-50"><ChevronRight size={16} /></button>
-                {day !== today.day && <button type="button" onClick={() => setDay(today.day)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-[#004751] hover:bg-slate-50">Hoje</button>}
+                <button type="button" onClick={() => setDay(shiftDay(day, -1))} aria-label="Dia anterior" className="inline-flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:border-tendi-lilac/40 hover:text-tendi-indigo"><ChevronLeft size={16} /></button>
+                <input type="date" value={day} onChange={event => { if (event.target.value) setDay(event.target.value); }} aria-label="Dia" className="td-input w-auto font-semibold text-tendi-navy" />
+                <button type="button" onClick={() => setDay(shiftDay(day, 1))} aria-label="Próximo dia" className="inline-flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:border-tendi-lilac/40 hover:text-tendi-indigo"><ChevronRight size={16} /></button>
+                {day !== today.day && <button type="button" onClick={() => setDay(today.day)} className="td-btn td-btn-secondary !text-tendi-teal">Hoje</button>}
                 {activeProfessionals.length > 1 && (
-                  <select value={filter} onChange={event => setFilter(event.target.value)} aria-label={`Filtrar por ${professionalLabel.toLowerCase()}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-600 outline-none focus:border-[#7C7EC0]">
+                  <select value={filter} onChange={event => setFilter(event.target.value)} aria-label={`Filtrar por ${professionalLabel.toLowerCase()}`} className="td-input w-auto font-semibold text-slate-600">
                     <option value="">Todos</option>
                     {activeProfessionals.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
                 )}
-                <button type="button" onClick={() => void refresh()} disabled={refreshing} aria-label="Atualizar" title="Atualizar" className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-500 hover:bg-slate-50 disabled:opacity-40"><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} /></button>
+                <button type="button" onClick={() => void refresh()} disabled={refreshing} aria-label="Atualizar" title="Atualizar" className="inline-flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:border-tendi-lilac/40 hover:text-tendi-indigo disabled:opacity-40"><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} /></button>
               </div>
             )}
           </div>
@@ -161,16 +161,16 @@ export default function AgendaPage() {
           {tab === 'settings' ? (
             <AgendaSettings organization={organization} professionals={professionals} services={services} hours={hours} canManage={canManage} canManageOrganization={canManageOrganization} professionalLabel={professionalLabel} onChanged={refresh} />
           ) : setupMissing ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-              <CalendarDays className="mx-auto text-[#CB0A9F]" size={30} />
-              <h2 className="mt-3 text-base font-bold text-[#25275B]">Configure a agenda para começar</h2>
+            <div className="td-card border-dashed p-8 text-center">
+              <CalendarDays className="mx-auto text-tendi-magenta" size={30} />
+              <h2 className="mt-3 td-title text-base">Configure a agenda para começar</h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Cadastre quem atende, os horários de atendimento e os serviços com a duração de cada um. Depois é só marcar os horários.</p>
-              <button type="button" onClick={() => setTab('settings')} className="mt-5 rounded-xl bg-[#004751] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#003B44]">Configurar agora</button>
+              <button type="button" onClick={() => setTab('settings')} className="td-btn td-btn-teal mt-5">Configurar agora</button>
             </div>
           ) : (
             <>
               <div>
-                <p className="text-sm font-semibold capitalize text-[#25275B]">{formatDayLong(day)}{day === today.day ? ' · hoje' : ''}</p>
+                <p className="text-sm font-semibold capitalize text-tendi-navy">{formatDayLong(day)}{day === today.day ? ' · hoje' : ''}</p>
                 <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
                   <Stat label="Marcados" value={summary.total} />
                   <Stat label="Confirmados" value={summary.confirmed} tone="text-emerald-700" />
@@ -217,9 +217,9 @@ export default function AgendaPage() {
 
 function Stat({ label, value, tone, detail }: { label: string; value: number | string; tone?: string; detail?: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${tone ?? 'text-[#25275B]'}`}>{value}</p>
+    <div className="td-card px-4 py-3.5">
+      <p className="td-eyebrow">{label}</p>
+      <p className={`mt-1.5 text-2xl font-semibold tracking-tight tabular-nums ${tone ?? 'text-tendi-navy'}`}>{value}</p>
       {detail && <p className="text-[11px] text-slate-400">{detail}</p>}
     </div>
   );

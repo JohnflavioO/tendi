@@ -44,10 +44,10 @@ export function SenderName() {
   return editing
     ? <form onSubmit={save} className="mt-2 flex items-center gap-1.5 px-1">
         <span className="text-[11px] text-slate-500">Seu nome nas mensagens:</span>
-        <input autoFocus value={draft} maxLength={40} onChange={e => setDraft(e.target.value)} className="w-40 rounded-md border border-slate-200 px-2 py-0.5 text-[11px] outline-none focus:border-[#7C7EC0]" />
+        <input autoFocus value={draft} maxLength={40} onChange={e => setDraft(e.target.value)} className="w-40 rounded-md border border-tendi-line px-2 py-0.5 text-[11px] outline-none focus:border-tendi-lilac" />
         <button disabled={saving} aria-label="Salvar nome" className="rounded-md p-1 text-emerald-700 hover:bg-emerald-50">{saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}</button>
         <button type="button" onClick={() => { setEditing(false); setError(''); }} aria-label="Cancelar" className="rounded-md p-1 text-slate-400 hover:bg-slate-100"><X size={13} /></button>
         {error && <span className="text-[11px] text-rose-600">{error}</span>}
       </form>
-    : <p className="mt-2 flex items-center gap-1 px-1 text-[11px] text-slate-500">Saem pelo WhatsApp com a assinatura <b className="font-semibold text-slate-700">{cleanName(name).split(' ')[0] || 'Atendente'}</b><button type="button" onClick={() => { setDraft(name); setEditing(true); }} className="ml-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold text-[#004751] hover:bg-[#E8F4F2]"><PenLine size={11} />editar nome</button></p>;
+    : <p className="mt-2 flex items-center gap-1 px-1 text-[11px] text-slate-500">Saem pelo WhatsApp com a assinatura <b className="font-semibold text-slate-700">{cleanName(name).split(' ')[0] || 'Atendente'}</b><button type="button" onClick={() => { setDraft(name); setEditing(true); }} className="ml-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold text-tendi-teal hover:bg-tendi-tealsoft"><PenLine size={11} />editar nome</button></p>;
 }

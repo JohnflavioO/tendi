@@ -18,7 +18,7 @@ export function ContactAvatar({ contactId, name, className = 'size-11 rounded-2x
   const [loaded, setLoaded] = useState(false);
   useEffect(() => { setFailed(!contactId || missing.has(contactId)); setLoaded(false); }, [contactId]);
 
-  return <span className={`relative flex shrink-0 items-center justify-center bg-gradient-to-br from-[#DFE1F7] to-[#F7DDEF] font-bold text-[#25275B] ${className}`}>
+  return <span className={`relative flex shrink-0 items-center justify-center bg-gradient-to-br from-[#DFE1F7] to-[#F7DDEF] font-bold text-tendi-navy ${className}`}>
     {!loaded && initials(name)}
     {contactId && !failed && <img
       src={`/api/contacts/${contactId}/avatar`}

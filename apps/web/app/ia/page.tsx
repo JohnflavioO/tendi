@@ -28,9 +28,9 @@ const DEFAULT_AGENT: AgentForm = {
   auto_enable_new_conversations: false, provider: null, model: null, monthly_reply_limit: null,
 };
 
-const inputClass = 'mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[#A7A8D0]';
+const inputClass = 'td-input mt-1';
 const labelClass = 'block text-xs font-semibold text-slate-600';
-const cardClass = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6';
+const cardClass = 'td-card p-5 sm:p-6';
 
 /**
  * Configuração do agente de IA pelo dono/admin do workspace (área "ia", mínimo admin).
@@ -126,19 +126,19 @@ export default function WorkspaceAiPage() {
     setNotice('Agente salvo.');
   }
 
-  if (loading || allowed === undefined) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] text-[#2F316B]"><Loader2 className="animate-spin" size={28} /></main>;
-  if (!org) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><p className="text-sm text-slate-500">Nenhum workspace encontrado para sua conta.</p></div></main>;
-  if (!allowed) return <main className="grid min-h-screen place-items-center bg-[#F5F6FB] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><ShieldAlert className="mx-auto text-[#CB0A9F]" size={30} /><h1 className="mt-3 font-bold text-[#2F316B]">Acesso restrito</h1><p className="mt-2 text-sm text-slate-500">Só o dono ou um administrador do workspace configura o agente de IA.</p></div></main>;
+  if (loading || allowed === undefined) return <main className="grid min-h-screen place-items-center bg-tendi-haze text-tendi-indigo"><Loader2 className="animate-spin" size={28} /></main>;
+  if (!org) return <main className="grid min-h-screen place-items-center bg-tendi-haze p-6"><div className="td-card p-8 text-center"><p className="text-sm text-slate-500">Nenhum workspace encontrado para sua conta.</p></div></main>;
+  if (!allowed) return <main className="grid min-h-screen place-items-center bg-tendi-haze p-6"><div className="td-card p-8 text-center"><ShieldAlert className="mx-auto text-tendi-magenta" size={30} /><h1 className="mt-3 font-bold text-tendi-indigo">Acesso restrito</h1><p className="mt-2 text-sm text-slate-500">Só o dono ou um administrador do workspace configura o agente de IA.</p></div></main>;
 
   return <WorkspaceShell title="Agente de IA" description="Configure como a IA atende pelo WhatsApp e Webchat deste workspace">
     <div className="space-y-5">
-      {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{error}</p>}
-      {notice && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700">{notice}</p>}
+      {error && <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-700 ring-1 ring-inset ring-rose-600/10">{error}</p>}
+      {notice && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-xs text-emerald-700 ring-1 ring-inset ring-emerald-600/10">{notice}</p>}
       {!planIncludesAi && <p className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-800"><TriangleAlert size={16} className="mt-0.5 shrink-0" />O plano atual não inclui inteligência artificial. <a href={`/assinatura?organization=${org.id}`} className="ml-1 font-semibold underline">Veja os planos</a>.</p>}
 
       <section className={cardClass}>
-        <div className="mb-3 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><ListChecks size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Primeiros passos</h2><p className="text-xs text-slate-400">{stepsDone} de {steps.length} concluídos</p></div></div>
-        <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full bg-[#004751] transition-all" style={{ width: `${(stepsDone / steps.length) * 100}%` }} /></div>
+        <div className="mb-3 flex items-center gap-3"><span className="td-icon td-icon-magenta"><ListChecks size={20} /></span><div><h2 className="td-title">Primeiros passos</h2><p className="text-xs text-slate-400">{stepsDone} de {steps.length} concluídos</p></div></div>
+        <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full bg-tendi-teal transition-all" style={{ width: `${(stepsDone / steps.length) * 100}%` }} /></div>
         <ul className="space-y-2">{steps.map(step => (
           <li key={step.label} className="flex items-start gap-2 text-xs">
             {step.done ? <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-600" /> : <Circle size={15} className="mt-0.5 shrink-0 text-slate-300" />}
@@ -148,7 +148,7 @@ export default function WorkspaceAiPage() {
       </section>
 
       <section className={cardClass}>
-        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#F0F0FA] p-3 text-[#2F316B]"><Bot size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Agente de {org.name}</h2><p className="text-xs text-slate-400">Como ele se apresenta e se comporta nas conversas.</p></div></div>
+        <div className="mb-4 flex items-center gap-3"><span className="td-icon"><Bot size={20} /></span><div><h2 className="td-title">Agente de {org.name}</h2><p className="text-xs text-slate-400">Como ele se apresenta e se comporta nas conversas.</p></div></div>
         <div className="grid gap-4 md:grid-cols-2">
           <label className={labelClass}>Nome do agente (aparece na conversa)<input maxLength={60} value={agent.name} onChange={e => setField('name', e.target.value)} className={inputClass} placeholder="Ex.: Bia" /></label>
           <label className={labelClass}>Nicho / segmento<input maxLength={200} value={agent.niche} onChange={e => setField('niche', e.target.value)} className={inputClass} placeholder="Ex.: clínica odontológica" /></label>
@@ -160,18 +160,18 @@ export default function WorkspaceAiPage() {
           <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.is_enabled} onChange={e => setField('is_enabled', e.target.checked)} />Agente ativo (os atendentes poderão ligar a IA nas conversas)</label>
           <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.auto_enable_new_conversations} onChange={e => setField('auto_enable_new_conversations', e.target.checked)} />Ligar a IA automaticamente em conversas novas</label>
         </div>
-        <p className="mt-4 rounded-xl bg-[#FAFBFD] p-3 text-xs text-slate-500">
+        <p className="mt-4 td-subtle p-3 text-xs text-slate-500">
           Provedor e modelo: <b className="text-slate-700">{agent.provider ?? 'padrão da plataforma'}{agent.model ? ` · ${agent.model}` : ''}</b> · Limite mensal: <b className="text-slate-700">{agent.monthly_reply_limit ? `${agent.monthly_reply_limit.toLocaleString('pt-BR')} respostas` : 'do plano atual'}</b>
           <span className="mt-1 block text-slate-400">Definidos pelo Super Admin da plataforma.</span>
         </p>
         <div className="mt-3"><AiUsageNotice organizationId={org.id} /></div>
-        <button type="button" onClick={() => void saveAgent()} disabled={saving || !planIncludesAi} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{agentExists ? 'Salvar agente' : 'Ativar e salvar agente'}</button>
+        <button type="button" onClick={() => void saveAgent()} disabled={saving || !planIncludesAi} className="mt-5 inline-flex items-center gap-2 td-btn td-btn-teal disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{agentExists ? 'Salvar agente' : 'Ativar e salvar agente'}</button>
       </section>
 
       <BusinessEditor organizationId={org.id} onChange={handleBusinessChange} />
 
       <details className={cardClass}>
-        <summary className="cursor-pointer text-sm font-bold text-[#2F316B]">Prévia do que a IA recebe</summary>
+        <summary className="cursor-pointer td-title">Prévia do que a IA recebe</summary>
         <p className="mt-2 text-xs text-slate-400">É o resumo que o agente usa para responder. Salve as alterações para ver a versão atualizada.</p>
         <pre className="mt-3 max-h-[480px] overflow-auto whitespace-pre-wrap rounded-xl bg-slate-900 p-4 text-[11px] leading-5 text-slate-100">{promptPreview}</pre>
       </details>

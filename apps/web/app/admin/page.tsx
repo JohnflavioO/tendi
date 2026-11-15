@@ -159,79 +159,79 @@ export default function AdminPage() {
     const nameOf = (id: string | null) => orgs.find(org => org.id === id)?.name ?? 'Empresa';
     const items = [
       ...events.map(event => ({ id: event.id, at: event.received_at, text: `${nameOf(event.organization_id)} · ${EVENT_LABEL[event.type] ?? event.type}`, tone: event.type.includes('failed') || event.type.includes('canceled') ? 'bg-rose-500' : 'bg-emerald-500' })),
-      ...customers.slice(0, 6).map(org => ({ id: `org-${org.id}`, at: org.created_at, text: `${org.name} · ${org.status === 'trial' ? 'começou o teste grátis' : 'foi cadastrada'}`, tone: 'bg-[#2F316B]' })),
+      ...customers.slice(0, 6).map(org => ({ id: `org-${org.id}`, at: org.created_at, text: `${org.name} · ${org.status === 'trial' ? 'começou o teste grátis' : 'foi cadastrada'}`, tone: 'bg-tendi-indigo' })),
     ];
     return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 7);
   }, [events, customers, orgs]);
 
   if (loading) return <AdminShell title="Visão geral"><SkeletonOverview /></AdminShell>;
-  if (!authorized) return <main className="grid min-h-screen place-items-center bg-[#F7F8FC] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><ShieldCheck className="mx-auto text-[#CB0A9F]" size={32} /><h1 className="mt-4 text-xl font-semibold text-[#2F316B]">Acesso restrito</h1><p className="mt-2 text-sm text-slate-500">Esta área é exclusiva do Super Admin da plataforma.</p><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-[#004751]">Voltar ao Inbox</a></div></main>;
+  if (!authorized) return <main className="grid min-h-screen place-items-center bg-tendi-haze p-6"><div className="td-card p-8 text-center"><ShieldCheck className="mx-auto text-tendi-magenta" size={32} /><h1 className="mt-4 text-xl font-semibold tracking-tight text-tendi-navy">Acesso restrito</h1><p className="mt-2 text-sm text-slate-500">Esta área é exclusiva do Super Admin da plataforma.</p><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-tendi-teal">Voltar ao Inbox</a></div></main>;
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
 
-  return <AdminShell title="Visão geral" width="max-w-7xl" actions={<button type="button" onClick={() => setCreating(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#1D1F4E] px-3.5 py-2 text-sm font-semibold text-white shadow-sm shadow-indigo-950/20 transition hover:bg-[#2F316B]"><Plus size={16} />Nova empresa</button>}>
+  return <AdminShell title="Visão geral" width="max-w-7xl" actions={<button type="button" onClick={() => setCreating(true)} className="td-btn td-btn-primary"><Plus size={16} />Nova empresa</button>}>
     {error && <p role="alert" className="mb-5 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
-    <section className="relative overflow-hidden rounded-3xl bg-[#1D1F4E] p-6 text-white sm:p-8">
-      <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-[#CB0A9F]/35 blur-3xl" />
+    <section className="td-sidebar relative overflow-hidden rounded-card p-6 text-white shadow-lift ring-1 ring-inset ring-white/10 sm:p-8">
+      <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-tendi-magenta/30 blur-3xl" /><div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.035)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:linear-gradient(to_left,black,transparent_70%)]" />
       <div aria-hidden className="pointer-events-none absolute -bottom-32 left-1/3 size-72 rounded-full bg-[#00A3A3]/25 blur-3xl" />
       <div className="relative flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-sm text-white/60">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          <p className="text-[13px] text-[#B9BBE0] first-letter:uppercase">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{greeting}{firstName ? `, ${firstName}` : ''}.</h2>
           <p className="mt-2 max-w-xl text-sm text-white/70">{attention ? `${attention} ${attention === 1 ? 'cliente pede' : 'clientes pedem'} atenção hoje.` : trials ? `${trials} ${trials === 1 ? 'empresa está' : 'empresas estão'} testando o TendiDesk agora.` : 'Tudo em ordem na plataforma.'}</p>
         </div>
         <div className="flex gap-8">
-          <div><p className="text-xs font-medium uppercase tracking-wider text-white/50">Receita mensal</p><p className="mt-1 text-3xl font-semibold tracking-tight">{brl(mrr)}</p><p className="text-xs text-white/50">{brl(mrr * 12)} por ano</p></div>
-          <div className="hidden sm:block"><p className="text-xs font-medium uppercase tracking-wider text-white/50">Pagantes</p><p className="mt-1 text-3xl font-semibold tracking-tight">{paying}</p><p className="text-xs text-white/50">{conversion ? `${Math.round((paying / conversion) * 100)}% de conversão` : 'sem testes ainda'}</p></div>
+          <div><p className="text-[10.5px] font-semibold uppercase tracking-[.14em] text-[#8E91C4]">Receita mensal</p><p className="mt-1.5 text-[30px] font-semibold leading-none tracking-tight tabular-nums">{brl(mrr)}</p><p className="text-xs text-white/50">{brl(mrr * 12)} por ano</p></div>
+          <div className="hidden sm:block"><p className="text-[10.5px] font-semibold uppercase tracking-[.14em] text-[#8E91C4]">Pagantes</p><p className="mt-1.5 text-[30px] font-semibold leading-none tracking-tight tabular-nums">{paying}</p><p className="text-xs text-white/50">{conversion ? `${Math.round((paying / conversion) * 100)}% de conversão` : 'sem testes ainda'}</p></div>
         </div>
       </div>
     </section>
 
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <Kpi icon={Building2} label="Clientes" value={String(customers.length)} detail={`${paying} pagantes · ${trials} em teste`} accent="text-[#2F316B] bg-[#F1F1FB]" />
+      <Kpi icon={Building2} label="Clientes" value={String(customers.length)} detail={`${paying} pagantes · ${trials} em teste`} accent="text-tendi-indigo bg-tendi-mist" />
       <Kpi icon={AlertTriangle} label="Pedem atenção" value={String(attention)} detail="Pagamento pendente, teste vencido ou suspensas" accent={attention ? 'text-amber-700 bg-amber-50' : 'text-slate-400 bg-slate-50'} onClick={attention ? () => setFilter('attention') : undefined} />
-      <Kpi icon={Bot} label="Custo de IA no mês" value={brl(aiCost)} detail={mrr ? `${((aiCost / mrr) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% da receita mensal` : 'Sem receita para comparar'} accent="text-[#CB0A9F] bg-[#FDF0FA]" href="/admin/ia/consumo" />
-      <Kpi icon={MessageSquare} label="Conversas" value={counts.conversations.toLocaleString('pt-BR')} detail={`${counts.contacts.toLocaleString('pt-BR')} contatos atendidos`} accent="text-[#004751] bg-[#E8F4F2]" />
+      <Kpi icon={Bot} label="Custo de IA no mês" value={brl(aiCost)} detail={mrr ? `${((aiCost / mrr) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% da receita mensal` : 'Sem receita para comparar'} accent="text-tendi-magenta bg-[#FDF0FA]" href="/admin/ia/consumo" />
+      <Kpi icon={MessageSquare} label="Conversas" value={counts.conversations.toLocaleString('pt-BR')} detail={`${counts.contacts.toLocaleString('pt-BR')} contatos atendidos`} accent="text-tendi-teal bg-tendi-tealsoft" />
     </section>
 
     <section className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[.03]">
-        <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-5 py-4">
-          <div className="mr-auto"><h2 className="text-[15px] font-semibold text-[#1D1F4E]">Empresas</h2><p className="text-xs text-slate-400">{customers.length} {customers.length === 1 ? 'cliente' : 'clientes'} na plataforma</p></div>
-          <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm focus-within:border-[#7C7EC0] focus-within:bg-white"><Search size={15} className="text-slate-400" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar empresa" className="w-40 bg-transparent outline-none placeholder:text-slate-400" /></label>
+      <div className="td-card overflow-hidden">
+        <div className="flex flex-wrap items-center gap-3 border-b border-tendi-line/70 px-5 py-4">
+          <div className="mr-auto"><h2 className="text-[15px] font-semibold text-tendi-navy">Empresas</h2><p className="text-xs text-slate-400">{customers.length} {customers.length === 1 ? 'cliente' : 'clientes'} na plataforma</p></div>
+          <label className="flex items-center gap-2 rounded-xl border border-tendi-line bg-slate-50/60 px-3 py-2 text-sm focus-within:border-tendi-lilac focus-within:bg-white"><Search size={15} className="text-slate-400" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar empresa" className="w-40 bg-transparent outline-none placeholder:text-slate-400" /></label>
         </div>
-        <div className="flex gap-1 overflow-x-auto border-b border-slate-100 px-4 py-2">{FILTERS.map(item => {
+        <div className="flex gap-1 overflow-x-auto border-b border-tendi-line/70 px-4 py-2">{FILTERS.map(item => {
           const count = item.key === 'all' ? rows.length : rows.filter(row => item.key === 'attention' ? ['past_due', 'expired', 'suspended'].includes(row.situation.key) : row.situation.key === item.key).length;
-          return <button key={item.key} type="button" onClick={() => setFilter(item.key)} className={filter === item.key ? 'whitespace-nowrap rounded-lg bg-[#1D1F4E] px-3 py-1.5 text-xs font-semibold text-white' : 'whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100'}>{item.label}<span className={filter === item.key ? 'ml-1.5 text-white/60' : 'ml-1.5 text-slate-400'}>{count}</span></button>;
+          return <button key={item.key} type="button" onClick={() => setFilter(item.key)} className={filter === item.key ? 'whitespace-nowrap rounded-lg bg-tendi-navy px-3 py-1.5 text-xs font-semibold text-white' : 'whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100'}>{item.label}<span className={filter === item.key ? 'ml-1.5 text-white/60' : 'ml-1.5 text-slate-400'}>{count}</span></button>;
         })}</div>
         {filtered.length ? <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-slate-50/60 text-[11px] font-medium uppercase tracking-wide text-slate-400"><tr><th className="px-5 py-2.5 font-medium">Empresa</th><th className="py-2.5 font-medium">Plano</th><th className="py-2.5 font-medium">Situação</th><th className="py-2.5 font-medium">Equipe</th><th className="py-2.5 font-medium">IA no mês</th><th className="py-2.5 pr-5 text-right font-medium">Ações</th></tr></thead>
-          <tbody className="divide-y divide-slate-100">{filtered.map(row => <tr key={row.org.id} className="group transition hover:bg-slate-50/70">
-            <td className="px-5 py-3"><div className="flex items-center gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#ECECFA] to-[#FBEAF6] text-[11px] font-bold text-[#2F316B]">{initials(row.org.name)}</span><div className="min-w-0"><p className="truncate font-medium text-slate-800">{row.org.name}</p><p className="text-xs text-slate-400">desde {shortDate(row.org.created_at)}</p></div></div></td>
+          <tbody className="divide-y divide-tendi-line/70">{filtered.map(row => <tr key={row.org.id} className="group transition hover:bg-tendi-haze/70">
+            <td className="px-5 py-3"><div className="flex items-center gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#ECECFA] to-[#FBEAF6] text-[11px] font-bold text-tendi-indigo">{initials(row.org.name)}</span><div className="min-w-0"><p className="truncate font-medium text-slate-800">{row.org.name}</p><p className="text-xs text-slate-400">desde {shortDate(row.org.created_at)}</p></div></div></td>
             <td className="py-3"><p className="text-slate-700">{row.plan?.name ?? '—'}</p><p className="text-xs text-slate-400">{row.monthly ? `${brl(row.monthly)}/mês${row.sub?.billing_period === 'annual' ? ' · anual' : ''}` : '—'}</p></td>
             <td className="py-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ${row.situation.tone}`}>{row.situation.label}</span></td>
             <td className="py-3 text-slate-600"><span className="inline-flex items-center gap-1.5"><Users size={14} className="text-slate-400" />{row.members}</span></td>
             <td className="py-3 text-slate-600">{row.aiReplies ? <><p>{row.aiReplies.toLocaleString('pt-BR')} respostas</p><p className="text-xs text-slate-400">{brl(row.aiCost)}</p></> : <span className="text-slate-300">—</span>}</td>
-            <td className="py-3 pr-5"><div className="flex justify-end gap-1.5"><a href={`/admin/organizations/${row.org.id}/setup`} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800">Responsável</a><a href={`/admin/organizations/${row.org.id}`} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-[#004751] hover:border-[#004751]/40">Abrir<ArrowUpRight size={13} /></a></div></td>
+            <td className="py-3 pr-5"><div className="flex justify-end gap-1.5"><a href={`/admin/organizations/${row.org.id}/setup`} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800">Responsável</a><a href={`/admin/organizations/${row.org.id}`} className="inline-flex items-center gap-1 rounded-lg border border-tendi-line bg-white px-2.5 py-1.5 text-xs font-semibold text-tendi-teal hover:border-tendi-teal/40">Abrir<ArrowUpRight size={13} /></a></div></td>
           </tr>)}</tbody>
-        </table></div> : <div className="px-6 py-14 text-center"><span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-300"><Building2 size={22} /></span><p className="mt-3 text-sm font-medium text-slate-700">{customers.length ? 'Nenhuma empresa neste filtro' : 'Nenhum cliente ainda'}</p><p className="mt-1 text-xs text-slate-400">{customers.length ? 'Troque o filtro ou a busca.' : 'Cadastre o primeiro cliente ou divulgue o teste grátis do site.'}</p>{!customers.length && <button type="button" onClick={() => setCreating(true)} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#1D1F4E] px-3.5 py-2 text-sm font-semibold text-white"><Plus size={15} />Nova empresa</button>}</div>}
+        </table></div> : <div className="px-6 py-14 text-center"><span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-300"><Building2 size={22} /></span><p className="mt-3 text-sm font-medium text-slate-700">{customers.length ? 'Nenhuma empresa neste filtro' : 'Nenhum cliente ainda'}</p><p className="mt-1 text-xs text-slate-400">{customers.length ? 'Troque o filtro ou a busca.' : 'Cadastre o primeiro cliente ou divulgue o teste grátis do site.'}</p>{!customers.length && <button type="button" onClick={() => setCreating(true)} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-tendi-navy px-3.5 py-2 text-sm font-semibold text-white"><Plus size={15} />Nova empresa</button>}</div>}
       </div>
 
       <div className="space-y-6">
-        {stepsDone < steps.length && <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[.03]">
-          <div className="flex items-center justify-between"><h2 className="text-[15px] font-semibold text-[#1D1F4E]">Pronto para vender</h2><span className="text-xs font-medium text-slate-400">{stepsDone} de {steps.length}</span></div>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-[#004751] to-[#00A3A3] transition-all" style={{ width: `${(stepsDone / steps.length) * 100}%` }} /></div>
-          <ul className="mt-4 space-y-1">{steps.map(step => <li key={step.label}><a href={step.href} onClick={step.href === '#nova' ? event => { event.preventDefault(); setCreating(true); } : undefined} className="group flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50">
-            <span className={step.done ? 'flex size-6 items-center justify-center rounded-full bg-emerald-500 text-white' : 'flex size-6 items-center justify-center rounded-full border-2 border-slate-200'}>{step.done && <Check size={13} strokeWidth={3} />}</span>
+        {stepsDone < steps.length && <section className="td-card p-5">
+          <div className="flex items-center justify-between"><h2 className="text-[15px] font-semibold text-tendi-navy">Pronto para vender</h2><span className="text-xs font-medium text-slate-400">{stepsDone} de {steps.length}</span></div>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-tendi-teal to-[#00A3A3] transition-all" style={{ width: `${(stepsDone / steps.length) * 100}%` }} /></div>
+          <ul className="mt-4 space-y-1">{steps.map(step => <li key={step.label}><a href={step.href} onClick={step.href === '#nova' ? event => { event.preventDefault(); setCreating(true); } : undefined} className="group flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-tendi-haze">
+            <span className={step.done ? 'flex size-6 items-center justify-center rounded-full bg-emerald-500 text-white' : 'flex size-6 items-center justify-center rounded-full border-2 border-tendi-line'}>{step.done && <Check size={13} strokeWidth={3} />}</span>
             <span className="min-w-0 flex-1"><span className={step.done ? 'block text-sm text-slate-400 line-through' : 'block text-sm font-medium text-slate-700'}>{step.label}</span>{!step.done && <span className="block text-[11px] text-slate-400">{step.hint}</span>}</span>
             {!step.done && <ArrowRight size={14} className="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-500" />}
           </a></li>)}</ul>
         </section>}
 
-        <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[.03]">
-          <h2 className="text-[15px] font-semibold text-[#1D1F4E]">Funil de clientes</h2>
+        <section className="td-card p-5">
+          <h2 className="text-[15px] font-semibold text-tendi-navy">Funil de clientes</h2>
           <div className="mt-4 space-y-3">{[
             { label: 'Em teste', value: trials, color: 'bg-sky-500', icon: Clock3 },
             { label: 'Pagantes', value: paying, color: 'bg-emerald-500', icon: CircleDollarSign },
@@ -240,11 +240,11 @@ export default function AdminPage() {
             <div className="flex items-center justify-between text-xs"><span className="flex items-center gap-2 text-slate-600"><Icon size={14} className="text-slate-400" />{item.label}</span><span className="font-semibold text-slate-800">{item.value}</span></div>
             <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.color}`} style={{ width: `${(item.value / max) * 100}%` }} /></div>
           </div>; })}</div>
-          <a href="/admin/pagamentos" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#004751] hover:underline"><CreditCard size={13} />Ver assinaturas</a>
+          <a href="/admin/pagamentos" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-tendi-teal hover:underline"><CreditCard size={13} />Ver assinaturas</a>
         </section>
 
-        <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[.03]">
-          <h2 className="flex items-center gap-2 text-[15px] font-semibold text-[#1D1F4E]"><TrendingUp size={16} className="text-slate-400" />Atividade recente</h2>
+        <section className="td-card p-5">
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold text-tendi-navy"><TrendingUp size={16} className="text-slate-400" />Atividade recente</h2>
           {activity.length ? <ol className="mt-4 space-y-3.5">{activity.map(item => <li key={item.id} className="flex gap-3"><span className={`mt-1.5 size-2 shrink-0 rounded-full ${item.tone}`} /><div className="min-w-0"><p className="text-[13px] leading-5 text-slate-700">{item.text}</p><p className="text-[11px] text-slate-400">{new Date(item.at).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p></div></li>)}</ol> : <p className="mt-3 text-xs text-slate-400">Os cadastros e pagamentos aparecem aqui.</p>}
         </section>
       </div>
@@ -256,19 +256,19 @@ export default function AdminPage() {
 
 function Kpi({ icon: Icon, label, value, detail, accent, href, onClick }: { icon: typeof Building2; label: string; value: string; detail: string; accent: string; href?: string; onClick?: () => void }) {
   const body = <>
-    <div className="flex items-center justify-between"><p className="text-[13px] font-medium text-slate-500">{label}</p><span className={`rounded-lg p-2 ${accent}`}><Icon size={16} /></span></div>
-    <p className="mt-3 text-2xl font-semibold tracking-tight text-[#1D1F4E]">{value}</p>
-    <p className="mt-1 text-xs text-slate-400">{detail}</p>
+    <div className="flex items-start justify-between gap-3"><p className="td-eyebrow">{label}</p><span className={`inline-flex size-8 items-center justify-center rounded-lg ring-1 ring-inset ring-black/[.03] ${accent}`}><Icon size={16} /></span></div>
+    <p className="mt-3 text-[26px] font-semibold leading-none tracking-tight tabular-nums text-tendi-navy">{value}</p>
+    <p className="mt-2 text-xs leading-5 text-slate-400">{detail}</p>
   </>;
-  const cls = 'block rounded-2xl border border-slate-200/80 bg-white p-5 text-left shadow-sm shadow-slate-900/[.03] transition';
-  if (href) return <a href={href} className={`${cls} hover:-translate-y-0.5 hover:shadow-md`}>{body}</a>;
-  if (onClick) return <button type="button" onClick={onClick} className={`${cls} hover:-translate-y-0.5 hover:shadow-md`}>{body}</button>;
+  const cls = 'td-card block p-5 text-left';
+  if (href) return <a href={href} className={`${cls} td-card-hover`}>{body}</a>;
+  if (onClick) return <button type="button" onClick={onClick} className={`${cls} td-card-hover`}>{body}</button>;
   return <article className={cls}>{body}</article>;
 }
 
 function SkeletonOverview() {
   return <div className="animate-pulse space-y-6">
-    <div className="h-40 rounded-3xl bg-slate-200/70" />
+    <div className="h-40 rounded-card bg-slate-200/70" />
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[0, 1, 2, 3].map(i => <div key={i} className="h-28 rounded-2xl bg-slate-200/60" />)}</div>
     <div className="h-72 rounded-2xl bg-slate-200/50" />
   </div>;
@@ -320,18 +320,18 @@ function NewCompanyDialog({ onClose, onCreated }: { onClose: () => void; onCreat
     } finally { setSaving(false); }
   }
 
-  return <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/30 p-4 pt-[14vh] backdrop-blur-[2px]" onMouseDown={onClose}>
-    <div role="dialog" aria-modal="true" aria-labelledby="new-company-title" onMouseDown={event => event.stopPropagation()} className="animate-pop w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-900/20">
-      <div className="flex items-start justify-between"><div><h2 id="new-company-title" className="text-lg font-semibold text-[#1D1F4E]">{created ? 'Empresa criada' : 'Nova empresa'}</h2><p className="mt-1 text-sm text-slate-500">{created ? 'Agora convide o responsável para ele assumir o workspace.' : 'O workspace já nasce com equipe de atendimento e funil de vendas.'}</p></div><button type="button" onClick={onClose} aria-label="Fechar" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><X size={18} /></button></div>
+  return <div className="fixed inset-0 z-50 flex items-start justify-center bg-tendi-night/50 backdrop-blur-[2px] p-4 pt-[14vh] backdrop-blur-[2px]" onMouseDown={onClose}>
+    <div role="dialog" aria-modal="true" aria-labelledby="new-company-title" onMouseDown={event => event.stopPropagation()} className="animate-pop w-full max-w-md rounded-2xl border border-tendi-line bg-white p-6 shadow-pop shadow-slate-900/20">
+      <div className="flex items-start justify-between"><div><h2 id="new-company-title" className="text-lg font-semibold text-tendi-navy">{created ? 'Empresa criada' : 'Nova empresa'}</h2><p className="mt-1 text-sm text-slate-500">{created ? 'Agora convide o responsável para ele assumir o workspace.' : 'O workspace já nasce com equipe de atendimento e funil de vendas.'}</p></div><button type="button" onClick={onClose} aria-label="Fechar" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><X size={18} /></button></div>
       {created ? <div className="mt-5 space-y-3">
         <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 size={18} />{created.name} está pronta.</div>
-        <a href={`/admin/organizations/${created.id}/setup`} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1D1F4E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2F316B]">Convidar o responsável<ArrowRight size={15} /></a>
-        <a href={`/admin/organizations/${created.id}`} className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Abrir a ficha da empresa</a>
+        <a href={`/admin/organizations/${created.id}/setup`} className="td-btn td-btn-primary w-full ">Convidar o responsável<ArrowRight size={15} /></a>
+        <a href={`/admin/organizations/${created.id}`} className="td-btn td-btn-secondary w-full ">Abrir a ficha da empresa</a>
       </div> : <form onSubmit={submit} className="mt-5">
         <label htmlFor="company-name" className="text-sm font-medium text-slate-700">Nome da empresa</label>
-        <input id="company-name" autoFocus required minLength={2} maxLength={80} value={name} onChange={e => setName(e.target.value)} placeholder="Ex.: Clínica Sorriso" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-[#7C7EC0] focus:ring-4 focus:ring-[#2F316B]/5" />
+        <input id="company-name" autoFocus required minLength={2} maxLength={80} value={name} onChange={e => setName(e.target.value)} placeholder="Ex.: Clínica Sorriso" className="mt-1.5 w-full rounded-xl border border-tendi-line px-3.5 py-2.5 text-sm outline-none focus:border-tendi-lilac focus:ring-4 focus:ring-[#2F316B]/5" />
         {error && <p role="alert" className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
-        <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100">Cancelar</button><button disabled={saving || name.trim().length < 2} className="inline-flex items-center gap-2 rounded-xl bg-[#1D1F4E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2F316B] disabled:opacity-50">{saving && <Loader2 size={15} className="animate-spin" />}Criar empresa</button></div>
+        <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100">Cancelar</button><button disabled={saving || name.trim().length < 2} className="td-btn td-btn-primary  disabled:opacity-50">{saving && <Loader2 size={15} className="animate-spin" />}Criar empresa</button></div>
       </form>}
     </div>
   </div>;

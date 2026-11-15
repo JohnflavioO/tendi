@@ -37,9 +37,9 @@ const DEFAULT_AGENT: AgentForm = {
 };
 const DEFAULT_GLOBAL: GlobalAi = { provider: 'anthropic', models: { anthropic: 'claude-haiku-5-5', openai: '' } };
 
-const inputClass = 'mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[#A7A8D0]';
+const inputClass = 'td-input mt-1';
 const labelClass = 'block text-xs font-semibold text-slate-600';
-const cardClass = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6';
+const cardClass = 'td-card p-5 sm:p-6';
 
 export default function AdminAiPage() {
   const [loading, setLoading] = useState(true);
@@ -178,8 +178,8 @@ export default function AdminAiPage() {
     setNotice(`Agente de ${org.name} salvo.`);
   }
 
-  if (loading) return <main className="grid min-h-screen place-items-center bg-[#F6F7FB] text-[#2F316B]"><Loader2 className="animate-spin" size={28} /></main>;
-  if (!authorized) return <main className="grid min-h-screen place-items-center bg-[#F6F7FB] p-6"><div className="rounded-2xl bg-white p-8 text-center shadow-sm"><ShieldCheck className="mx-auto text-[#CB0A9F]" size={32} /><h1 className="mt-4 text-xl font-semibold text-[#2F316B]">Acesso restrito</h1><p className="mt-2 text-sm text-slate-500">Esta área é exclusiva do Super Admin da plataforma.</p><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-[#004751]">Voltar ao Inbox</a></div></main>;
+  if (loading) return <main className="grid min-h-screen place-items-center bg-tendi-haze text-tendi-indigo"><Loader2 className="animate-spin" size={28} /></main>;
+  if (!authorized) return <main className="grid min-h-screen place-items-center bg-tendi-haze p-6"><div className="td-card p-8 text-center"><ShieldCheck className="mx-auto text-tendi-magenta" size={32} /><h1 className="mt-4 text-xl font-semibold tracking-tight text-tendi-navy">Acesso restrito</h1><p className="mt-2 text-sm text-slate-500">Esta área é exclusiva do Super Admin da plataforma.</p><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-tendi-teal">Voltar ao Inbox</a></div></main>;
 
   const planIncludesAi = org ? planAi[org.plan_code] !== false : true;
   const keysMissing = keys !== null && !AI_PROVIDERS.some(provider => keys[provider.value]?.configured);
@@ -187,12 +187,12 @@ export default function AdminAiPage() {
   return <AdminShell title="Agentes de IA">
 
     <div className="space-y-6">
-      {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{error}</p>}
-      {notice && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-700">{notice}</p>}
+      {error && <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-700 ring-1 ring-inset ring-rose-600/10">{error}</p>}
+      {notice && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-xs text-emerald-700 ring-1 ring-inset ring-emerald-600/10">{notice}</p>}
       {keysMissing && <p className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-800"><TriangleAlert size={16} className="mt-0.5 shrink-0" />Nenhum provedor de IA conectado. Cole a chave de API abaixo para os agentes começarem a responder.</p>}
 
       <section className={cardClass}>
-        <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#FCEAF7] p-3 text-[#CB0A9F]"><Bot size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Provedor de IA (padrão da plataforma)</h2><p className="text-xs text-slate-400">Conecte a IA colando a chave de API do provedor. Ela fica criptografada no cofre do Supabase e nunca volta para o navegador. Cada empresa pode usar outro provedor ou modelo no próprio agente.</p></div></div>
+        <div className="mb-4 flex items-center gap-3"><span className="td-icon td-icon-magenta"><Bot size={20} /></span><div><h2 className="td-title">Provedor de IA (padrão da plataforma)</h2><p className="text-xs text-slate-400">Conecte a IA colando a chave de API do provedor. Ela fica criptografada no cofre do Supabase e nunca volta para o navegador. Cada empresa pode usar outro provedor ou modelo no próprio agente.</p></div></div>
         <div className="grid gap-4 md:grid-cols-3">
           <label className={labelClass}>Provedor padrão<select value={global.provider} onChange={e => setGlobal(current => ({ ...current, provider: e.target.value as AiProvider }))} className={inputClass}>{AI_PROVIDERS.map(provider => <option key={provider.value} value={provider.value}>{provider.label}</option>)}</select></label>
           <label className={labelClass}>Modelo padrão do Claude<input autoComplete="off" data-1p-ignore data-lpignore="true" data-form-type="other" value={global.models.anthropic} onChange={e => setGlobal(current => ({ ...current, models: { ...current.models, anthropic: e.target.value } }))} className={inputClass} placeholder="claude-haiku-5-5" /></label>
@@ -201,22 +201,22 @@ export default function AdminAiPage() {
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           {AI_PROVIDERS.map(provider => <ProviderKeyCard key={provider.value} provider={provider.value} label={provider.label} status={keys?.[provider.value] ?? null} model={global.models[provider.value]} onChange={setKeys} />)}
         </div>
-        <button type="button" onClick={() => void saveGlobal()} disabled={saving} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Salvar configuração global</button>
+        <button type="button" onClick={() => void saveGlobal()} disabled={saving} className="mt-5 inline-flex items-center gap-2 td-btn td-btn-teal disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Salvar configuração global</button>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        <aside className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:self-start">
-          <p className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">Empresas</p>
+        <aside className="td-card p-3 lg:self-start">
+          <p className="px-2 pb-2 pt-1 td-eyebrow">Empresas</p>
           {orgs.length === 0 && <p className="px-2 py-3 text-xs text-slate-400">Nenhuma empresa cadastrada.</p>}
-          <ul className="space-y-1">{orgs.map(item => <li key={item.id}><button type="button" onClick={() => setSelectedId(item.id)} className={item.id === selectedId ? 'flex w-full items-center justify-between gap-2 rounded-xl bg-[#F0F0FA] px-3 py-2.5 text-left text-sm font-semibold text-[#2F316B]' : 'flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50'}><span className="truncate">{item.name}</span><span className={summaries[item.id]?.is_enabled ? 'shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700' : 'shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500'}>{summaries[item.id]?.is_enabled ? 'IA ligada' : summaries[item.id] ? 'IA desligada' : 'Sem agente'}</span></button></li>)}</ul>
+          <ul className="space-y-1">{orgs.map(item => <li key={item.id}><button type="button" onClick={() => setSelectedId(item.id)} className={item.id === selectedId ? 'flex w-full items-center justify-between gap-2 rounded-xl bg-tendi-mist px-3 py-2.5 text-left text-sm font-semibold text-tendi-indigo' : 'flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-slate-600 hover:bg-tendi-haze'}><span className="truncate">{item.name}</span><span className={summaries[item.id]?.is_enabled ? 'shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700' : 'shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500'}>{summaries[item.id]?.is_enabled ? 'IA ligada' : summaries[item.id] ? 'IA desligada' : 'Sem agente'}</span></button></li>)}</ul>
         </aside>
 
         {org && <div className="space-y-5">
           {!planIncludesAi && <p className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-800"><TriangleAlert size={16} className="mt-0.5 shrink-0" />O plano atual desta empresa ({org.plan_code}) não inclui inteligência artificial. Libere o recurso em Planos antes de ligar o agente.</p>}
 
           <section className={cardClass}>
-            <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-[#F0F0FA] p-3 text-[#2F316B]"><Bot size={20} /></span><div><h2 className="text-sm font-bold text-[#2F316B]">Agente de {org.name}</h2><p className="text-xs text-slate-400">Treinamento do agente para o nicho da empresa. Só o Super Admin edita esta seção.</p></div></div>
-            {agentLoading ? <div className="grid h-32 place-items-center"><Loader2 className="animate-spin text-[#2F316B]" /></div> : <>
+            <div className="mb-4 flex items-center gap-3"><span className="td-icon"><Bot size={20} /></span><div><h2 className="td-title">Agente de {org.name}</h2><p className="text-xs text-slate-400">Treinamento do agente para o nicho da empresa. Só o Super Admin edita esta seção.</p></div></div>
+            {agentLoading ? <div className="grid h-32 place-items-center"><Loader2 className="animate-spin text-tendi-indigo" /></div> : <>
               <div className="grid gap-4 md:grid-cols-2">
                 <label className={labelClass}>Nome do agente (aparece na conversa)<input maxLength={60} value={agent.name} onChange={e => setField('name', e.target.value)} className={inputClass} placeholder="Ex.: Bia" /></label>
                 <label className={labelClass}>Nicho / segmento<input maxLength={200} value={agent.niche} onChange={e => setField('niche', e.target.value)} className={inputClass} placeholder="Ex.: clínica odontológica" /></label>
@@ -231,17 +231,17 @@ export default function AdminAiPage() {
               <div className="mt-3 space-y-2">
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.is_enabled} onChange={e => setField('is_enabled', e.target.checked)} />Agente liberado para esta empresa (os atendentes poderão ligar a IA nas conversas)</label>
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.auto_enable_new_conversations} onChange={e => setField('auto_enable_new_conversations', e.target.checked)} />Ligar a IA automaticamente em conversas novas</label>
-                <label className={`${labelClass} max-w-sm pt-2`}>Limite mensal desta empresa (respostas da IA)<input inputMode="numeric" value={agent.monthly_reply_limit} onChange={e => setField('monthly_reply_limit', e.target.value.replace(/\D/g, ''))} className={inputClass} placeholder="Vazio = limite do plano" /><span className="mt-1 block text-[11px] font-normal text-slate-400">Use só para liberar mais (ou menos) que o plano para este cliente. Acompanhe em <a href="/admin/ia/consumo" className="font-semibold text-[#004751] underline">Consumo e limites</a>.</span></label>
+                <label className={`${labelClass} max-w-sm pt-2`}>Limite mensal desta empresa (respostas da IA)<input inputMode="numeric" value={agent.monthly_reply_limit} onChange={e => setField('monthly_reply_limit', e.target.value.replace(/\D/g, ''))} className={inputClass} placeholder="Vazio = limite do plano" /><span className="mt-1 block text-[11px] font-normal text-slate-400">Use só para liberar mais (ou menos) que o plano para este cliente. Acompanhe em <a href="/admin/ia/consumo" className="font-semibold text-tendi-teal underline">Consumo e limites</a>.</span></label>
               </div>
-              <p className="mt-4 rounded-xl bg-[#FAFBFD] p-3 text-xs text-slate-500">Vai usar: <b className="text-slate-700">{AI_PROVIDERS.find(provider => provider.value === effectiveProvider)?.label}</b> · modelo <b className="text-slate-700">{effectiveModel || 'não definido (informe o modelo padrão acima)'}</b>{providerReady === false && <span className="ml-1 font-semibold text-rose-600">· este provedor não está conectado (cole a chave acima)</span>}</p>
-              <button type="button" onClick={() => void saveAgent()} disabled={saving} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#004751] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#003B44] disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Salvar agente</button>
+              <p className="mt-4 td-subtle p-3 text-xs text-slate-500">Vai usar: <b className="text-slate-700">{AI_PROVIDERS.find(provider => provider.value === effectiveProvider)?.label}</b> · modelo <b className="text-slate-700">{effectiveModel || 'não definido (informe o modelo padrão acima)'}</b>{providerReady === false && <span className="ml-1 font-semibold text-rose-600">· este provedor não está conectado (cole a chave acima)</span>}</p>
+              <button type="button" onClick={() => void saveAgent()} disabled={saving} className="mt-5 inline-flex items-center gap-2 td-btn td-btn-teal disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Salvar agente</button>
             </>}
           </section>
 
           <BusinessEditor organizationId={org.id} onChange={handleBusinessChange} />
 
           <details className={cardClass}>
-            <summary className="cursor-pointer text-sm font-bold text-[#2F316B]">Prévia do prompt final enviado à IA</summary>
+            <summary className="cursor-pointer td-title">Prévia do prompt final enviado à IA</summary>
             <p className="mt-2 text-xs text-slate-400">É exatamente o que o agente recebe: seus dados mais as regras fixas de segurança e de transferência. Salve as alterações para ver a versão atualizada.</p>
             <pre className="mt-3 max-h-[480px] overflow-auto whitespace-pre-wrap rounded-xl bg-slate-900 p-4 text-[11px] leading-5 text-slate-100">{promptPreview}</pre>
           </details>
@@ -301,19 +301,19 @@ function ProviderKeyCard({ provider, label, status, model, onChange }: {
       ? `Usando a variável de ambiente do servidor (termina em …${status.hint ?? ''})`
       : status === null ? 'Não foi possível verificar' : 'Não conectado';
 
-  return <div className="rounded-xl border border-slate-200 bg-[#FAFBFD] p-4">
+  return <div className="rounded-xl border border-tendi-line bg-tendi-haze/60 p-4">
     <div className="flex items-center justify-between gap-2">
-      <p className="text-xs font-bold text-[#2F316B]">{label}</p>
+      <p className="text-xs font-bold text-tendi-indigo">{label}</p>
       <span className={configured ? 'inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700' : 'inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500'}>{configured ? <CircleCheck size={12} /> : <CircleX size={12} />}{configured ? 'Conectado' : 'Desconectado'}</span>
     </div>
     <p className="mt-1 text-[11px] text-slate-500">{sourceText}</p>
     {(editing || !configured) ? <div className="mt-3 flex gap-2">
-      <input type="text" autoComplete="off" autoCorrect="off" autoCapitalize="off" data-1p-ignore data-lpignore="true" data-form-type="other" spellCheck={false} style={{ WebkitTextSecurity: 'disc' } as React.CSSProperties} value={value} onChange={e => setValue(e.target.value)} placeholder={provider === 'anthropic' ? 'sk-ant-...' : 'sk-...'} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#A7A8D0]" />
-      <button type="button" onClick={() => void save()} disabled={!value.trim() || busy !== ''} className="inline-flex items-center gap-1.5 rounded-xl bg-[#004751] px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-50">{busy === 'save' && <Loader2 size={12} className="animate-spin" />}Salvar</button>
+      <input type="text" autoComplete="off" autoCorrect="off" autoCapitalize="off" data-1p-ignore data-lpignore="true" data-form-type="other" spellCheck={false} style={{ WebkitTextSecurity: 'disc' } as React.CSSProperties} value={value} onChange={e => setValue(e.target.value)} placeholder={provider === 'anthropic' ? 'sk-ant-...' : 'sk-...'} className="td-input min-w-0 flex-1" />
+      <button type="button" onClick={() => void save()} disabled={!value.trim() || busy !== ''} className="inline-flex items-center gap-1.5 rounded-xl bg-tendi-teal px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-50">{busy === 'save' && <Loader2 size={12} className="animate-spin" />}Salvar</button>
       {editing && <button type="button" onClick={() => { setEditing(false); setValue(''); }} className="rounded-xl px-2 text-[11px] text-slate-500">Cancelar</button>}
     </div> : <div className="mt-3 flex flex-wrap gap-2">
-      <button type="button" onClick={() => void test()} disabled={busy !== '' || !model.trim()} title={model.trim() ? '' : 'Informe o modelo padrão acima'} className="inline-flex items-center gap-1.5 rounded-xl bg-[#2F316B] px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-50">{busy === 'test' && <Loader2 size={12} className="animate-spin" />}Testar conexão</button>
-      <button type="button" onClick={() => setEditing(true)} disabled={busy !== ''} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-slate-600">Trocar chave</button>
+      <button type="button" onClick={() => void test()} disabled={busy !== '' || !model.trim()} title={model.trim() ? '' : 'Informe o modelo padrão acima'} className="inline-flex items-center gap-1.5 rounded-xl bg-tendi-indigo px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-50">{busy === 'test' && <Loader2 size={12} className="animate-spin" />}Testar conexão</button>
+      <button type="button" onClick={() => setEditing(true)} disabled={busy !== ''} className="rounded-xl border border-tendi-line bg-white px-3 py-2 text-[11px] font-semibold text-slate-600">Trocar chave</button>
       {status?.source === 'painel' && <button type="button" onClick={() => void remove()} disabled={busy !== ''} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-semibold text-rose-600 hover:bg-rose-50">{busy === 'remove' && <Loader2 size={12} className="animate-spin" />}Remover</button>}
     </div>}
     {message && <p className={message.ok ? 'mt-2 text-[11px] text-emerald-700' : 'mt-2 text-[11px] text-rose-600'}>{message.text}</p>}
