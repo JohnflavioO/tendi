@@ -14,13 +14,13 @@ function backToChannels(request: Request, organizationId: string, params: Record
   return url;
 }
 
-async function upsertInstagramConnection(admin: NonNullable<ReturnType<typeof createAdminClient>>, input: { organizationId: string; providerAccountId: string; displayName: string }): Promise<string> {
+async function upsertInstagramConnection(admin: NonNullable<ReturnType<typeof createAdminClient>>, input: { organizationId: string; providerAccountId: string; displayName: string; pageId: string }): Promise<string> {
   const existing = await admin.from('channel_connections').select('id').eq('organization_id', input.organizationId).eq('channel', 'instagram').order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (existing.data) {
-    await admin.from('channel_connections').update({ provider_account_id: input.providerAccountId, display_name: input.displayName, status: 'connected', updated_at: new Date().toISOString() }).eq('id', existing.data.id);
+    await admin.from('channel_connections').update({ provider_account_id: input.providerAccountId, display_name: input.displayName, status: 'connected', settings: { provider: 'meta_instagram_login', page_id: input.pageId }, updated_at: new Date().toISOString() }).eq('id', existing.data.id);
     return existing.data.id as string;
   }
-  const created = await admin.from('channel_connections').insert({ organization_id: input.organizationId, channel: 'instagram', provider_account_id: input.providerAccountId, display_name: input.displayName, status: 'connected', settings: { provider: 'meta_instagram_login' } }).select('id').single();
+  const created = await admin.from('channel_connections').insert({ organization_id: input.organizationId, channel: 'instagram', provider_account_id: input.providerAccountId, display_name: input.displayName, status: 'connected', settings: { provider: 'meta_instagram_login', page_id: input.pageId } }).select('id').single();
   if (created.error || !created.data) throw new Error(created.error?.message ?? 'Não foi possível salvar a conexão.');
   return (created.data as { id: string }).id;
 }
@@ -88,6 +88,7 @@ export async function GET(request: Request) {
       organizationId,
       providerAccountId: account.id,
       displayName: account.username ? `@${account.username}` : 'Instagram',
+      pageId: account.pageId,
     });
     await admin.rpc('set_channel_secret', { p_connection_id: connectionId, p_value: account.pageAccessToken });
 

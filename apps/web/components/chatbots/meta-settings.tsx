@@ -186,7 +186,7 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
       )}
 
       {(messenger?.status === 'connected' || instagram?.status === 'connected') && step !== 'choose' && (
-        <p className="mt-4 flex items-center gap-1.5 text-[11px] text-slate-400"><Check size={13} className="text-emerald-600" />As mensagens recebidas já entram nesta Inbox. O envio de respostas por aqui ainda está em preparação; por enquanto, responda pelo próprio Instagram/Messenger.</p>
+        <p className="mt-4 flex items-center gap-1.5 text-[11px] text-slate-400"><Check size={13} className="text-emerald-600" />As mensagens recebidas entram no Inbox e a equipe responde por lá (texto, até 24 h depois da última mensagem do cliente). No Instagram, a IA atende conforme os canais marcados em Agentes de IA.</p>
       )}
     </section>
   );
