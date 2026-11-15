@@ -1,6 +1,7 @@
 export function isPublicMarketingPath(pathname: string): boolean {
   return pathname === '/' ||
     pathname === '/privacidade' ||
+    pathname === '/exclusao-de-dados' ||
     pathname === '/termos' ||
     pathname === '/sitemap.xml' ||
     pathname === '/robots.txt' ||
