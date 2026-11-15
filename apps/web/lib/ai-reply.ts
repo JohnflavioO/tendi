@@ -314,7 +314,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     const externalId = text(contact?.external_id);
     const recipientId = externalId.startsWith('instagram:') ? externalId.slice('instagram:'.length) : '';
     const [connection, workspace] = await Promise.all([
-      db.from('channel_connections').select('id,provider_account_id,status').eq('organization_id', organizationId).eq('channel', 'instagram').maybeSingle(),
+      db.from('channel_connections').select('id,provider_account_id,status').eq('organization_id', organizationId).eq('channel', 'instagram').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       // A assinatura é uma configuração da empresa (guardada na conexão do WhatsApp, em Configurações).
       db.from('channel_connections').select('settings').eq('organization_id', organizationId).eq('channel', 'whatsapp').maybeSingle(),
     ]);

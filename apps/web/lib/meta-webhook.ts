@@ -24,7 +24,7 @@ export type MetaProcessResult = {
 type MetaConversation = { id: string; unread_count: number; ai_mode: string | null };
 
 async function findMetaConnection(db: Db, channel: MetaChannel, pageId: string) {
-  const { data } = await db.from('channel_connections').select('id,organization_id,display_name').eq('channel', channel).eq('provider_account_id', pageId).maybeSingle();
+  const { data } = await db.from('channel_connections').select('id,organization_id,display_name').eq('channel', channel).eq('provider_account_id', pageId).eq('status', 'connected').order('created_at', { ascending: false }).limit(1).maybeSingle();
   return data as { id: string; organization_id: string; display_name: string } | null;
 }
 

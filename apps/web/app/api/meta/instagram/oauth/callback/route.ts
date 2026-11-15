@@ -15,7 +15,7 @@ function backToChannels(request: Request, organizationId: string, params: Record
 }
 
 async function upsertInstagramConnection(admin: NonNullable<ReturnType<typeof createAdminClient>>, input: { organizationId: string; providerAccountId: string; displayName: string }): Promise<string> {
-  const existing = await admin.from('channel_connections').select('id').eq('organization_id', input.organizationId).eq('channel', 'instagram').maybeSingle();
+  const existing = await admin.from('channel_connections').select('id').eq('organization_id', input.organizationId).eq('channel', 'instagram').order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (existing.data) {
     await admin.from('channel_connections').update({ provider_account_id: input.providerAccountId, display_name: input.displayName, status: 'connected', updated_at: new Date().toISOString() }).eq('id', existing.data.id);
     return existing.data.id as string;

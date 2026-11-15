@@ -116,7 +116,8 @@ async function sendMetaReply(
   if (!recipientId) return fail(422, `O contato não tem um ID do ${label} válido.`);
 
   const [connectionResult, workspaceResult, lastInboundResult] = await Promise.all([
-    db.from('channel_connections').select('id,provider_account_id,status').eq('organization_id', conversation.organization_id).eq('channel', channel).maybeSingle(),
+    // A conexão mais recente é a que vale (reconectar pode ter deixado linhas antigas).
+    db.from('channel_connections').select('id,provider_account_id,status').eq('organization_id', conversation.organization_id).eq('channel', channel).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     // A assinatura é uma configuração da empresa (guardada na conexão do WhatsApp, em Configurações).
     db.from('channel_connections').select('settings').eq('organization_id', conversation.organization_id).eq('channel', 'whatsapp').maybeSingle(),
     db.from('messages').select('sent_at,created_at').eq('conversation_id', conversation.id).eq('direction', 'inbound')
