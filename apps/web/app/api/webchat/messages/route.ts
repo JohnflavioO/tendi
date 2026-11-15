@@ -5,6 +5,7 @@ import { endWebchat, loadWebchatSession, loadWebchatState, listWebchatMessagesSi
 import { runAiAutoReply } from '@/lib/ai-reply';
 import { generateReply } from '@/lib/ai-llm';
 import { resolveProviderKey } from '@/lib/ai-keys';
+import { createBoletoService } from '@/lib/boleto-server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -23,6 +24,7 @@ async function replyWithAi(admin: ReturnType<typeof createAdminClient>, trigger:
     const result = await runAiAutoReply(admin as any, trigger, {
       generate: generateReply,
       resolveKey: provider => resolveProviderKey(admin as any, provider),
+      boleto: createBoletoService(admin as any),
       send: async () => ({}), // Webchat: a resposta já fica salva como enviada; não há provedor para chamar.
     });
     console.info('[Webchat][IA] resposta automática', { conversationId: trigger.conversationId, ...result });
