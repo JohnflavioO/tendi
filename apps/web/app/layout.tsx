@@ -12,7 +12,16 @@ export const metadata: Metadata = {
   applicationName: 'TendiDesk',
   // iPhone: "Adicionar à Tela de Início" abre como app, com nome e ícone próprios.
   appleWebApp: { capable: true, title: 'TendiDesk', statusBarStyle: 'default' },
-  icons: { apple: '/icons/apple-touch-icon.png' },
+  // Favicon declarado aqui: com 'icons' nos metadados, o Next ignora app/icon.png (por isso a aba ficava sem ícone).
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/favicon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/icons/apple-touch-icon.png',
+  },
   formatDetection: { telephone: false },
 };
 

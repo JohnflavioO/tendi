@@ -505,7 +505,18 @@
     if (!button) return;
     if (button.getAttribute('data-human')) { askHuman(); return; }
     var item = ((state.config.buttons || {}).quickReplies || [])[Number(button.getAttribute('data-quick'))];
-    if (item) send(item.text || item.label);
+    if (!item) return;
+    if (!item.handoff) { send(item.text || item.label); return; }
+    // Resposta rápida que chama a equipe (ex.: "Suporte técnico"): primeiro entra na fila
+    // (a IA sai da conversa), depois envia o texto, para a IA não responder como venda.
+    state.chat = { mode: 'queue', position: null, inHours: true, message: '' };
+    state.typingSince = 0;
+    renderChrome();
+    action('handoff').then(function (data) {
+      if (data && data.state) state.chat = data.state;
+      renderChrome();
+      send(item.text || item.label);
+    }).catch(function (error) { showError(error.message); });
   });
   $('.end').addEventListener('click', function () { state.confirmEnd = true; renderChrome(); });
   $('.cfn').addEventListener('click', function () { state.confirmEnd = false; renderChrome(); });

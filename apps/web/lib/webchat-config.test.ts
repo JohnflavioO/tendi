@@ -99,3 +99,19 @@ describe('formulário de identificação do chat', () => {
     expect(normalizeVisitorPhone('99999')).toBeNull();
   });
 });
+
+describe('resposta rápida que chama atendente', () => {
+  it('guarda a opção e libera o pedido de atendente mesmo sem o botão principal', async () => {
+    const { canRequestHuman } = await import('./webchat-config');
+    const settings = normalizeWebchatSettings({
+      handoffButton: { enabled: false },
+      quickReplies: [{ label: 'Suporte técnico', text: 'Sou cliente e preciso de suporte', handoff: true }, { label: 'Ver planos' }],
+    });
+    expect(settings.quickReplies).toEqual([
+      { label: 'Suporte técnico', text: 'Sou cliente e preciso de suporte', handoff: true },
+      { label: 'Ver planos', text: 'Ver planos' },
+    ]);
+    expect(canRequestHuman(settings)).toBe(true);
+    expect(canRequestHuman(normalizeWebchatSettings({ handoffButton: { enabled: false } }))).toBe(false);
+  });
+});

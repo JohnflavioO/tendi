@@ -37,7 +37,7 @@ export function WebchatButtonsSettings({ widgetId, initial, canManage, onSaved }
   }
 
   const quick = settings.quickReplies;
-  const setQuick = (index: number, patch: Partial<{ label: string; text: string }>) => update({ quickReplies: quick.map((item, i) => (i === index ? { ...item, ...patch } : item)) });
+  const setQuick = (index: number, patch: Partial<{ label: string; text: string; handoff: boolean }>) => update({ quickReplies: quick.map((item, i) => (i === index ? { ...item, ...patch } : item)) });
 
   return <div className="mt-5 border-t border-slate-100 pt-5">
     <h3 className="text-sm font-bold text-[#25275B]">Identificação, botões e fila</h3>
@@ -87,6 +87,8 @@ export function WebchatButtonsSettings({ widgetId, initial, canManage, onSaved }
           <input aria-label={`Texto do botão ${index + 1}`} placeholder="Texto do botão" value={item.label} maxLength={MAX_BUTTON_LABEL} disabled={!canManage} onChange={e => setQuick(index, { label: e.target.value, ...(!item.text || item.text === item.label ? { text: e.target.value } : {}) })} className={field} />
           <input aria-label={`Mensagem enviada pelo botão ${index + 1}`} placeholder="Mensagem enviada (opcional)" value={item.text === item.label ? '' : item.text} maxLength={MAX_QUICK_TEXT} disabled={!canManage} onChange={e => setQuick(index, { text: e.target.value || item.label })} className={field} />
           <button type="button" disabled={!canManage} onClick={() => update({ quickReplies: quick.filter((_, i) => i !== index) })} aria-label={`Remover botão ${index + 1}`} className="rounded-xl p-2.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"><Trash2 size={16} /></button>
+          <label className="flex items-center gap-2 text-xs text-slate-600 sm:col-span-3"><input type="checkbox" checked={Boolean(item.handoff)} disabled={!canManage} onChange={e => setQuick(index, { handoff: e.target.checked })} />
+            <span><b className="font-semibold text-slate-700">Chamar atendente</b> — envia a mensagem e coloca o visitante na fila da equipe, sem a IA (ex.: suporte de quem já é cliente).</span></label>
         </div>)}
         {canManage && quick.length < MAX_QUICK_REPLIES && <button type="button" onClick={() => update({ quickReplies: [...quick, { label: '', text: '' }] })} className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-[#004751] hover:bg-slate-50"><Plus size={14} />Adicionar resposta rápida</button>}
       </div>

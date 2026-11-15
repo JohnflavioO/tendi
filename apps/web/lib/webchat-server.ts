@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { MEDIA_BUCKET } from './inbox-attachments';
 import { initialAiMode } from './dapi-webhook';
 import { WEBCHAT_SESSION_DAYS } from './webchat';
-import { normalizeWebchatSettings, webchatState, type VisitorIdentity, type WebchatSettings, type WebchatState } from './webchat-config';
+import { canRequestHuman, normalizeWebchatSettings, webchatState, type VisitorIdentity, type WebchatSettings, type WebchatState } from './webchat-config';
 import { ensureLeadForContact } from './crm-lead';
 import { describeBusinessHours, isWithinBusinessHours, normalizeBusinessHours } from './ai-agent';
 
@@ -236,7 +236,7 @@ export type WebchatActionResult = { ok: true } | { ok: false; status: number; er
 /** Botão "Falar com atendente": tira a IA da conversa e coloca na fila da equipe. */
 export async function requestWebchatHuman(admin: Db, session: WebchatSession): Promise<WebchatActionResult> {
   const settings = await loadWebchatSettings(admin, session.organizationId);
-  if (!settings.handoffButton.enabled) return { ok: false, status: 403, error: 'Opção indisponível.' };
+  if (!canRequestHuman(settings)) return { ok: false, status: 403, error: 'Opção indisponível.' };
   const { data } = await admin.from('conversations').select('status,ai_mode,assigned_to').eq('id', session.conversationId).maybeSingle();
   const conversation = data as { status: string; ai_mode: string | null; assigned_to: string | null } | null;
   if (!conversation || conversation.status === 'closed') return { ok: false, status: 409, error: 'Este atendimento já foi encerrado.' };
