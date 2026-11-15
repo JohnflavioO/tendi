@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { listMetaPages } from '@/lib/meta-client';
+import { diagnoseMetaPages, listMetaPages } from '@/lib/meta-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,9 +20,13 @@ export async function GET(request: Request) {
   if (!token) return NextResponse.json({ error: 'Sua sessão com a Meta expirou. Clique em "Conectar com Facebook" de novo.' }, { status: 401 });
 
   try {
-    const pages = await listMetaPages(decodeURIComponent(token));
+    const userToken = decodeURIComponent(token);
+    const pages = await listMetaPages(userToken);
+    const diagnostic = pages.length ? undefined : await diagnoseMetaPages(userToken);
+    if (diagnostic) console.warn('[Meta] nenhuma página encontrada', { diagnostic });
     return NextResponse.json({
       pages: pages.map(page => ({ id: page.id, name: page.name })),
+      diagnostic,
     });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Não foi possível listar as páginas.' }, { status: 502 });
