@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { CalendarDays, Inbox, KanbanSquare, Menu, Users } from 'lucide-react';
 import { withOrganization } from '@/lib/current-organization';
 import { canAccessArea, type Area, type Role } from '@/lib/team';
@@ -32,13 +33,13 @@ export function MobileTabBar({ pathname, organizationId, role, superAdmin, onMen
     <div className="mx-auto flex max-w-xl px-1">
       {tabs.map(({ label, href, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
-        return <a key={href} href={withOrganization(href, organizationId)} aria-current={active ? 'page' : undefined} className={`${item} ${active ? 'text-tendi-navy' : 'text-slate-400'}`}>
+        return <Link key={href} href={withOrganization(href, organizationId)} aria-current={active ? 'page' : undefined} className={`${item} ${active ? 'text-tendi-navy' : 'text-slate-400'}`}>
           <span className={`relative flex h-8 w-14 items-center justify-center rounded-full transition duration-200 ${active ? 'bg-tendi-mist text-tendi-indigo' : 'group-hover:text-tendi-indigo'}`}>
             <Icon size={20} strokeWidth={active ? 2.3 : 1.9} />
             {href === '/inbox' && Boolean(badge) && <span className="absolute -right-0.5 -top-1 min-w-[18px] rounded-full bg-tendi-magenta px-1 text-center text-[10px] font-bold leading-[18px] text-white ring-2 ring-white">{badge! > 99 ? '99+' : badge}</span>}
           </span>
           {label}
-        </a>;
+        </Link>;
       })}
       <button type="button" onClick={onMenu} className={`${item} text-slate-400`}>
         <span className="flex h-8 w-14 items-center justify-center rounded-full transition group-hover:text-tendi-indigo"><Menu size={20} strokeWidth={1.9} /></span>

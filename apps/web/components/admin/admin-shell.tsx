@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
@@ -78,7 +79,7 @@ export function AdminShell({ title, description, actions, children, width = 'max
 
   const sidebar = (mobile: boolean) => <aside className="td-sidebar flex h-full w-[264px] shrink-0 flex-col overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+12px)] pt-[env(safe-area-inset-top)] text-white">
     <div className="flex h-[72px] items-center justify-between gap-2 px-5">
-      <a href="/admin" className="flex items-center gap-2.5"><img src="/brand/tendidesk-logo-branca.png" alt="TendiDesk" width="1291" height="640" className="h-9 w-auto object-contain" /><span className="rounded-md bg-tendi-magenta/20 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[.14em] text-[#F7A8E2] ring-1 ring-inset ring-tendi-magenta/30">Console</span></a>
+      <Link href="/admin" className="flex items-center gap-2.5"><img src="/brand/tendidesk-logo-branca.png" alt="TendiDesk" width="1291" height="640" className="h-9 w-auto object-contain" /><span className="rounded-md bg-tendi-magenta/20 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[.14em] text-[#F7A8E2] ring-1 ring-inset ring-tendi-magenta/30">Console</span></Link>
       {mobile && <button onClick={() => setMobileOpen(false)} aria-label="Fechar menu" className="rounded-lg p-2 text-[#B9BBE0] hover:bg-white/10 hover:text-white"><X size={18} /></button>}
     </div>
     <div className="px-3">
@@ -92,12 +93,12 @@ export function AdminShell({ title, description, actions, children, width = 'max
         <ul className="space-y-0.5">{entry.items.map(item => {
           const active = current?.href === item.href;
           const Icon = item.icon;
-          return <li key={item.href}><a href={item.href} onClick={() => setMobileOpen(false)} aria-current={active ? 'page' : undefined} className={`td-nav-item ${active ? 'td-nav-item-active' : ''}`}><Icon size={17} strokeWidth={active ? 2.1 : 1.8} className={active ? 'text-white' : 'text-[#8E91C4]'} /><span className="truncate">{item.label}</span></a></li>;
+          return <li key={item.href}><Link href={item.href} onClick={() => setMobileOpen(false)} aria-current={active ? 'page' : undefined} className={`td-nav-item ${active ? 'td-nav-item-active' : ''}`}><Icon size={17} strokeWidth={active ? 2.1 : 1.8} className={active ? 'text-white' : 'text-[#8E91C4]'} /><span className="truncate">{item.label}</span></Link></li>;
         })}</ul>
       </div>)}
     </nav>
     <div className="space-y-2 border-t border-white/[.08] p-3">
-      {internalOrg && <a href={`/inbox?organization=${internalOrg}`} className="group flex items-center gap-3 rounded-xl bg-white/[.06] p-2.5 ring-1 ring-inset ring-white/10 transition hover:bg-white/[.10]"><span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-tendi-magenta to-tendi-lilac text-white"><Building2 size={15} /></span><span className="min-w-0"><span className="block text-xs font-semibold text-white">Workspace TendiDesk</span><span className="block text-[10.5px] text-[#8E91C4]">Ambiente interno de testes</span></span><ArrowRight size={14} className="ml-auto text-[#8E91C4] transition group-hover:translate-x-0.5 group-hover:text-white" /></a>}
+      {internalOrg && <Link href={`/inbox?organization=${internalOrg}`} className="group flex items-center gap-3 rounded-xl bg-white/[.06] p-2.5 ring-1 ring-inset ring-white/10 transition hover:bg-white/[.10]"><span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-tendi-magenta to-tendi-lilac text-white"><Building2 size={15} /></span><span className="min-w-0"><span className="block text-xs font-semibold text-white">Workspace TendiDesk</span><span className="block text-[10.5px] text-[#8E91C4]">Ambiente interno de testes</span></span><ArrowRight size={14} className="ml-auto text-[#8E91C4] transition group-hover:translate-x-0.5 group-hover:text-white" /></Link>}
       <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] font-medium text-[#B9BBE0] transition hover:bg-white/[.06] hover:text-white"><ExternalLink size={15} /> Ver site do TendiDesk</a>
       <div className="flex items-center gap-2.5 rounded-xl bg-white/[.04] px-2.5 py-2 ring-1 ring-inset ring-white/[.06]">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-tendi-lilac to-tendi-magenta text-[11px] font-bold text-white">{(user?.name || 'S').slice(0, 1).toUpperCase()}</span>

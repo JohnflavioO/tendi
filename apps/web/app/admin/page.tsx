@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, ArrowRight, ArrowUpRight, Building2, Check, CheckCircle2, CircleDollarSign, Clock3,
@@ -165,7 +166,7 @@ export default function AdminPage() {
   }, [events, customers, orgs]);
 
   if (loading) return <AdminShell title="Visão geral"><SkeletonOverview /></AdminShell>;
-  if (!authorized) return <main className="grid min-h-screen place-items-center bg-tendi-haze p-6"><div className="td-card p-8 text-center"><ShieldCheck className="mx-auto text-tendi-magenta" size={32} /><h1 className="mt-4 text-xl font-semibold tracking-tight text-tendi-navy">Acesso restrito</h1><p className="mt-2 text-sm text-slate-500">Esta área é exclusiva do Super Admin da plataforma.</p><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-tendi-teal">Voltar ao Inbox</a></div></main>;
+  if (!authorized) return <main className="grid min-h-screen place-items-center bg-tendi-haze p-6"><div className="td-card p-8 text-center"><ShieldCheck className="mx-auto text-tendi-magenta" size={32} /><h1 className="mt-4 text-xl font-semibold tracking-tight text-tendi-navy">Acesso restrito</h1><p className="mt-2 text-sm text-slate-500">Esta área é exclusiva do Super Admin da plataforma.</p><Link href="/inbox" className="mt-5 inline-block text-sm font-semibold text-tendi-teal">Voltar ao Inbox</Link></div></main>;
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
@@ -214,7 +215,7 @@ export default function AdminPage() {
             <td className="py-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ${row.situation.tone}`}>{row.situation.label}</span></td>
             <td className="py-3 text-slate-600"><span className="inline-flex items-center gap-1.5"><Users size={14} className="text-slate-400" />{row.members}</span></td>
             <td className="py-3 text-slate-600">{row.aiReplies ? <><p>{row.aiReplies.toLocaleString('pt-BR')} respostas</p><p className="text-xs text-slate-400">{brl(row.aiCost)}</p></> : <span className="text-slate-300">—</span>}</td>
-            <td className="py-3 pr-5"><div className="flex justify-end gap-1.5"><a href={`/admin/organizations/${row.org.id}/setup`} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800">Responsável</a><a href={`/admin/organizations/${row.org.id}`} className="inline-flex items-center gap-1 rounded-lg border border-tendi-line bg-white px-2.5 py-1.5 text-xs font-semibold text-tendi-teal hover:border-tendi-teal/40">Abrir<ArrowUpRight size={13} /></a></div></td>
+            <td className="py-3 pr-5"><div className="flex justify-end gap-1.5"><Link href={`/admin/organizations/${row.org.id}/setup`} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800">Responsável</Link><Link href={`/admin/organizations/${row.org.id}`} className="inline-flex items-center gap-1 rounded-lg border border-tendi-line bg-white px-2.5 py-1.5 text-xs font-semibold text-tendi-teal hover:border-tendi-teal/40">Abrir<ArrowUpRight size={13} /></Link></div></td>
           </tr>)}</tbody>
         </table></div> : <div className="px-6 py-14 text-center"><span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-300"><Building2 size={22} /></span><p className="mt-3 text-sm font-medium text-slate-700">{customers.length ? 'Nenhuma empresa neste filtro' : 'Nenhum cliente ainda'}</p><p className="mt-1 text-xs text-slate-400">{customers.length ? 'Troque o filtro ou a busca.' : 'Cadastre o primeiro cliente ou divulgue o teste grátis do site.'}</p>{!customers.length && <button type="button" onClick={() => setCreating(true)} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-tendi-navy px-3.5 py-2 text-sm font-semibold text-white"><Plus size={15} />Nova empresa</button>}</div>}
       </div>
@@ -240,7 +241,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between text-xs"><span className="flex items-center gap-2 text-slate-600"><Icon size={14} className="text-slate-400" />{item.label}</span><span className="font-semibold text-slate-800">{item.value}</span></div>
             <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.color}`} style={{ width: `${(item.value / max) * 100}%` }} /></div>
           </div>; })}</div>
-          <a href="/admin/pagamentos" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-tendi-teal hover:underline"><CreditCard size={13} />Ver assinaturas</a>
+          <Link href="/admin/pagamentos" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-tendi-teal hover:underline"><CreditCard size={13} />Ver assinaturas</Link>
         </section>
 
         <section className="td-card p-5">
@@ -261,7 +262,7 @@ function Kpi({ icon: Icon, label, value, detail, accent, href, onClick }: { icon
     <p className="mt-2 text-xs leading-5 text-slate-400">{detail}</p>
   </>;
   const cls = 'td-card block p-5 text-left';
-  if (href) return <a href={href} className={`${cls} td-card-hover`}>{body}</a>;
+  if (href) return <Link href={href} className={`${cls} td-card-hover`}>{body}</Link>;
   if (onClick) return <button type="button" onClick={onClick} className={`${cls} td-card-hover`}>{body}</button>;
   return <article className={cls}>{body}</article>;
 }
@@ -325,8 +326,8 @@ function NewCompanyDialog({ onClose, onCreated }: { onClose: () => void; onCreat
       <div className="flex items-start justify-between"><div><h2 id="new-company-title" className="text-lg font-semibold text-tendi-navy">{created ? 'Empresa criada' : 'Nova empresa'}</h2><p className="mt-1 text-sm text-slate-500">{created ? 'Agora convide o responsável para ele assumir o workspace.' : 'O workspace já nasce com equipe de atendimento e funil de vendas.'}</p></div><button type="button" onClick={onClose} aria-label="Fechar" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><X size={18} /></button></div>
       {created ? <div className="mt-5 space-y-3">
         <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 size={18} />{created.name} está pronta.</div>
-        <a href={`/admin/organizations/${created.id}/setup`} className="td-btn td-btn-primary w-full ">Convidar o responsável<ArrowRight size={15} /></a>
-        <a href={`/admin/organizations/${created.id}`} className="td-btn td-btn-secondary w-full ">Abrir a ficha da empresa</a>
+        <Link href={`/admin/organizations/${created.id}/setup`} className="td-btn td-btn-primary w-full ">Convidar o responsável<ArrowRight size={15} /></Link>
+        <Link href={`/admin/organizations/${created.id}`} className="td-btn td-btn-secondary w-full ">Abrir a ficha da empresa</Link>
       </div> : <form onSubmit={submit} className="mt-5">
         <label htmlFor="company-name" className="text-sm font-medium text-slate-700">Nome da empresa</label>
         <input id="company-name" autoFocus required minLength={2} maxLength={80} value={name} onChange={e => setName(e.target.value)} placeholder="Ex.: Clínica Sorriso" className="mt-1.5 w-full rounded-xl border border-tendi-line px-3.5 py-2.5 text-sm outline-none focus:border-tendi-lilac focus:ring-4 focus:ring-[#2F316B]/5" />

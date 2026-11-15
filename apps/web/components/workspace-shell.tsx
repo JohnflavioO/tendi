@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
@@ -12,6 +13,8 @@ import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { WorkspaceSidebar } from '@/components/workspace-sidebar';
 import { FullPageNotice } from '@/components/ui';
 import { TOUR_EVENT } from '@/lib/onboarding';
+import { clearWorkspace, isFresh, peekWorkspace, readWorkspace, writeWorkspace, type WorkspaceOrg } from '@/lib/workspace-cache';
+import { isOrganizationBlocked, isTrialExemptPath } from '@/lib/trial';
 import { areaForPath, canAccessArea, type Area } from '@/lib/team';
 import {
   Inbox, CalendarDays, KanbanSquare, Users, Plug, ChartNoAxesCombined, Settings,
@@ -30,7 +33,7 @@ export const WORKSPACE_NAV: Array<{ label: string; href: string; icon: typeof In
   { label: 'Configurações', href: '/configuracoes', icon: Settings, area: 'configuracoes' },
 ];
 
-type Org = { id: string; name: string };
+type Org = WorkspaceOrg;
 
 export function WorkspaceShell({ children, title, description, actions }: {
   children: React.ReactNode;
@@ -40,27 +43,61 @@ export function WorkspaceShell({ children, title, description, actions }: {
 }) {
   const pathname = usePathname();
   const supabase = createClient() as any;
-  const [organization, setOrganization] = useState<Org | null>(null);
-  const [organizations, setOrganizations] = useState<Org[]>([]);
+  // Troca de tela pelo menu: a empresa já está na memória da aba e a tela aparece na hora.
+  const [initial] = useState(() => peekWorkspace(requestedOrganizationId()));
+  const [organization, setOrganization] = useState<Org | null>(initial?.organization ?? null);
+  const [organizations, setOrganizations] = useState<Array<{ id: string; name: string }>>(initial?.organizations ?? []);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initial?.organization);
 
   useEffect(() => {
     let active = true;
+    const requested = requestedOrganizationId();
+    const cached = readWorkspace(requested);
+    if (cached?.organization) {
+      setOrganization(cached.organization);
+      setOrganizations(cached.organizations);
+      setLoading(false);
+      if (isFresh(cached)) return; // dados recentes: nenhuma consulta nesta troca de tela
+    }
     async function load() {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) { window.location.assign('/login'); return; }
+      // Sessão salva no navegador (sem ida à rede). O servidor valida o login a cada carregamento completo.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id as string | undefined;
+      if (!userId) { clearWorkspace(); window.location.assign('/login'); return; }
+      const sameUser = cached?.userId === userId ? cached : null;
+      if (cached && !sameUser) clearWorkspace();
       // A empresa pedida no endereço; senão, a primeira em que a pessoa trabalha (vínculo ou suporte liberado).
-      const current = await resolveCurrentOrganization<Org>(supabase, auth.user.id, 'id,name', requestedOrganizationId()).catch(() => null);
+      const current = await resolveCurrentOrganization<Org>(supabase, userId, 'id,name,status,trial_ends_at', requested).catch(() => null);
       if (!active) return;
       if (current?.organization) setOrganization(current.organization);
-      if (current?.accessible) setOrganizations(current.accessible);
+      if (current?.accessible) setOrganizations(current.accessible.map(org => ({ id: org.id, name: org.name })));
       setLoading(false);
+      if (current?.organization) {
+        const keepRole = sameUser && sameUser.organization?.id === current.organization.id;
+        writeWorkspace({
+          userId,
+          organization: current.organization,
+          organizations: (current.accessible ?? []).map(org => ({ id: org.id, name: org.name })),
+          role: keepRole ? sameUser!.role : null,
+          superAdmin: keepRole ? sameUser!.superAdmin : false,
+          supportUntil: keepRole ? sameUser!.supportUntil : null,
+          roleCheckedAt: keepRole ? sameUser!.roleCheckedAt : undefined,
+        });
+      }
     }
     void load();
     return () => { active = false; };
   }, [supabase]);
+
+  // Teste vencido ou empresa suspensa: sem recarregar a página o servidor não confere a cada clique,
+  // então o painel confere aqui também e leva para a assinatura (mesma regra do servidor).
+  useEffect(() => {
+    if (organization && organizations.length <= 1 && isOrganizationBlocked(organization) && !isTrialExemptPath(pathname)) {
+      window.location.replace('/assinatura');
+    }
+  }, [organization, organizations.length, pathname]);
 
   // Gaveta aberta no celular: trava a rolagem da página por baixo.
   useEffect(() => {
@@ -79,6 +116,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
   useEffect(() => { if (blocked) window.location.replace(consoleOnly ? '/admin' : '/inbox'); }, [blocked, consoleOnly]);
 
   async function signOut() {
+    clearWorkspace();
     await supabase.auth.signOut();
     window.location.assign('/login');
   }
@@ -129,8 +167,8 @@ export function WorkspaceShell({ children, title, description, actions }: {
               <button aria-label="Fechar menu" className="fixed inset-0 z-20 cursor-default" onClick={() => setMenuOpen(false)} />
               <div className="absolute right-0 top-12 z-30 w-60 animate-pop rounded-2xl border border-tendi-line bg-white p-1.5 shadow-pop">
                 <div className="mb-1 border-b border-tendi-line/70 px-3 pb-2.5 pt-2"><p className="truncate text-[13px] font-semibold text-tendi-navy">{organization.name}</p><p className="text-[11px] text-slate-400">Opções do workspace</p></div>
-                <a href={withOrganization('/conta', organization.id)} className={menuItem}><UserRound size={15} className="text-slate-400" />Minha conta</a>
-                {canAccessArea(role, superAdmin, 'configuracoes') && <a href={withOrganization('/configuracoes', organization.id)} className={menuItem}><Settings size={15} className="text-slate-400" />Configurações</a>}
+                <Link href={withOrganization('/conta', organization.id)} onClick={() => setMenuOpen(false)} className={menuItem}><UserRound size={15} className="text-slate-400" />Minha conta</Link>
+                {canAccessArea(role, superAdmin, 'configuracoes') && <Link href={withOrganization('/configuracoes', organization.id)} onClick={() => setMenuOpen(false)} className={menuItem}><Settings size={15} className="text-slate-400" />Configurações</Link>}
                 {role && <button onClick={() => { setMenuOpen(false); setMobileOpen(false); window.dispatchEvent(new Event(TOUR_EVENT)); }} className={menuItem}><Compass size={15} className="text-slate-400" />Primeiros passos</button>}
                 <button onClick={() => window.location.reload()} className={menuItem}><RefreshCw size={15} className="text-slate-400" />Atualizar página</button>
                 <a href="mailto:suporte@tendidesk.com.br" className={menuItem}><CircleHelp size={15} className="text-slate-400" />Ajuda e suporte</a>

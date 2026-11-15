@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Bot, Check, CheckCircle2, Clock3, CreditCard, Loader2, Lock, ShieldCheck, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -94,7 +95,7 @@ export default function SubscriptionPage() {
     <header className="sticky top-0 z-20 border-b border-tendi-line/70 bg-white/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150"><div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
       <img src="/brand/tendidesk-logo.png" alt="TendiDesk" width="1291" height="640" className="h-10 w-auto object-contain" />
       <div className="flex items-center gap-4">
-        {!blocked && <a href="/inbox" className="td-btn td-btn-secondary td-btn-sm"><ArrowLeft size={14} /> Voltar ao Inbox</a>}
+        {!blocked && <Link href="/inbox" className="td-btn td-btn-secondary td-btn-sm"><ArrowLeft size={14} /> Voltar ao Inbox</Link>}
         <form action="/auth/signout" method="post"><button className="td-btn td-btn-ghost td-btn-sm">Sair</button></form>
       </div>
     </div></header>

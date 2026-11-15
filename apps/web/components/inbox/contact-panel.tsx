@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { Check, Copy, KanbanSquare, Loader2, PanelRightClose, Phone, Plus, UserCheck, UserMinus, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -203,7 +204,7 @@ export function ContactPanel({ conversation, userId, onChanged, onClose }: { con
         <p className={label}>Funil de vendas (CRM)</p>
         {crmLoading ? <div className="mt-2"><Loader2 size={14} className="animate-spin text-slate-400" /></div>
           : !stages.length ? <p className="mt-2 text-xs text-slate-400">O funil deste workspace ainda não foi configurado.</p>
-          : opportunity ? <div className="mt-2 space-y-2"><select aria-label="Etapa do funil" value={opportunity.stage_id} disabled={busy} onChange={event => moveStage(event.target.value)} className="w-full rounded-lg border border-tendi-line bg-tendi-haze/60 px-2.5 py-2 text-xs text-slate-700">{stages.map(stage => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select><div className="rounded-lg border border-tendi-line bg-tendi-haze/60 px-2.5 py-2"><p className="text-[10px] font-semibold text-slate-500">Valor da oportunidade</p><div className="mt-0.5"><AmountEditor size="sm" value={opportunity.amount} onSave={saveAmount} /></div></div><a href={`/crm?organization=${encodeURIComponent(conversation.organization_id)}`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-tendi-teal"><KanbanSquare size={12} />Ver no CRM</a></div>
+          : opportunity ? <div className="mt-2 space-y-2"><select aria-label="Etapa do funil" value={opportunity.stage_id} disabled={busy} onChange={event => moveStage(event.target.value)} className="w-full rounded-lg border border-tendi-line bg-tendi-haze/60 px-2.5 py-2 text-xs text-slate-700">{stages.map(stage => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select><div className="rounded-lg border border-tendi-line bg-tendi-haze/60 px-2.5 py-2"><p className="text-[10px] font-semibold text-slate-500">Valor da oportunidade</p><div className="mt-0.5"><AmountEditor size="sm" value={opportunity.amount} onSave={saveAmount} /></div></div><Link href={`/crm?organization=${encodeURIComponent(conversation.organization_id)}`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-tendi-teal"><KanbanSquare size={12} />Ver no CRM</Link></div>
           : <div className="mt-2 space-y-2"><p className="text-xs text-slate-500">Este contato ainda não está no funil.</p><button type="button" disabled={busy} onClick={createOpportunity} className={actionButton}><Plus size={12} />Criar oportunidade</button></div>}
       </div>
 

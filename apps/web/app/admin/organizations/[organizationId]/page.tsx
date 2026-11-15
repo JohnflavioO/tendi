@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Ban, LifeBuoy, Loader2, MessageCircle, ShieldCheck, Bot, Trash2, UserPlus, Users } from 'lucide-react';
@@ -127,12 +128,12 @@ export default function OrganizationAdminPage() {
   }
 
   if (loading) return <AdminShell title="Empresa"><p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />Carregando…</p></AdminShell>;
-  if (!organization) return <AdminShell title="Empresa"><div className={card}><p className="text-sm text-slate-600">Empresa não encontrada. Ela pode ter sido excluída.</p><a href="/admin" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-tendi-teal hover:underline"><ArrowLeft size={14} />Voltar para a visão geral</a></div></AdminShell>;
+  if (!organization) return <AdminShell title="Empresa"><div className={card}><p className="text-sm text-slate-600">Empresa não encontrada. Ela pode ter sido excluída.</p><Link href="/admin" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-tendi-teal hover:underline"><ArrowLeft size={14} />Voltar para a visão geral</Link></div></AdminShell>;
 
   return (
     <AdminShell title={organization.name}>
       <div className="space-y-5">
-        <a href="/admin" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-tendi-teal"><ArrowLeft size={13} />Visão geral</a>
+        <Link href="/admin" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-tendi-teal"><ArrowLeft size={13} />Visão geral</Link>
 
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -146,8 +147,8 @@ export default function OrganizationAdminPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a href={`/admin/organizations/${organization.id}/setup`} className={secondary}><UserPlus size={15} />Convidar responsável</a>
-            {internal && <a href={`/inbox?organization=${organization.id}`} className={primary}>Abrir o workspace<ArrowRight size={15} /></a>}
+            <Link href={`/admin/organizations/${organization.id}/setup`} className={secondary}><UserPlus size={15} />Convidar responsável</Link>
+            {internal && <Link href={`/inbox?organization=${organization.id}`} className={primary}>Abrir o workspace<ArrowRight size={15} /></Link>}
           </div>
         </header>
 
@@ -168,7 +169,7 @@ export default function OrganizationAdminPage() {
                 <p className="text-sm text-[#7A0760]"><strong>Acesso liberado pelo cliente</strong> até {mySession.access_expires_at ? dateTime(mySession.access_expires_at) : '—'}{mySession.reason ? ` · ${mySession.reason}` : ''}.</p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => void endSupport()} disabled={busy === 'end'} className={secondary}>{busy === 'end' && <Loader2 size={14} className="animate-spin" />}Encerrar acesso</button>
-                  <a href={`/inbox?organization=${organization.id}`} className={primary}>Entrar no workspace<ArrowRight size={15} /></a>
+                  <Link href={`/inbox?organization=${organization.id}`} className={primary}>Entrar no workspace<ArrowRight size={15} /></Link>
                 </div>
               </div>
             ) : (
@@ -227,8 +228,8 @@ export default function OrganizationAdminPage() {
               <div className="flex items-center justify-between"><dt className="flex items-center gap-1.5 text-slate-500"><Bot size={14} />Agente de IA</dt><dd className={aiEnabled ? 'font-semibold text-emerald-700' : 'font-semibold text-slate-500'}>{aiEnabled ? 'Liberado' : 'Não liberado'}</dd></div>
             </dl>
             <div className="mt-4 flex flex-wrap gap-2">
-              <a href={`/chatbots?organization=${organization.id}`} className={secondary}>Conexão do WhatsApp</a>
-              <a href="/admin/ia" className={secondary}>Agentes de IA</a>
+              <Link href={`/chatbots?organization=${organization.id}`} className={secondary}>Conexão do WhatsApp</Link>
+              <Link href="/admin/ia" className={secondary}>Agentes de IA</Link>
             </div>
           </section>
         </div>
@@ -245,7 +246,7 @@ export default function OrganizationAdminPage() {
               ))}
             </ul>
           ) : <p className="mt-3 text-sm text-slate-500">Ninguém vinculado ainda. Convide o responsável pela empresa para ela começar a usar.</p>}
-          <a href={`/equipe?organization=${organization.id}`} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-tendi-teal hover:underline">Gerenciar equipe<ArrowRight size={13} /></a>
+          <Link href={`/equipe?organization=${organization.id}`} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-tendi-teal hover:underline">Gerenciar equipe<ArrowRight size={13} /></Link>
         </section>
 
         {!internal && (

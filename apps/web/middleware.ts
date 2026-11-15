@@ -4,6 +4,10 @@ import { isPublicMarketingPath } from './lib/marketing-routes';
 import { isTrialExemptPath, shouldBlockAccess } from './lib/trial';
 
 export async function middleware(request: NextRequest) {
+  // Pré-carga de telas pelo menu (next/link): o navegador busca a tela antes do clique. Ela não traz
+  // dados (as telas do painel buscam tudo no navegador, com o login da pessoa e as regras do banco),
+  // então não precisa consultar login nem empresa aqui: evita várias chamadas ao banco por clique.
+  if (request.headers.get('next-router-prefetch') === '1') return NextResponse.next({ request });
   // Webhooks de provedores (ex.: D-API) não têm sessão de usuário. A autenticação é o segredo
   // no caminho da URL, validado dentro da própria rota. Sem esta exceção eles caem em /login (307).
   if (request.nextUrl.pathname.startsWith('/api/webhooks/')) return NextResponse.next({ request });

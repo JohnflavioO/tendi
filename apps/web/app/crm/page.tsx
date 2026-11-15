@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Search, KanbanSquare, Loader2, MessageCircle, Target, CircleDot, Wallet, Trophy } from 'lucide-react';
 import { Badge, EmptyState, Metric } from '@/components/ui';
@@ -98,7 +99,7 @@ export default function CrmPage() {
             <div className="mt-3"><AmountEditor value={d.amount} onSave={amount => patch(d.id, { amount })} /></div>
             <div className="mt-3 flex items-center gap-2 border-t border-tendi-line/60 pt-3">
               <select value={d.stage_id} onChange={e => void move(d.id, e.target.value)} aria-label="Mover para outra etapa" className="td-input h-8 min-w-0 flex-1 rounded-lg !text-[11.5px]"><option value={d.stage_id}>Mover para...</option>{stages.filter(s => s.id !== d.stage_id).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
-              {d.contact_id && <a href={`/inbox?organization=${encodeURIComponent(org)}&contact=${d.contact_id}`} title="Abrir conversa" aria-label="Abrir conversa" className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-tendi-line text-tendi-teal transition hover:border-tendi-teal/30 hover:bg-tendi-tealsoft"><MessageCircle size={14} /></a>}
+              {d.contact_id && <Link href={`/inbox?organization=${encodeURIComponent(org)}&contact=${d.contact_id}`} title="Abrir conversa" aria-label="Abrir conversa" className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-tendi-line text-tendi-teal transition hover:border-tendi-teal/30 hover:bg-tendi-tealsoft"><MessageCircle size={14} /></Link>}
             </div>
           </article>)}</div>
           {!items.length && <p className="rounded-[14px] border border-dashed border-slate-300/80 px-3 py-8 text-center text-[11px] text-slate-400">{inStage.length ? 'Nenhuma oportunidade com essa busca' : 'Nenhuma oportunidade nesta etapa'}</p>}

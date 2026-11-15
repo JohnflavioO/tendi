@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ChevronsUpDown, X, type LucideIcon } from 'lucide-react';
 import { SidebarFooter } from '@/components/sidebar-footer';
 import type { Area, Role } from '@/lib/team';
@@ -39,7 +40,7 @@ export function WorkspaceSidebar({ homeHref, organizationId, organizationName, o
 
   return <aside className="td-sidebar relative flex h-full w-[256px] shrink-0 flex-col overflow-y-auto overscroll-contain px-3 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-[calc(env(safe-area-inset-top)+20px)] text-white lg:pt-5">
     <div className="mb-6 flex items-center justify-between px-3">
-      <a href={homeHref} className="flex items-center rounded-lg"><img src="/brand/tendidesk-logo-branca.png" alt="TendiDesk" width="1291" height="640" className="h-10 w-auto object-contain" /></a>
+      <Link href={homeHref} className="flex items-center rounded-lg"><img src="/brand/tendidesk-logo-branca.png" alt="TendiDesk" width="1291" height="640" className="h-10 w-auto object-contain" /></Link>
       {onClose && <button type="button" onClick={onClose} aria-label="Fechar menu" className="rounded-lg p-2 text-[#B9BBE0] hover:bg-white/10 hover:text-white"><X size={18} /></button>}
     </div>
 
@@ -55,11 +56,11 @@ export function WorkspaceSidebar({ homeHref, organizationId, organizationName, o
 
     <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.16em] text-[#7275B0]">Menu</p>
     <nav aria-label="Menu do workspace" className="space-y-0.5">
-      {items.map(({ label, href, icon: Icon, area, active, badge }) => <a key={href} data-tour={`nav-${area}`} href={href} onClick={onNavigate} aria-current={active ? 'page' : undefined} className={`td-nav-item ${active ? 'td-nav-item-active' : ''}`}>
+      {items.map(({ label, href, icon: Icon, area, active, badge }) => <Link key={href} data-tour={`nav-${area}`} href={href} onClick={onNavigate} aria-current={active ? 'page' : undefined} className={`td-nav-item ${active ? 'td-nav-item-active' : ''}`}>
         <Icon size={18} strokeWidth={active ? 2.1 : 1.8} className={active ? 'text-white' : 'text-[#8E91C4]'} />
         <span className="truncate">{label}</span>
         {Boolean(badge) && <span className="ml-auto min-w-[22px] rounded-full bg-tendi-magenta px-1.5 text-center text-[10.5px] font-bold leading-5 text-white shadow-[0_2px_8px_-2px_rgba(203,10,159,.7)]">{badge! > 99 ? '99+' : badge}</span>}
-      </a>)}
+      </Link>)}
     </nav>
 
     <SidebarFooter organizationId={organizationId} role={role} superAdmin={superAdmin} onSignOut={onSignOut} />

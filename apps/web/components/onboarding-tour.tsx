@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Compass, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -119,7 +120,7 @@ export function OnboardingTour({ organizationId, role, superAdmin }: { organizat
           </div>
           <h2 id="tour-title" className="text-base font-bold tracking-tight text-tendi-navy">{step.title}</h2>
           <p className="mt-1.5 text-[13px] leading-5 text-slate-500">{step.body}</p>
-          {step.action && <a href={withOrganization(step.action.href, organizationId)} onClick={finish} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-tendi-teal hover:underline">{step.action.label}<ArrowRight size={12} /></a>}
+          {step.action && <Link href={withOrganization(step.action.href, organizationId)} onClick={finish} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-tendi-teal hover:underline">{step.action.label}<ArrowRight size={12} /></Link>}
           <div className="mt-5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-1" aria-hidden>{steps.map((item, i) => <span key={item.id} className={i === index ? 'h-1.5 w-4 rounded-full bg-tendi-indigo transition-all' : i < index ? 'size-1.5 rounded-full bg-tendi-lilac transition-all' : 'size-1.5 rounded-full bg-slate-200 transition-all'} />)}</div>
             <div className="flex items-center gap-1.5">
