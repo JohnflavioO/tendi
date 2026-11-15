@@ -119,6 +119,34 @@ export async function listMetaPages(userAccessToken: string, appAccessToken: str
   return found;
 }
 
+/**
+ * Quando nenhuma Página aparece: resume o que a Meta liberou (permissões e ids) e o erro de cada
+ * Página, sem expor tokens. Vai para a tela, para saber onde a conexão parou.
+ */
+export async function diagnoseMetaPages(userAccessToken: string, appAccessToken: string | null = envAppAccessToken()): Promise<string> {
+  if (!appAccessToken) return 'META_APP_ID/META_APP_SECRET ausentes no servidor.';
+  let scopes: Array<{ scope?: unknown; target_ids?: unknown }>;
+  try {
+    const data = await metaGet('/debug_token', { input_token: userAccessToken, access_token: appAccessToken });
+    const info = (data as { data?: { granular_scopes?: Array<{ scope?: unknown; target_ids?: unknown }>; type?: unknown; is_valid?: unknown } })?.data;
+    scopes = info?.granular_scopes ?? [];
+    if (!scopes.length) return `Token sem permissões detalhadas (tipo: ${String(info?.type ?? '?')}, válido: ${String(info?.is_valid ?? '?')}).`;
+  } catch (error) {
+    return `debug_token falhou: ${error instanceof Error ? error.message : String(error)}`;
+  }
+  const parts = scopes.map(item => `${String(item.scope)}${Array.isArray(item.target_ids) ? ` [${item.target_ids.join(',')}]` : ''}`);
+  const errors: string[] = [];
+  for (const pageId of await grantedPageIds(userAccessToken, appAccessToken).catch(() => [])) {
+    try {
+      const page = await metaGet(`/${pageId}`, { access_token: userAccessToken, fields: 'id,name,access_token' }) as Record<string, unknown>;
+      errors.push(`${pageId}: ${typeof page.access_token === 'string' ? 'ok' : 'sem token da Página'}`);
+    } catch (error) {
+      errors.push(`${pageId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return `Permissões: ${parts.join('; ')}${errors.length ? ` | Páginas: ${errors.join('; ')}` : ''}`.slice(0, 600);
+}
+
 /** Token do app (id|chave) para o debug_token; null se o app não estiver configurado. */
 function envAppAccessToken(): string | null {
   const id = process.env.META_APP_ID?.trim();

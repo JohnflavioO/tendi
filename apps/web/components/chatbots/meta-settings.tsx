@@ -38,6 +38,7 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
   const [configured, setConfigured] = useState<{ messenger: boolean; instagram: boolean } | null>(null);
   const [step, setStep] = useState<'idle' | 'choose'>('idle');
   const [pages, setPages] = useState<MetaPage[] | null>(null);
+  const [pagesDiagnostic, setPagesDiagnostic] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState('');
@@ -67,6 +68,7 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
       fetch('/api/meta/pages').then(response => response.json()).then(data => {
         if (data.error) { setError(data.error); setStep('idle'); return; }
         setPages(data.pages ?? []);
+        setPagesDiagnostic(typeof data.diagnostic === 'string' ? data.diagnostic : null);
       }).catch(() => { setError('Não foi possível listar as páginas do Facebook.'); setStep('idle'); });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,7 +124,7 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
         <div className="mt-5 rounded-2xl border border-tendi-line bg-[#FBFCFE] p-4">
           <p className="text-xs font-bold text-tendi-navy">Escolha a página do Facebook (Messenger)</p>
           {pages === null ? <p className="mt-3 flex items-center gap-2 text-xs text-slate-400"><Loader2 size={14} className="animate-spin" />Carregando páginas…</p>
-            : pages.length === 0 ? <p className="mt-3 text-xs text-slate-500">Nenhuma página encontrada. Confira se a conta usada administra uma página do Facebook.</p>
+            : pages.length === 0 ? <div className="mt-3 text-xs text-slate-500"><p>Nenhuma página encontrada. Confira se a conta usada administra uma página do Facebook e se ela foi marcada na janela da Meta.</p>{pagesDiagnostic && <p className="mt-2 break-all rounded-lg bg-slate-100 p-2 font-mono text-[10.5px] text-slate-600">Resposta da Meta: {pagesDiagnostic}</p>}</div>
             : <ul className="mt-3 space-y-2">{pages.map(page => (
                 <li key={page.id} className="flex items-center justify-between gap-3 rounded-xl border border-tendi-line bg-white p-3">
                   <p className="text-sm font-semibold text-tendi-navy">{page.name}</p>
