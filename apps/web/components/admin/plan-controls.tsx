@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, ArrowRight, CalendarClock, Gift, History, Layers, Loader2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -263,13 +264,15 @@ function Dialog({ title, onClose, children }: { title: string; onClose: () => vo
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-  return (
+  // Portal no body: a animação de entrada da página (transform) e o overflow do cartão cortariam a caixa.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-tendi-night/50 p-4 pt-[12vh] backdrop-blur-[2px]" onMouseDown={onClose}>
       <div role="dialog" aria-modal="true" aria-label={title} onMouseDown={event => event.stopPropagation()} className="animate-pop w-full max-w-md rounded-2xl border border-tendi-line bg-white p-6 shadow-pop shadow-slate-900/20">
         <div className="mb-3 flex items-start justify-between gap-3"><h2 className="text-lg font-semibold tracking-tight text-tendi-navy">{title}</h2><button type="button" onClick={onClose} aria-label="Fechar" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><X size={18} /></button></div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
