@@ -14,12 +14,13 @@
   var origin = scriptTag.src.replace(/\/webchat\.js.*$/, '');
   var storageKey = 'tendi_webchat_token_' + publicKey;
   var teaserKey = 'tendi_webchat_teaser_' + publicKey;
+  var identityKey = 'tendi_webchat_id_' + publicKey;
   var POLL_OPEN_MS = 3000;
   var POLL_CLOSED_MS = 12000;
   var TYPING_TIMEOUT_MS = 45000;
   var TEASER_DELAY_MS = 5000;
 
-  var state = { open: false, config: null, token: null, after: null, messages: [], sending: false, typingSince: 0, unread: 0, lastPoll: 0, chat: null, confirmEnd: false, ended: false };
+  var state = { open: false, config: null, token: null, after: null, messages: [], sending: false, typingSince: 0, unread: 0, lastPoll: 0, chat: null, confirmEnd: false, ended: false, draft: null, formError: '' };
   function readStore(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
   function writeStore(key, value) { try { window.localStorage.setItem(key, value); } catch (e) { /* modo privado: segue sem guardar */ } }
   state.token = readStore(storageKey);
@@ -35,6 +36,7 @@
 
   function ensureSession() {
     if (state.token) return Promise.resolve();
+    if (state.config && state.config.form) { render(); return Promise.reject(new Error('Preencha seus dados para começar.')); }
     return api('/api/webchat/' + publicKey, { method: 'POST' }).then(function (data) {
       state.token = data.token;
       writeStore(storageKey, data.token);
@@ -156,6 +158,13 @@
     '.acts{display:flex;gap:6px;overflow-x:auto;padding:0 12px 8px;scrollbar-width:none}.acts::-webkit-scrollbar{display:none}' +
     '.act{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;border:1px solid #DCDFEC;background:#fff;color:#2F316B;border-radius:999px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s}.act:hover{border-color:var(--c);color:var(--c)}.act.hum{border-color:transparent;background:var(--c);color:var(--on)}.act.hum:hover{opacity:.92;color:var(--on)}' +
     '.done{align-self:center;margin:14px 0 6px;max-width:92%;text-align:center;padding:16px;border-radius:18px;background:#fff;box-shadow:0 0 0 1px rgba(16,18,52,.06)}.done p{font-size:13px;color:#4A4E75}.done button{margin-top:10px;border:0;border-radius:12px;padding:9px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--on);background:linear-gradient(145deg,var(--c),var(--c2))}' +
+    '.idf{align-self:stretch;margin:6px 2px;padding:18px;border-radius:20px;background:#fff;box-shadow:0 1px 2px rgba(16,18,52,.06),0 0 0 1px rgba(16,18,52,.06)}' +
+    '.idf .idt{font-size:15px;font-weight:700;color:#1E2046;margin-bottom:12px}' +
+    '.idf label{display:block;font-size:12px;font-weight:600;color:#4A4E75;margin-top:10px}.idf label span{font-weight:500;color:#9AA0BD}' +
+    '.idf input{display:block;width:100%;margin-top:5px;padding:11px 13px;border:0;border-radius:12px;background:#F4F5FA;box-shadow:inset 0 0 0 1px #E4E6F0;font:inherit;font-size:16px;color:#1E2046;outline:0}.idf input:focus{background:#fff;box-shadow:inset 0 0 0 2px var(--c)}' +
+    '.idb{width:100%;margin-top:16px;border:0;border-radius:14px;padding:13px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;color:var(--on);background:linear-gradient(145deg,var(--c),var(--c2))}.idb:disabled{opacity:.6;cursor:default}' +
+    '.ide{margin-top:10px;padding:8px 10px;border-radius:10px;background:#FEF0F0;color:#B42318;font-size:12px}' +
+    '.idp{margin-top:10px;text-align:center;font-size:11px;color:#9AA0BD}' +
     '@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(245,158,11,.5)}70%{box-shadow:0 0 0 8px rgba(245,158,11,0)}100%{box-shadow:0 0 0 0 rgba(245,158,11,0)}}' +
     '@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}' +
     '@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}' +
@@ -216,6 +225,7 @@
       html += '<p class="tm">' + clock(m.createdAt) + '</p></div>';
       lastSender = sender;
     }
+    if (needsForm()) html += formHtml();
     if (state.ended) {
       var endText = (state.config && state.config.endMessage) || 'Atendimento encerrado. Obrigado pelo contato!';
       html += '<div class="done"><p>' + escapeHtml(endText) + '</p><button type="button" class="restart">Iniciar nova conversa</button></div>';
@@ -227,6 +237,69 @@
     list.scrollTop = list.scrollHeight;
   }
 
+  function needsForm() {
+    return Boolean(state.config && state.config.form) && !state.token && !state.ended;
+  }
+
+  function savedIdentity() {
+    try { return JSON.parse(readStore(identityKey) || 'null') || {}; } catch (e) { return {}; }
+  }
+
+  /** Máscara de telefone do Brasil: (85) 99999-0000. Números com DDI ficam como digitados. */
+  function maskPhone(value) {
+    var digits = String(value || '').replace(/\D/g, '');
+    if (/^\+/.test(value) || digits.length > 11) return value;
+    if (digits.length <= 2) return digits ? '(' + digits : '';
+    if (digits.length <= 6) return '(' + digits.slice(0, 2) + ') ' + digits.slice(2);
+    if (digits.length <= 10) return '(' + digits.slice(0, 2) + ') ' + digits.slice(2, 6) + '-' + digits.slice(6);
+    return '(' + digits.slice(0, 2) + ') ' + digits.slice(2, 7) + '-' + digits.slice(7);
+  }
+
+  function formHtml() {
+    var form = state.config.form;
+    var draft = state.draft || savedIdentity();
+    var field = function (key, label, rule, type, auto, placeholder) {
+      if (rule === 'hidden') return '';
+      return '<label>' + label + (rule === 'optional' ? ' <span>(opcional)</span>' : '') +
+        '<input name="' + key + '" type="' + type + '" autocomplete="' + auto + '"' + (placeholder ? ' placeholder="' + placeholder + '"' : '') +
+        (key === 'phone' ? ' inputmode="tel"' : '') + ' value="' + escapeHtml(draft[key] || '') + '"></label>';
+    };
+    return '<form class="idf" novalidate><p class="idt">' + escapeHtml(form.title || 'Antes de começar, como podemos te chamar?') + '</p>' +
+      field('name', 'Nome', 'required', 'text', 'name', 'Seu nome') +
+      field('phone', 'WhatsApp', form.phone, 'tel', 'tel', '(85) 99999-0000') +
+      field('email', 'E-mail', form.email, 'email', 'email', 'voce@email.com') +
+      (state.formError ? '<p class="ide" role="alert">' + escapeHtml(state.formError) + '</p>' : '') +
+      '<button class="idb" type="submit"' + (state.sending ? ' disabled' : '') + '>' + (state.sending ? 'Iniciando…' : 'Começar conversa') + '</button>' +
+      '<p class="idp">Usamos seus dados apenas para este atendimento.</p></form>';
+  }
+
+  function readForm() {
+    var formEl = list.querySelector('.idf');
+    if (!formEl) return null;
+    var value = function (name) { var el = formEl.querySelector('[name="' + name + '"]'); return el ? el.value.trim() : ''; };
+    return { name: value('name'), phone: value('phone'), email: value('email') };
+  }
+
+  function submitForm() {
+    var identity = readForm();
+    if (!identity || state.sending) return;
+    state.draft = identity;
+    if (identity.name.replace(/[^A-Za-zÀ-ÿ]/g, '').length < 2) { state.formError = 'Informe seu nome.'; render(); return; }
+    state.sending = true; state.formError = ''; render();
+    api('/api/webchat/' + publicKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(identity) })
+      .then(function (data) {
+        state.token = data.token;
+        writeStore(storageKey, data.token);
+        writeStore(identityKey, JSON.stringify(identity));
+        state.draft = null;
+        state.sending = false;
+        render();
+        poll();
+        if (window.matchMedia('(pointer:fine)').matches) input.focus();
+      })
+      .catch(function (error) { state.sending = false; state.formError = error.message || 'Não foi possível iniciar. Tente de novo.'; render(); });
+  }
+
   function queueTitle(position) {
     if (!position || position < 1) return 'Você está na fila de atendimento';
     return position === 1 ? 'Você é o próximo a ser atendido' : 'Você é o ' + position + 'º na fila';
@@ -236,9 +309,10 @@
   function renderChrome() {
     var buttons = (state.config && state.config.buttons) || {};
     var mode = state.ended ? 'closed' : (state.chat && state.chat.mode) || 'ai';
+    var identifying = needsForm();
     var hasConversation = Boolean(state.token) && !state.ended;
     var html = '';
-    if (mode !== 'closed') {
+    if (mode !== 'closed' && !identifying) {
       if (buttons.handoff && mode === 'ai') html += '<button class="act hum" type="button" data-human="1">' + ICON_PERSON + escapeHtml(buttons.handoff) + '</button>';
       (buttons.quickReplies || []).forEach(function (item, index) {
         html += '<button class="act" type="button" data-quick="' + index + '">' + escapeHtml(item.label) + '</button>';
@@ -261,7 +335,7 @@
     end.setAttribute('aria-label', buttons.end || 'Encerrar atendimento');
     end.setAttribute('title', buttons.end || 'Encerrar atendimento');
     $('.cf').className = 'cf' + (state.confirmEnd && hasConversation ? ' show' : '');
-    $('.f').style.display = mode === 'closed' ? 'none' : '';
+    $('.f').style.display = mode === 'closed' || identifying ? 'none' : '';
   }
 
   function action(name) {
@@ -393,7 +467,7 @@
       setUnread(0);
       render();
       if (state.token) poll();
-      if (window.matchMedia('(pointer:fine)').matches) setTimeout(function () { input.focus(); }, 60);
+      if (window.matchMedia('(pointer:fine)').matches) setTimeout(function () { var first = list.querySelector('.idf input'); (first || input).focus(); }, 60);
     } else {
       setUnread(state.unread);
     }
@@ -415,6 +489,16 @@
     var button = event.target.closest && event.target.closest('.opt');
     if (button) send(button.getAttribute('data-opt'));
     if (event.target.closest && event.target.closest('.restart')) restart();
+  });
+  list.addEventListener('submit', function (event) {
+    if (event.target.closest && event.target.closest('.idf')) { event.preventDefault(); submitForm(); }
+  });
+  list.addEventListener('input', function (event) {
+    if (event.target.name === 'phone') {
+      var masked = maskPhone(event.target.value);
+      if (masked !== event.target.value) event.target.value = masked;
+    }
+    if (event.target.closest && event.target.closest('.idf')) state.draft = readForm();
   });
   $('.acts').addEventListener('click', function (event) {
     var button = event.target.closest && event.target.closest('.act');

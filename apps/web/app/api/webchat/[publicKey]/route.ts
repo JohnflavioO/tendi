@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { WEBCHAT_CORS_HEADERS, isValidWebchatPublicKey } from '@/lib/webchat';
 import { startWebchatSession, type WebchatWidget } from '@/lib/webchat-server';
-import { normalizeWebchatSettings } from '@/lib/webchat-config';
+import { checkVisitorIdentity, normalizeWebchatSettings, type VisitorIdentity } from '@/lib/webchat-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +41,7 @@ export async function GET(_request: Request, { params }: Context) {
       quickReplies: settings.quickReplies,
     },
     endMessage: settings.endMessage,
+    form: settings.form.enabled ? { title: settings.form.title, phone: settings.form.phone, email: settings.form.email } : null,
   });
 }
 
@@ -49,14 +50,22 @@ export async function GET(_request: Request, { params }: Context) {
  * Começa uma conversa nova: cria o contato e a conversa, devolve um token para o navegador
  * guardar (localStorage) e usar nas próximas chamadas.
  */
-export async function POST(_request: Request, { params }: Context) {
+export async function POST(request: Request, { params }: Context) {
   const admin = createAdminClient();
   if (!admin) return json({ error: 'Servidor sem credenciais do banco.' }, 503);
   const widget = await loadWidget(admin, params.publicKey);
   if (!widget || !widget.is_enabled) return json({ error: 'Widget não encontrado.' }, 404);
 
   try {
-    const session = await startWebchatSession(admin, widget);
+    // Formulário de identificação (nome, WhatsApp, e-mail), conforme a configuração da empresa.
+    const form = normalizeWebchatSettings((widget as WebchatWidget & { settings?: unknown }).settings).form;
+    let identity: VisitorIdentity | null = null;
+    if (form.enabled) {
+      const checked = checkVisitorIdentity(await request.json().catch(() => null), form);
+      if (!checked.ok) return json({ error: checked.error }, 400);
+      identity = checked.identity;
+    }
+    const session = await startWebchatSession(admin, widget, identity);
     return json({ token: session.token, conversationId: session.conversationId });
   } catch (error) {
     console.error('[Webchat] falha ao iniciar sessão', { publicKey: params.publicKey, message: error instanceof Error ? error.message : String(error) });

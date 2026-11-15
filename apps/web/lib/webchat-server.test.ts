@@ -136,3 +136,52 @@ describe('listWebchatMessagesSince', () => {
     expect(messages[0]!.id).toBe('m2');
   });
 });
+
+describe('startWebchatSession com identificação do visitante', () => {
+  /** Banco que recusa a 2ª conversa aberta do mesmo contato e canal (como o índice único de verdade). */
+  function withUniqueConversations(db: FakeDb) {
+    const original = db.from.bind(db);
+    db.from = ((table: string) => {
+      const query: any = original(table);
+      if (table === 'conversations') {
+        const insert = query.insert.bind(query);
+        query.insert = (row: Row) => {
+          const open = db.t.conversations.find(c => c.contact_id === row.contact_id && c.channel === row.channel && c.status !== 'closed');
+          if (open) return { select: () => ({ single: () => Promise.resolve({ data: null, error: { code: '23505', message: 'duplicate key' } }) }) };
+          return insert(row);
+        };
+      }
+      return query;
+    }) as any;
+    return db;
+  }
+  const widget = { id: 'w1', organization_id: 'org-1', is_enabled: true, display_name: 'Atendimento', greeting_message: '', color: '#004751' };
+
+  it('lead novo: contato com nome, WhatsApp e e-mail', async () => {
+    const db = seed();
+    await startWebchatSession(db as any, widget, { name: 'Isabelly Oliveira', phone: '+5585996370627', email: 'isa@loja.com.br' });
+    expect(db.t.contacts).toHaveLength(1);
+    expect(db.t.contacts[0]).toMatchObject({ full_name: 'Isabelly Oliveira', phone_e164: '+5585996370627', email: 'isa@loja.com.br' });
+    expect(db.t.conversations[0]).toMatchObject({ contact_id: db.t.contacts[0]!.id, channel: 'webchat' });
+  });
+
+  it('telefone que já existe: usa o mesmo cadastro e só completa o que falta', async () => {
+    const db = seed();
+    db.t.contacts.push({ id: 'c-zap', organization_id: 'org-1', full_name: 'Isa (cliente antiga)', phone_e164: '+5585996370627', email: null });
+    await startWebchatSession(db as any, widget, { name: 'Isabelly', phone: '+5585996370627', email: 'isa@loja.com.br' });
+    expect(db.t.contacts).toHaveLength(1);
+    expect(db.t.contacts[0]).toMatchObject({ full_name: 'Isa (cliente antiga)', email: 'isa@loja.com.br' });
+    expect(db.t.conversations[0]!.contact_id).toBe('c-zap');
+  });
+
+  it('privacidade: telefone de quem já tem conversa aberta no site abre conversa separada', async () => {
+    const db = withUniqueConversations(seed());
+    db.t.contacts.push({ id: 'c-dono', organization_id: 'org-1', full_name: 'Dono do número', phone_e164: '+5585996370627', email: null });
+    db.t.conversations.push({ id: 'conv-dono', organization_id: 'org-1', contact_id: 'c-dono', channel: 'webchat', status: 'open' });
+    const session = await startWebchatSession(db as any, widget, { name: 'Outra pessoa', phone: '+5585996370627', email: null });
+    expect(session.conversationId).not.toBe('conv-dono');
+    const created = db.t.conversations.find(c => c.id === session.conversationId)!;
+    expect(created.contact_id).not.toBe('c-dono');
+    expect(db.t.contacts.find(c => c.id === created.contact_id)).toMatchObject({ full_name: 'Outra pessoa' });
+  });
+});

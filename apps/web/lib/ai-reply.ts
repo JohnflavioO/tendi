@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
-  AI_TONES, HANDOFF_MARKER, MAX_OPTION_CHARS, MAX_QUICK_OPTIONS, OPTIONS_MARKER, buildSystemPrompt, normalizeBusinessHours,
+  AI_TONES, HANDOFF_MARKER, customerFirstName, MAX_OPTION_CHARS, MAX_QUICK_OPTIONS, OPTIONS_MARKER, buildSystemPrompt, normalizeBusinessHours,
   type AiProvider, type AiTone, type KnowledgeItem,
 } from './ai-agent';
 import type { ChatTurn, GenerateFn } from './ai-llm';
@@ -122,7 +122,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   // 1) Conversa com a IA ligada.
   const conversationResult = await db
     .from('conversations')
-    .select('id,organization_id,channel,ai_mode,contacts(phone_e164)')
+    .select('id,organization_id,channel,ai_mode,contacts(phone_e164,full_name)')
     .eq('id', conversationId)
     .eq('organization_id', organizationId)
     .maybeSingle();
@@ -249,6 +249,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     knowledge: (knowledgeResult.data ?? []) as KnowledgeItem[],
     hours: normalizeBusinessHours(profile.business_hours),
     timezone: text(profile.timezone) || 'America/Fortaleza',
+    customerName: (() => { const c = Array.isArray(conversation.contacts) ? conversation.contacts[0] : conversation.contacts; return customerFirstName(c?.full_name, c?.phone_e164); })(),
     now: now(),
   });
   const history = [...((historyResult.data ?? []) as Array<{ direction: string; message_type: string; body: string | null }>)].reverse();

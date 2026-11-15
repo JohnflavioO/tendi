@@ -155,8 +155,22 @@ export type PromptInput = {
   knowledge: KnowledgeItem[];
   hours: BusinessHours;
   timezone: string;
+  /** Primeiro nome do cliente (formulário do chat do site ou nome do WhatsApp). */
+  customerName?: string | null;
   now?: Date;
 };
+
+/** Primeiro nome para a IA chamar o cliente. Ignora nome vazio, genérico ou que é só o telefone. */
+export function customerFirstName(fullName: string | null | undefined, phone?: string | null): string | null {
+  const name = (fullName ?? '').replace(/\s+/g, ' ').trim();
+  if (!name || /^visitante do site$/i.test(name)) return null;
+  // Nome que é só o telefone (contato do WhatsApp sem nome salvo): não serve.
+  const letters = name.replace(/[^\p{L}]/gu, '');
+  if (letters.length < 2) return null;
+  void phone;
+  const first = name.split(' ')[0]!.replace(/[^\p{L}'-]/gu, '');
+  return first.length >= 2 ? first.charAt(0).toUpperCase() + first.slice(1) : null;
+}
 
 const TONE_TEXT: Record<AiTone, string> = {
   cordial: 'cordial: educado, simpático e direto, tratando o cliente com respeito.',
@@ -184,6 +198,7 @@ export function buildSystemPrompt(input: PromptInput): string {
   lines.push(`Você é ${input.agentName || 'o assistente virtual'}, assistente virtual de atendimento da empresa ${input.companyName}.`);
   if (input.niche.trim()) lines.push(`Segmento de atuação da empresa: ${input.niche.trim()}.`);
   lines.push(`Tom de voz: ${TONE_TEXT[input.tone] ?? TONE_TEXT.cordial}`);
+  if (input.customerName) lines.push(`Nome do cliente nesta conversa: ${input.customerName}. Chame-o pelo nome de forma natural, sem repetir em toda mensagem.`);
 
   if (input.instructions.trim()) lines.push('', '## Instruções específicas do negócio', input.instructions.trim());
 

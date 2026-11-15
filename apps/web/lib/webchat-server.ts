@@ -3,7 +3,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { MEDIA_BUCKET } from './inbox-attachments';
 import { initialAiMode } from './dapi-webhook';
 import { WEBCHAT_SESSION_DAYS } from './webchat';
-import { normalizeWebchatSettings, webchatState, type WebchatSettings, type WebchatState } from './webchat-config';
+import { normalizeWebchatSettings, webchatState, type VisitorIdentity, type WebchatSettings, type WebchatState } from './webchat-config';
+import { ensureLeadForContact } from './crm-lead';
 import { describeBusinessHours, isWithinBusinessHours, normalizeBusinessHours } from './ai-agent';
 
 /**
@@ -22,24 +23,75 @@ export const hashWebchatToken = (token: string): string => createHash('sha256').
 
 export type WebchatWidget = { id: string; organization_id: string; is_enabled: boolean; display_name: string; greeting_message: string; color: string; ai_enabled?: boolean | null };
 
-/** Cria o contato, a conversa e a sessão de um novo visitante do widget. */
-export async function startWebchatSession(admin: Db, widget: WebchatWidget): Promise<{ token: string; conversationId: string }> {
-  const nowIso = new Date().toISOString();
-  const contact = await admin.from('contacts')
-    .insert({ organization_id: widget.organization_id, full_name: 'Visitante do site' })
-    .select('id').single();
-  if (contact.error || !contact.data) throw new Error(`Não foi possível iniciar a conversa: ${contact.error?.message ?? 'sem retorno'}`);
-  const contactId = (contact.data as { id: string }).id;
+export const ANONYMOUS_VISITOR_NAME = 'Visitante do site';
 
-  const conversation = await admin.from('conversations')
+/**
+ * Contato do visitante. Com telefone, reaproveita o contato que a empresa já tem com esse número
+ * (ex.: quem já falou pelo WhatsApp) e só completa o que estiver vazio, sem sobrescrever dados.
+ */
+async function resolveVisitorContact(admin: Db, organizationId: string, identity: VisitorIdentity | null): Promise<{ id: string; created: boolean }> {
+  if (identity?.phone) {
+    const existing = await admin.from('contacts').select('id,full_name,email').eq('organization_id', organizationId).eq('phone_e164', identity.phone).maybeSingle();
+    const row = existing.data as { id: string; full_name: string | null; email: string | null } | null;
+    if (row) {
+      const patch: Record<string, string> = {};
+      const currentName = (row.full_name ?? '').trim();
+      // Nome vazio, "Visitante do site" ou só o número: troca pelo nome informado.
+      if (!currentName || currentName === ANONYMOUS_VISITOR_NAME || currentName.replace(/\D/g, '') === identity.phone.replace(/\D/g, '')) patch.full_name = identity.name;
+      if (!row.email && identity.email) patch.email = identity.email;
+      if (Object.keys(patch).length) await admin.from('contacts').update(patch).eq('id', row.id);
+      return { id: row.id, created: false };
+    }
+  }
+  const inserted = await admin.from('contacts')
     .insert({
-      organization_id: widget.organization_id, contact_id: contactId, channel: 'webchat', status: 'open',
-      unread_count: 0, last_message_at: nowIso,
-      // IA só quando a empresa deixou o Webchat com o agente (padrão) e o agente está liberado.
-      // Atendimento manual: a conversa já nasce aguardando atendente (entra na fila da equipe).
-      ai_mode: widget.ai_enabled === false ? 'handoff' : await initialAiMode(admin, widget.organization_id),
+      organization_id: organizationId,
+      full_name: identity?.name || ANONYMOUS_VISITOR_NAME,
+      ...(identity?.phone ? { phone_e164: identity.phone } : {}),
+      ...(identity?.email ? { email: identity.email } : {}),
     })
     .select('id').single();
+  if (inserted.error?.code === '23505' && identity?.phone) {
+    // Outro pedido criou o mesmo número ao mesmo tempo: usa esse contato.
+    const again = await admin.from('contacts').select('id').eq('organization_id', organizationId).eq('phone_e164', identity.phone).maybeSingle();
+    if (again.data) return { id: (again.data as { id: string }).id, created: false };
+  }
+  if (inserted.error || !inserted.data) throw new Error(`Não foi possível iniciar a conversa: ${inserted.error?.message ?? 'sem retorno'}`);
+  return { id: (inserted.data as { id: string }).id, created: true };
+}
+
+/** Cria (ou reaproveita) o contato, a conversa e a sessão de um visitante do widget. */
+export async function startWebchatSession(admin: Db, widget: WebchatWidget, identity: VisitorIdentity | null = null): Promise<{ token: string; conversationId: string }> {
+  const nowIso = new Date().toISOString();
+  const contact = await resolveVisitorContact(admin, widget.organization_id, identity);
+  let contactId = contact.id;
+
+  // Lead identificado no funil de vendas (igual ao WhatsApp): só quando ainda não tem oportunidade.
+  if (identity) {
+    await ensureLeadForContact(admin, {
+      organizationId: widget.organization_id, contactId, title: identity.name,
+      description: 'Criada automaticamente a partir de uma nova conversa no chat do site.',
+    }).catch(() => undefined);
+  }
+
+  const conversationRow = {
+    organization_id: widget.organization_id, contact_id: contactId, channel: 'webchat', status: 'open',
+    unread_count: 0, last_message_at: nowIso,
+    // IA só quando a empresa deixou o Webchat com o agente (padrão) e o agente está liberado.
+    // Atendimento manual: a conversa já nasce aguardando atendente (entra na fila da equipe).
+    ai_mode: widget.ai_enabled === false ? 'handoff' : await initialAiMode(admin, widget.organization_id),
+  };
+  let conversation = await admin.from('conversations').insert(conversationRow).select('id').single();
+  if (conversation.error?.code === '23505') {
+    // Esse contato já tem uma conversa aberta pelo site, de outra sessão. Por privacidade o visitante
+    // NÃO entra nela (quem digitou o número pode não ser o dono): abre um contato e uma conversa à parte.
+    const separate = await admin.from('contacts')
+      .insert({ organization_id: widget.organization_id, full_name: identity?.name || ANONYMOUS_VISITOR_NAME, ...(identity?.email ? { email: identity.email } : {}) })
+      .select('id').single();
+    if (separate.error || !separate.data) throw new Error(`Não foi possível iniciar a conversa: ${separate.error?.message ?? 'sem retorno'}`);
+    contactId = (separate.data as { id: string }).id;
+    conversation = await admin.from('conversations').insert({ ...conversationRow, contact_id: contactId }).select('id').single();
+  }
   if (conversation.error || !conversation.data) throw new Error(`Não foi possível iniciar a conversa: ${conversation.error?.message ?? 'sem retorno'}`);
   const conversationId = (conversation.data as { id: string }).id;
 

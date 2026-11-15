@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_WEBCHAT_SETTINGS, normalizeWebchatSettings, queueLabel, webchatState } from './webchat-config';
+import { checkVisitorIdentity, DEFAULT_WEBCHAT_SETTINGS, normalizeVisitorPhone, normalizeWebchatSettings, queueLabel, webchatState } from './webchat-config';
 
 describe('configuração dos botões do webchat', () => {
   it('sem nada salvo, usa os padrões', () => {
@@ -64,5 +64,38 @@ describe('estado do atendimento para o visitante', () => {
     expect(queueLabel(1)).toBe('Você é o próximo a ser atendido');
     expect(queueLabel(3)).toBe('Você é o 3º na fila');
     expect(queueLabel(null)).toBe('Você está na fila de atendimento');
+  });
+});
+
+describe('formulário de identificação do chat', () => {
+  const form = DEFAULT_WEBCHAT_SETTINGS.form;
+
+  it('padrão: nome e WhatsApp obrigatórios, e-mail opcional', () => {
+    expect(form).toMatchObject({ enabled: true, phone: 'required', email: 'optional' });
+    expect(checkVisitorIdentity({ name: '  Isabelly   Oliveira ', phone: '(85) 99637-0627' }, form))
+      .toEqual({ ok: true, identity: { name: 'Isabelly Oliveira', phone: '+5585996370627', email: null } });
+  });
+
+  it('valida nome, telefone e e-mail', () => {
+    expect(checkVisitorIdentity({ name: 'A', phone: '85996370627' }, form)).toEqual({ ok: false, error: 'Informe seu nome.' });
+    expect(checkVisitorIdentity({ name: 'Ana', phone: '' }, form)).toEqual({ ok: false, error: 'Informe seu WhatsApp com DDD.' });
+    expect(checkVisitorIdentity({ name: 'Ana', phone: '1234' }, form).ok).toBe(false);
+    expect(checkVisitorIdentity({ name: 'Ana', phone: '85996370627', email: 'ana@' }, form)).toEqual({ ok: false, error: 'E-mail inválido.' });
+    expect(checkVisitorIdentity({ name: 'Ana', phone: '85996370627', email: 'Ana@Loja.com.br' }, form))
+      .toEqual({ ok: true, identity: { name: 'Ana', phone: '+5585996370627', email: 'ana@loja.com.br' } });
+  });
+
+  it('respeita o que a empresa escolheu pedir', () => {
+    const onlyName = normalizeWebchatSettings({ form: { phone: 'hidden', email: 'hidden' } }).form;
+    expect(checkVisitorIdentity({ name: 'Ana', phone: 'lixo', email: 'lixo' }, onlyName)).toEqual({ ok: true, identity: { name: 'Ana', phone: null, email: null } });
+    const emailRequired = normalizeWebchatSettings({ form: { phone: 'optional', email: 'required' } }).form;
+    expect(checkVisitorIdentity({ name: 'Ana' }, emailRequired)).toEqual({ ok: false, error: 'Informe seu e-mail.' });
+    expect(normalizeWebchatSettings({ form: { phone: 'qualquer' } }).form.phone).toBe('required');
+  });
+
+  it('telefone com DDI', () => {
+    expect(normalizeVisitorPhone('+55 (85) 99637-0627')).toBe('+5585996370627');
+    expect(normalizeVisitorPhone('8533334444')).toBe('+558533334444');
+    expect(normalizeVisitorPhone('99999')).toBeNull();
   });
 });
