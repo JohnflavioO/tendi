@@ -23,6 +23,9 @@ export type MetaProcessResult = {
 };
 type MetaConversation = { id: string; unread_count: number; ai_mode: string | null };
 
+/** O que fica no lugar de uma mensagem que o cliente apagou. */
+export const DELETED_MESSAGE_TEXT = '[Mensagem apagada pelo cliente]';
+
 async function findMetaConnection(db: Db, channel: MetaChannel, pageId: string) {
   const { data } = await db.from('channel_connections').select('id,organization_id,display_name').eq('channel', channel).eq('provider_account_id', pageId).eq('status', 'connected').order('created_at', { ascending: false }).limit(1).maybeSingle();
   return data as { id: string; organization_id: string; display_name: string } | null;
@@ -65,7 +68,16 @@ export async function processMetaEvent(db: Db, channel: MetaChannel, event: Meta
   const connection = await findMetaConnection(db, channel, event.pageId);
   if (!connection) return { handled: false, reason: 'connection_not_found' };
 
-  const already = await db.from('messages').select('id').eq('provider', channel).eq('provider_message_id', event.mid).limit(1).maybeSingle();
+  // Cliente apagou a mensagem no Instagram/Messenger: some o conteúdo no Inbox, fica só o aviso.
+  if (event.kind === 'deleted') {
+    await db.from('messages').update({
+      body: DELETED_MESSAGE_TEXT,
+      payload: { source: channel, deleted_by_customer: true, deleted_at: event.timestamp },
+    }).eq('organization_id', connection.organization_id).eq('provider', channel).eq('provider_message_id', event.mid);
+    return { handled: true, reason: 'unsent' };
+  }
+
+  const already =await db.from('messages').select('id').eq('provider', channel).eq('provider_message_id', event.mid).limit(1).maybeSingle();
   if (already.data) return { handled: true, reason: 'duplicate' };
 
   const contactId = await ensureMetaContact(db, connection.organization_id, channel, event.senderId);
