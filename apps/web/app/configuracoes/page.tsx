@@ -15,7 +15,7 @@ import { canAccess, ROLE_INFO } from '@/lib/team';
 import { planStatus, type PlanStatus } from '@/lib/plan-status';
 
 type Team = { id: string; name: string; description: string | null; color: string; is_active: boolean };
-type Org = { id: string; name: string; slug: string; plan_code: string | null; status: string; trial_ends_at: string | null };
+type Org = { id: string; name: string; slug: string; plan_code: string | null; status: string; trial_ends_at: string | null; complimentary_since?: string | null; complimentary_until?: string | null };
 
 const TONE: Record<PlanStatus['tone'], string> = {
   ok: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
@@ -41,7 +41,7 @@ export default function SettingsPage() {
   async function load() {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return;
-    const { organization: o } = await resolveCurrentOrganization<Org>(supabase, u.user.id, 'id,name,slug,plan_code,status,trial_ends_at', requestedOrganizationId());
+    const { organization: o } = await resolveCurrentOrganization<Org>(supabase, u.user.id, 'id,name,slug,plan_code,status,trial_ends_at,complimentary_since,complimentary_until', requestedOrganizationId());
     if (!o) { setLoading(false); return; }
     setOrg(o); setName(o.name ?? '');
     const [plan, sub, t] = await Promise.all([
@@ -75,7 +75,7 @@ export default function SettingsPage() {
     setSaving(false);
   }
 
-  const status = org ? planStatus({ status: org.status, trialEndsAt: org.trial_ends_at, subscriptionStatus: subscription?.status, billingPeriod: subscription?.billing_period }) : null;
+  const status = org ? planStatus({ status: org.status, trialEndsAt: org.trial_ends_at, subscriptionStatus: subscription?.status, billingPeriod: subscription?.billing_period, complimentarySince: org.complimentary_since, complimentaryUntil: org.complimentary_until }) : null;
   const card = 'td-card p-5';
 
   return <WorkspaceShell title="Configurações" description="Sua conta, dados da empresa, setores e preferências">

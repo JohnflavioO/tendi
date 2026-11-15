@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PagarmeRequest } from './pagarme';
 import type { BillingPeriod } from './billing-format';
+import { hasComplimentary, isComplimentaryActive, type ComplimentaryOrganization } from './complimentary';
 
 /**
  * Assinaturas do TendiDesk pela Pagar.me.
@@ -218,7 +219,8 @@ export async function syncSubscription(db: Db, api: PagarmeRequest, subscription
     ?? (await findOrganizationByEmail(db, snapshot.customerEmail));
   if (!organizationId) return { organizationId: null, status: null, reason: 'subscription_without_organization' };
 
-  const org = await db.from('organizations').select('id,status').eq('id', organizationId).maybeSingle();
+  // '*' traz as colunas da cortesia sem depender de a migração já estar aplicada.
+  const org = await db.from('organizations').select('*').eq('id', organizationId).maybeSingle();
   if (!org.data) return { organizationId, status: null, reason: 'organization_not_found' };
 
   const current = await db.from('billing_subscriptions').select('*').eq('organization_id', organizationId).maybeSingle();
@@ -263,9 +265,19 @@ export async function syncSubscription(db: Db, api: PagarmeRequest, subscription
   const saved = await db.from('billing_subscriptions').upsert(row, { onConflict: 'organization_id' });
   if (saved.error) throw new Error(`billing_subscriptions.upsert: ${saved.error.message}`);
 
+  // Conta cortesia: um cancelamento não tira o acesso que o Super Admin liberou.
+  // Assinatura ativa encerra a cortesia: a empresa passou a pagar.
+  const complimentary = isComplimentaryActive(org.data as ComplimentaryOrganization, now);
+  if (status === 'canceled' && complimentary) return { organizationId, status, reason: 'complimentary_kept' };
   const orgPatch = status === 'canceled'
     ? { status: 'suspended' }
-    : { status: 'active', ...(planCode ? { plan_code: planCode } : {}) };
+    : {
+      status: 'active',
+      ...(planCode ? { plan_code: planCode } : {}),
+      ...(status === 'active' && hasComplimentary(org.data as ComplimentaryOrganization)
+        ? { complimentary_since: null, complimentary_until: null, complimentary_reason: null, complimentary_by: null }
+        : {}),
+    };
   const updated = await db.from('organizations').update(orgPatch).eq('id', organizationId);
   if (updated.error) throw new Error(`organizations.update: ${updated.error.message}`);
 

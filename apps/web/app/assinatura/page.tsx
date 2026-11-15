@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Bot, Check, CheckCircle2, Clock3, CreditCard, Loader2, Lock, ShieldCheck, Users } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Bot, Check, CheckCircle2, Clock3, CreditCard, Gift, Loader2, Lock, ShieldCheck, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { isOrganizationBlocked, trialDaysLabel, trialDaysLeft } from '@/lib/trial';
+import { complimentaryDaysLeft, isComplimentaryActive, isComplimentaryExpired } from '@/lib/complimentary';
 import { annualDiscountPercent, type BillingPeriod } from '@/lib/billing-format';
 
-type Org = { id: string; name: string; status: string; plan_code: string | null; trial_ends_at: string | null };
+type Org = { id: string; name: string; status: string; plan_code: string | null; trial_ends_at: string | null; complimentary_since?: string | null; complimentary_until?: string | null };
 type Plan = { code: string; name: string; description: string; max_attendants: number; max_teams: number | null; ai_enabled: boolean; monthly_price: number | null; pagarme_plan_id: string | null; annual_price: number | null; pagarme_annual_plan_id: string | null };
 type Subscription = { status: 'active' | 'past_due' | 'canceled'; plan_code: string | null; billing_period: 'monthly' | 'annual' | null; next_billing_at: string | null; current_period_end: string | null; card_brand: string | null; card_last_digits: string | null };
 
@@ -29,7 +30,7 @@ export default function SubscriptionPage() {
     const supabase = createClient() as any;
     const [{ data: sub }, { data: org }] = await Promise.all([
       supabase.from('billing_subscriptions').select('status,plan_code,billing_period,next_billing_at,current_period_end,card_brand,card_last_digits').eq('organization_id', organizationId).maybeSingle(),
-      supabase.from('organizations').select('id,name,status,plan_code,trial_ends_at').eq('id', organizationId).maybeSingle(),
+      supabase.from('organizations').select('id,name,status,plan_code,trial_ends_at,complimentary_since,complimentary_until').eq('id', organizationId).maybeSingle(),
     ]);
     setSubscription((sub ?? null) as Subscription | null);
     if (org) setOrgs(current => current.map(item => (item.id === org.id ? org : item)));
@@ -42,7 +43,7 @@ export default function SubscriptionPage() {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) { window.location.assign('/login'); return; }
       const [{ data: orgList }, { data: planList }] = await Promise.all([
-        supabase.from('organizations').select('id,name,status,plan_code,trial_ends_at').order('name'),
+        supabase.from('organizations').select('id,name,status,plan_code,trial_ends_at,complimentary_since,complimentary_until').order('name'),
         supabase.from('subscription_plans').select('code,name,description,max_attendants,max_teams,ai_enabled,monthly_price,pagarme_plan_id,annual_price,pagarme_annual_plan_id').eq('is_active', true).order('display_order'),
       ]);
       const list = (orgList ?? []) as Org[];
@@ -85,6 +86,8 @@ export default function SubscriptionPage() {
   const org = orgs.find(item => item.id === orgId) ?? null;
   const blocked = org ? isOrganizationBlocked(org) : false;
   const daysLeft = org ? trialDaysLeft(org) : null;
+  const complimentary = org ? isComplimentaryActive(org) : false;
+  const complimentaryDays = complimentary ? complimentaryDaysLeft(org) : null;
   const hasSubscription = Boolean(subscription && subscription.status !== 'canceled');
   const currentPlan = plans.find(plan => plan.code === subscription?.plan_code);
   // O seletor Mensal/Anual só aparece quando algum plano tem a versão anual vinculada.
@@ -109,8 +112,9 @@ export default function SubscriptionPage() {
 
       {confirming && !hasSubscription && <div role="status" className="mt-6 flex items-center gap-3 rounded-2xl border border-tendi-indigo/10 bg-white p-5 shadow-card"><Loader2 className="animate-spin text-tendi-teal" size={22} /><div><p className="font-semibold text-tendi-navy">Confirmando seu pagamento…</p><p className="text-sm text-slate-500">A Pagar.me avisa o TendiDesk em alguns segundos. Pode deixar esta página aberta.</p></div></div>}
 
-      {!hasSubscription && !confirming && blocked && <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5"><Lock className="mt-0.5 shrink-0 text-amber-600" size={20} /><div><p className="font-semibold text-amber-900">{org?.status === 'suspended' ? 'O acesso deste workspace está pausado' : 'Seu teste gratuito terminou'}</p><p className="mt-1 text-sm text-amber-800">Suas conversas, contatos e configurações continuam guardados. Assine um plano para voltar a usar o TendiDesk na hora.</p></div></div>}
-      {!hasSubscription && !blocked && daysLeft !== null && <div className="mt-6 flex items-center gap-3 td-card p-5"><Clock3 className="text-amber-600" size={20} /><p className="text-sm text-slate-600">{daysLeft === 0 ? 'Seu teste termina hoje.' : `Faltam ${trialDaysLabel(daysLeft)} de teste gratuito.`} Assine agora e não perca o acesso.</p></div>}
+      {!hasSubscription && !confirming && blocked && <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5"><Lock className="mt-0.5 shrink-0 text-amber-600" size={20} /><div><p className="font-semibold text-amber-900">{org?.status === 'suspended' ? 'O acesso deste workspace está pausado' : isComplimentaryExpired(org) ? 'Sua conta cortesia terminou' : 'Seu teste gratuito terminou'}</p><p className="mt-1 text-sm text-amber-800">Suas conversas, contatos e configurações continuam guardados. Assine um plano para voltar a usar o TendiDesk na hora.</p></div></div>}
+      {!hasSubscription && complimentary && <div className="mt-6 flex items-start gap-3 rounded-2xl border border-[#E9D5F5] bg-[#FBF5FE] p-5"><Gift className="mt-0.5 shrink-0 text-tendi-magenta" size={20} /><div><p className="font-semibold text-tendi-navy">Conta cortesia</p><p className="mt-1 text-sm text-slate-600">A equipe TendiDesk liberou este workspace sem cobrança{complimentaryDays === null ? '.' : complimentaryDays === 0 ? ', até hoje.' : `, por mais ${complimentaryDays} ${complimentaryDays === 1 ? 'dia' : 'dias'}.`} Você não precisa assinar agora.</p></div></div>}
+      {!hasSubscription && !complimentary && !blocked && daysLeft !== null && <div className="mt-6 flex items-center gap-3 td-card p-5"><Clock3 className="text-amber-600" size={20} /><p className="text-sm text-slate-600">{daysLeft === 0 ? 'Seu teste termina hoje.' : `Faltam ${trialDaysLabel(daysLeft)} de teste gratuito.`} Assine agora e não perca o acesso.</p></div>}
 
       {hasSubscription && subscription && <section className="mt-6 td-card p-6">
         <div className="flex flex-wrap items-center gap-3">

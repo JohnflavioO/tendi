@@ -4,26 +4,26 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, ArrowRight, ArrowUpRight, Building2, Check, CheckCircle2, CircleDollarSign, Clock3,
-  CreditCard, Loader2, MessageSquare, Plus, Search, ShieldCheck, Bot, TrendingUp, Users, X,
+  CreditCard, Gift, Loader2, MessageSquare, Plus, Search, ShieldCheck, Bot, TrendingUp, Users, X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { AdminShell } from '@/components/admin/admin-shell';
 import { monthStartIso, normalizePricing } from '@/lib/ai-limits';
-import { trialDaysLeft, isTrialExpired } from '@/lib/trial';
+import { ATTENTION_SITUATIONS, monthlyRevenue, organizationSituation, type Situation } from '@/lib/company-control';
 
-type Organization = { id: string; name: string; slug: string; status: string; plan_code: string | null; created_at: string; trial_ends_at: string | null };
+type Organization = { id: string; name: string; slug: string; status: string; plan_code: string | null; created_at: string; trial_ends_at: string | null; complimentary_since: string | null; complimentary_until: string | null };
 type Plan = { code: string; name: string; monthly_price: number | null; annual_price: number | null; pagarme_plan_id: string | null };
 type Subscription = { organization_id: string; status: 'active' | 'past_due' | 'canceled'; plan_code: string | null; billing_period: 'monthly' | 'annual' | null };
 type Usage = { organization_id: string; replies: number; cost_usd: number };
 type BillingEvent = { id: string; type: string; organization_id: string | null; received_at: string };
 type Setup = { payments: boolean | null; plans: boolean; ai: boolean | null };
 
-type Situation = { key: 'paying' | 'past_due' | 'trial' | 'expired' | 'suspended' | 'no_subscription'; label: string; tone: string };
 const FILTERS = [
   { key: 'all', label: 'Todas' },
   { key: 'paying', label: 'Pagantes' },
   { key: 'trial', label: 'Em teste' },
   { key: 'attention', label: 'Atenção' },
+  { key: 'complimentary', label: 'Cortesia' },
   { key: 'no_subscription', label: 'Sem assinatura' },
 ] as const;
 type FilterKey = (typeof FILTERS)[number]['key'];
@@ -39,18 +39,6 @@ const EVENT_LABEL: Record<string, string> = {
   'charge.payment_failed': 'pagamento recusado',
   'invoice.payment_failed': 'fatura não paga',
 };
-
-function situationOf(org: Organization, sub: Subscription | undefined): Situation {
-  if (org.status === 'suspended') return { key: 'suspended', label: 'Suspensa', tone: 'bg-slate-100 text-slate-600 ring-slate-200' };
-  if (sub?.status === 'past_due') return { key: 'past_due', label: 'Pagamento pendente', tone: 'bg-amber-50 text-amber-700 ring-amber-200' };
-  if (sub?.status === 'active') return { key: 'paying', label: 'Pagante', tone: 'bg-emerald-50 text-emerald-700 ring-emerald-200' };
-  if (org.status === 'trial') {
-    if (isTrialExpired(org)) return { key: 'expired', label: 'Teste vencido', tone: 'bg-rose-50 text-rose-700 ring-rose-200' };
-    const days = trialDaysLeft(org);
-    return { key: 'trial', label: days === null ? 'Em teste' : `Teste · ${days} ${days === 1 ? 'dia' : 'dias'}`, tone: 'bg-sky-50 text-sky-700 ring-sky-200' };
-  }
-  return { key: 'no_subscription', label: 'Ativa sem assinatura', tone: 'bg-violet-50 text-violet-700 ring-violet-200' };
-}
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
@@ -80,7 +68,7 @@ export default function AdminPage() {
     setFirstName(String(auth.user.user_metadata?.full_name ?? auth.user.email ?? '').split(/[\s@]/)[0] ?? '');
 
     const [orgRes, planRes, subRes, usageRes, memberRes, eventRes, totalsRes, pricingRes, billingStatus, aiStatus] = await Promise.all([
-      supabase.from('organizations').select('id,name,slug,status,plan_code,created_at,trial_ends_at').order('created_at', { ascending: false }),
+      supabase.from('organizations').select('id,name,slug,status,plan_code,created_at,trial_ends_at,complimentary_since,complimentary_until').order('created_at', { ascending: false }),
       supabase.from('subscription_plans').select('code,name,monthly_price,annual_price,pagarme_plan_id').order('display_order'),
       supabase.from('billing_subscriptions').select('organization_id,status,plan_code,billing_period'),
       supabase.rpc('ai_usage_by_organization', { p_since: monthStartIso() }),
@@ -122,10 +110,8 @@ export default function AdminPage() {
   const rows = useMemo(() => customers.map(org => {
     const sub = subs.find(item => item.organization_id === org.id);
     const plan = planOf(sub?.plan_code ?? org.plan_code);
-    const situation = situationOf(org, sub);
-    const monthly = sub && sub.status !== 'canceled' && plan
-      ? (sub.billing_period === 'annual' ? Number(plan.annual_price ?? 0) / 12 : Number(plan.monthly_price ?? 0))
-      : 0;
+    const situation: Situation = organizationSituation(org, sub);
+    const monthly = monthlyRevenue(situation, sub, plan);
     const used = usage.find(item => item.organization_id === org.id);
     return { org, sub, plan, situation, monthly, aiReplies: used?.replies ?? 0, aiCost: (used?.cost_usd ?? 0) * usdBrl, members: members[org.id] ?? 0 };
   }), [customers, subs, planOf, usage, members, usdBrl]);
@@ -133,7 +119,8 @@ export default function AdminPage() {
   const mrr = rows.reduce((sum, row) => sum + row.monthly, 0);
   const paying = rows.filter(row => row.situation.key === 'paying' || row.situation.key === 'past_due').length;
   const trials = rows.filter(row => row.situation.key === 'trial').length;
-  const attention = rows.filter(row => ['past_due', 'expired', 'suspended'].includes(row.situation.key)).length;
+  const attention = rows.filter(row => ATTENTION_SITUATIONS.includes(row.situation.key)).length;
+  const complimentary = rows.filter(row => row.situation.key === 'complimentary').length;
   const aiCost = rows.reduce((sum, row) => sum + row.aiCost, 0);
   const conversion = paying + trials + rows.filter(row => row.situation.key === 'expired').length;
 
@@ -143,7 +130,8 @@ export default function AdminPage() {
     const byFilter = filter === 'all'
       || (filter === 'paying' && row.situation.key === 'paying')
       || (filter === 'trial' && row.situation.key === 'trial')
-      || (filter === 'attention' && ['past_due', 'expired', 'suspended'].includes(row.situation.key))
+      || (filter === 'attention' && ATTENTION_SITUATIONS.includes(row.situation.key))
+      || (filter === 'complimentary' && row.situation.key === 'complimentary')
       || (filter === 'no_subscription' && row.situation.key === 'no_subscription');
     return matches && byFilter;
   });
@@ -191,7 +179,7 @@ export default function AdminPage() {
     </section>
 
     <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <Kpi icon={Building2} label="Clientes" value={String(customers.length)} detail={`${paying} pagantes · ${trials} em teste`} accent="text-tendi-indigo bg-tendi-mist" />
+      <Kpi icon={Building2} label="Clientes" value={String(customers.length)} detail={`${paying} pagantes · ${trials} em teste${complimentary ? ` · ${complimentary} cortesia` : ''}`} accent="text-tendi-indigo bg-tendi-mist" />
       <Kpi icon={AlertTriangle} label="Pedem atenção" value={String(attention)} detail="Pagamento pendente, teste vencido ou suspensas" accent={attention ? 'text-amber-700 bg-amber-50' : 'text-slate-400 bg-slate-50'} onClick={attention ? () => setFilter('attention') : undefined} />
       <Kpi icon={Bot} label="Custo de IA no mês" value={brl(aiCost)} detail={mrr ? `${((aiCost / mrr) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% da receita mensal` : 'Sem receita para comparar'} accent="text-tendi-magenta bg-[#FDF0FA]" href="/admin/ia/consumo" />
       <Kpi icon={MessageSquare} label="Conversas" value={counts.conversations.toLocaleString('pt-BR')} detail={`${counts.contacts.toLocaleString('pt-BR')} contatos atendidos`} accent="text-tendi-teal bg-tendi-tealsoft" />
@@ -204,14 +192,14 @@ export default function AdminPage() {
           <label className="flex items-center gap-2 rounded-xl border border-tendi-line bg-slate-50/60 px-3 py-2 text-sm focus-within:border-tendi-lilac focus-within:bg-white"><Search size={15} className="text-slate-400" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar empresa" className="w-40 bg-transparent outline-none placeholder:text-slate-400" /></label>
         </div>
         <div className="flex gap-1 overflow-x-auto border-b border-tendi-line/70 px-4 py-2">{FILTERS.map(item => {
-          const count = item.key === 'all' ? rows.length : rows.filter(row => item.key === 'attention' ? ['past_due', 'expired', 'suspended'].includes(row.situation.key) : row.situation.key === item.key).length;
+          const count = item.key === 'all' ? rows.length : rows.filter(row => item.key === 'attention' ? ATTENTION_SITUATIONS.includes(row.situation.key) : row.situation.key === item.key).length;
           return <button key={item.key} type="button" onClick={() => setFilter(item.key)} className={filter === item.key ? 'whitespace-nowrap rounded-lg bg-tendi-navy px-3 py-1.5 text-xs font-semibold text-white' : 'whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100'}>{item.label}<span className={filter === item.key ? 'ml-1.5 text-white/60' : 'ml-1.5 text-slate-400'}>{count}</span></button>;
         })}</div>
         {filtered.length ? <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-slate-50/60 text-[11px] font-medium uppercase tracking-wide text-slate-400"><tr><th className="px-5 py-2.5 font-medium">Empresa</th><th className="py-2.5 font-medium">Plano</th><th className="py-2.5 font-medium">Situação</th><th className="py-2.5 font-medium">Equipe</th><th className="py-2.5 font-medium">IA no mês</th><th className="py-2.5 pr-5 text-right font-medium">Ações</th></tr></thead>
           <tbody className="divide-y divide-tendi-line/70">{filtered.map(row => <tr key={row.org.id} className="group transition hover:bg-tendi-haze/70">
             <td className="px-5 py-3"><div className="flex items-center gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#ECECFA] to-[#FBEAF6] text-[11px] font-bold text-tendi-indigo">{initials(row.org.name)}</span><div className="min-w-0"><p className="truncate font-medium text-slate-800">{row.org.name}</p><p className="text-xs text-slate-400">desde {shortDate(row.org.created_at)}</p></div></div></td>
-            <td className="py-3"><p className="text-slate-700">{row.plan?.name ?? '—'}</p><p className="text-xs text-slate-400">{row.monthly ? `${brl(row.monthly)}/mês${row.sub?.billing_period === 'annual' ? ' · anual' : ''}` : '—'}</p></td>
+            <td className="py-3"><p className="text-slate-700">{row.plan?.name ?? '—'}</p><p className="text-xs text-slate-400">{row.situation.key === 'complimentary' ? 'sem cobrança' : row.monthly ? `${brl(row.monthly)}/mês${row.sub?.billing_period === 'annual' ? ' · anual' : ''}` : '—'}</p></td>
             <td className="py-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ${row.situation.tone}`}>{row.situation.label}</span></td>
             <td className="py-3 text-slate-600"><span className="inline-flex items-center gap-1.5"><Users size={14} className="text-slate-400" />{row.members}</span></td>
             <td className="py-3 text-slate-600">{row.aiReplies ? <><p>{row.aiReplies.toLocaleString('pt-BR')} respostas</p><p className="text-xs text-slate-400">{brl(row.aiCost)}</p></> : <span className="text-slate-300">—</span>}</td>
@@ -237,7 +225,8 @@ export default function AdminPage() {
             { label: 'Em teste', value: trials, color: 'bg-sky-500', icon: Clock3 },
             { label: 'Pagantes', value: paying, color: 'bg-emerald-500', icon: CircleDollarSign },
             { label: 'Pedem atenção', value: attention, color: 'bg-amber-500', icon: AlertTriangle },
-          ].map(item => { const Icon = item.icon; const max = Math.max(1, trials, paying, attention); return <div key={item.label}>
+            ...(complimentary ? [{ label: 'Cortesia', value: complimentary, color: 'bg-tendi-magenta', icon: Gift }] : []),
+          ].map(item => { const Icon = item.icon; const max = Math.max(1, trials, paying, attention, complimentary); return <div key={item.label}>
             <div className="flex items-center justify-between text-xs"><span className="flex items-center gap-2 text-slate-600"><Icon size={14} className="text-slate-400" />{item.label}</span><span className="font-semibold text-slate-800">{item.value}</span></div>
             <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.color}`} style={{ width: `${(item.value / max) * 100}%` }} /></div>
           </div>; })}</div>

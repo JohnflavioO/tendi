@@ -1,5 +1,6 @@
 // Regras do período de teste gratuito. Funções puras, usadas pelo middleware,
 // pelo aviso no app e pelos textos públicos.
+import { isComplimentaryExpired } from './complimentary';
 
 export const DEFAULT_TRIAL_DAYS = 7;
 
@@ -8,6 +9,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export type TrialOrganization = {
   status?: string | null;
   trial_ends_at?: string | null;
+  /** Conta cortesia (ver lib/complimentary.ts). Com prazo vencido, a empresa fica sem acesso. */
+  complimentary_since?: string | null;
+  complimentary_until?: string | null;
 };
 
 /** Normaliza o prazo vindo do banco; qualquer valor inválido cai no padrão. */
@@ -46,10 +50,13 @@ export function shouldBlockForExpiredTrial(organizations: TrialOrganization[], n
   return organizations.length > 0 && organizations.every(organization => isTrialExpired(organization, now));
 }
 
-/** Empresa sem acesso: teste vencido ou suspensa (assinatura cancelada ou não paga). */
+/** Empresa sem acesso: teste vencido, cortesia vencida ou suspensa (assinatura cancelada ou não paga). */
 export function isOrganizationBlocked(organization: TrialOrganization, now: Date = new Date()): boolean {
-  return organization.status === 'suspended' || isTrialExpired(organization, now);
+  return organization.status === 'suspended' || isTrialExpired(organization, now) || isComplimentaryExpired(organization, now);
 }
+
+/** Colunas de organizations que o bloqueio de acesso precisa ler. */
+export const ACCESS_COLUMNS = 'status,trial_ends_at,complimentary_since,complimentary_until';
 
 /**
  * Bloqueia quando o usuário enxerga ao menos uma empresa e todas estão sem acesso
