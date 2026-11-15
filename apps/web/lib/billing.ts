@@ -180,7 +180,8 @@ export function readSubscription(sub: Json): SubscriptionSnapshot {
     startAt: str(sub.start_at),
     fromPlanChange: isRecord(sub.metadata) && str(sub.metadata.tendi_plan_change) === 'true',
     currentPeriodEnd: str(cycle.end_at),
-    nextBillingAt: str(sub.next_billing_at),
+    // Assinatura "future" (troca agendada) vem sem next_billing_at: a primeira cobrança é no start_at.
+    nextBillingAt: str(sub.next_billing_at) ?? (sub.status === 'future' ? str(sub.start_at) : null),
     cardBrand: str(card.brand),
     cardLastDigits: last && /^\d{4}$/.test(last) ? last : null,
     canceledAt: str(sub.canceled_at),
@@ -316,7 +317,7 @@ export function buildPlanChangePayload(input: {
     plan_id: input.pagarmePlanId,
     payment_method: 'credit_card',
     customer_id: input.customerId,
-    card: { card_id: input.cardId },
+    card_id: input.cardId,
     start_at: input.startAt,
     installments: 1,
     statement_descriptor: 'TENDI',

@@ -16,7 +16,9 @@ export class PagarmeError extends Error {
 export const isTestKey = (key: string) => key.startsWith('sk_test_');
 
 export function pagarmeBaseUrl(key: string): string {
-  return isTestKey(key) ? 'https://sdx-api.pagar.me/core/v5' : 'https://api.pagar.me/core/v5';
+  // Teste e produção usam o mesmo endereço: a chave (sk_test_ ou sk_) escolhe o ambiente. O antigo sdx-api responde 404.
+  void key;
+  return 'https://api.pagar.me/core/v5';
 }
 
 /** Validação leve do formato da chave secreta (pega colagem errada da chave pública). */

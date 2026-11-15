@@ -162,6 +162,8 @@ describe('funções de cobrança', () => {
   it('readSubscription ignora customer.code que não é id de empresa', () => {
     expect(readSubscription(subscription({ customer: { code: 'abc' } })).organizationId).toBeNull();
     expect(readSubscription(subscription()).organizationId).toBe(ORG);
+    // Assinatura agendada (future) vem sem next_billing_at: usa o start_at.
+    expect(readSubscription(subscription({ status: 'future', next_billing_at: undefined, start_at: '2026-12-15T00:00:00Z' })).nextBillingAt).toBe('2026-12-15T00:00:00Z');
   });
 
   it('payload do checkout: assinatura no cartão, vinculada à empresa e com retorno ao TendiDesk', () => {
@@ -184,7 +186,7 @@ describe('funções de cobrança', () => {
   it('chave secreta e ambiente', () => {
     expect(validateSecretKey('pk_abcdefghijklmnop')).toMatch(/pública/);
     expect(validateSecretKey('sk_test_abcdefghijklmnop')).toBeNull();
-    expect(pagarmeBaseUrl('sk_test_x')).toContain('sdx-api');
+    expect(pagarmeBaseUrl('sk_test_x')).toBe('https://api.pagar.me/core/v5');
     expect(pagarmeBaseUrl('sk_live')).toBe('https://api.pagar.me/core/v5');
   });
 });
@@ -302,7 +304,7 @@ describe('troca de plano', () => {
     const result = await changeSubscriptionPlan(db as any, api as any, { organizationId: ORG, planCode: 'tendi_pro' }, NOW);
     expect(result).toMatchObject({ ok: true, direction: 'upgrade', subscriptionId: 'sub_new1', startsAt: '2026-12-12T00:00:00Z', price: 289 });
     expect(api).toHaveBeenCalledWith('/subscriptions', expect.objectContaining({ method: 'POST', body: expect.objectContaining({
-      plan_id: 'plan_pro', customer_id: 'cus_1', card: { card_id: 'card_1' }, start_at: '2026-12-12T00:00:00Z', payment_method: 'credit_card',
+      plan_id: 'plan_pro', customer_id: 'cus_1', card_id: 'card_1', start_at: '2026-12-12T00:00:00Z', payment_method: 'credit_card',
       metadata: expect.objectContaining({ tendi_plan_change: 'true', tendi_plan_code: 'tendi_pro' }),
     }) }));
     expect(subs.sub_abc!.status).toBe('canceled');
