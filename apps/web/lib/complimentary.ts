@@ -141,3 +141,23 @@ export function revokeComplimentaryPatch(input: { trialEndsAt: string | null; ha
 
 /** Assinatura que ainda cobra na Pagar.me: com ela, a cortesia não pode ser liberada (cobraria em dobro). */
 export const isChargingSubscription = (status: string | null | undefined): boolean => status === 'active' || status === 'past_due';
+
+// ---------- Selo do plano no menu do workspace ----------
+
+const PLAN_SHORT_NAME: Record<string, string> = { tendi_start: 'Start', tendi_pro: 'Pro' };
+
+export type PlanBadge = { label: string; tone: 'pro' | 'start' };
+
+/**
+ * Selo ao lado da logo: "Pro", "Start", "Pro · teste", "Pro · cortesia".
+ * null quando a empresa não tem um plano conhecido.
+ */
+export function planBadge(
+  org: { plan_code?: string | null; status?: string | null } & ComplimentaryOrganization | null | undefined,
+  now: Date = new Date(),
+): PlanBadge | null {
+  const name = org?.plan_code ? PLAN_SHORT_NAME[org.plan_code] : undefined;
+  if (!name) return null;
+  const suffix = isComplimentaryActive(org, now) ? ' · cortesia' : org?.status === 'trial' ? ' · teste' : '';
+  return { label: `${name}${suffix}`, tone: org?.plan_code === 'tendi_pro' ? 'pro' : 'start' };
+}

@@ -14,6 +14,7 @@ import { WorkspaceSidebar } from '@/components/workspace-sidebar';
 import { FullPageNotice } from '@/components/ui';
 import { TOUR_EVENT } from '@/lib/onboarding';
 import { clearWorkspace, isFresh, peekWorkspace, readWorkspace, writeWorkspace, type WorkspaceOrg } from '@/lib/workspace-cache';
+import { planBadge } from '@/lib/complimentary';
 import { ACCESS_COLUMNS, isOrganizationBlocked, isTrialExemptPath } from '@/lib/trial';
 import { areaForPath, canAccessArea, type Area } from '@/lib/team';
 import {
@@ -70,7 +71,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
       const sameUser = cached?.userId === userId ? cached : null;
       if (cached && !sameUser) clearWorkspace();
       // A empresa pedida no endereço; senão, a primeira em que a pessoa trabalha (vínculo ou suporte liberado).
-      const current = await resolveCurrentOrganization<Org>(supabase, userId, `id,name,${ACCESS_COLUMNS}`, requested).catch(() => null);
+      const current = await resolveCurrentOrganization<Org>(supabase, userId, `id,name,plan_code,${ACCESS_COLUMNS}`, requested).catch(() => null);
       if (!active) return;
       if (current?.organization) setOrganization(current.organization);
       if (current?.accessible) setOrganizations(current.accessible.map(org => ({ id: org.id, name: org.name })));
@@ -132,6 +133,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
     homeHref={consoleOnly ? '/admin' : withOrganization('/inbox', organization.id)}
     organizationId={organization.id}
     organizationName={organization.name}
+    planBadge={planBadge(organization)}
     organizations={organizations}
     onSwitch={id => window.location.assign(withOrganization(pathname, id))}
     items={items}
