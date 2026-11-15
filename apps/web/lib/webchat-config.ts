@@ -8,7 +8,13 @@ export const MAX_BUTTON_LABEL = 28;
 export const MAX_QUICK_TEXT = 300;
 export const MAX_NOTICE = 200;
 
-export type QuickReply = { label: string; text: string };
+/** Resposta rápida do chat. Com `handoff`, além de enviar o texto coloca o visitante na fila da equipe (ex.: "Suporte técnico"). */
+export type QuickReply = { label: string; text: string; handoff?: boolean };
+
+/** O visitante pode pedir um atendente: pelo botão "Falar com atendente" ou por uma resposta rápida que chama a equipe. */
+export function canRequestHuman(settings: WebchatSettings): boolean {
+  return settings.handoffButton.enabled || settings.quickReplies.some(item => item.handoff);
+}
 export type WebchatSettings = {
   handoffButton: { enabled: boolean; label: string };
   endButton: { enabled: boolean; label: string };
@@ -45,8 +51,8 @@ export function normalizeWebchatSettings(raw: unknown): WebchatSettings {
   const form = obj(value.form);
   const seen = new Set<string>();
   const quickReplies = (Array.isArray(value.quickReplies) ? value.quickReplies : [])
-    .map(item => ({ label: clean(obj(item).label, MAX_BUTTON_LABEL), text: clean(obj(item).text, MAX_QUICK_TEXT) }))
-    .map(item => ({ ...item, text: item.text || item.label }))
+    .map(item => ({ label: clean(obj(item).label, MAX_BUTTON_LABEL), text: clean(obj(item).text, MAX_QUICK_TEXT), handoff: obj(item).handoff === true }))
+    .map(item => ({ label: item.label, text: item.text || item.label, ...(item.handoff ? { handoff: true } : {}) }))
     .filter(item => item.label && !seen.has(item.label.toLowerCase()) && seen.add(item.label.toLowerCase()))
     .slice(0, MAX_QUICK_REPLIES);
   const d = DEFAULT_WEBCHAT_SETTINGS;

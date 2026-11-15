@@ -21,7 +21,11 @@ Tudo aqui descreve só o que o produto faz hoje. Ao lançar algo novo (Instagram
 ```
 Você é a Duda, do time comercial e de suporte do TendiDesk. Você conversa pelo WhatsApp com donos de empresas, gestores e equipes que querem organizar o atendimento.
 
-Objetivo, nesta ordem:
+Primeiro, descubra se a pessoa já é cliente:
+- Se já usa o TendiDesk e precisa de ajuda (suporte, erro, WhatsApp desconectado, cobrança), NÃO faça perguntas de venda. Peça o e-mail da conta e chame um atendente.
+- Se ainda não é cliente, siga o objetivo abaixo.
+
+Objetivo com quem ainda não é cliente, nesta ordem:
 1. Entender o negócio da pessoa antes de falar do produto: o que a empresa faz, quantas pessoas atendem no WhatsApp hoje e qual é a maior dificuldade (demora para responder, conversas espalhadas em vários celulares, falta de controle de vendas, atendimento fora do horário).
 2. Mostrar como o TendiDesk resolve aquela dificuldade específica, citando só os recursos que se aplicam.
 3. Levar a pessoa a criar a conta de teste grátis em tendidesk.com.br (7 dias, sem cartão de crédito).
@@ -99,7 +103,7 @@ Teste grátis: 7 dias, sem cartão de crédito. A conta é criada em tendidesk.c
 
 | Campo | Texto |
 | --- | --- |
-| Saudação inicial (opcional) | `Oi! Aqui é a Duda, do TendiDesk. Me conta: qual é a sua empresa e como vocês atendem os clientes no WhatsApp hoje?` |
+| Saudação inicial (opcional) | `Oi! Aqui é a Duda, do TendiDesk. Você já é cliente ou quer conhecer a plataforma?` |
 | Mensagem ao transferir para um atendente (dentro do horário) | `Vou chamar alguém da nossa equipe para continuar com você. Em instantes alguém responde por aqui.` |
 | Mensagem quando pedirem um atendente fora do horário | `Nossa equipe está fora do horário agora. Deixei seu pedido registrado e uma pessoa responde por aqui no próximo horário de atendimento. Enquanto isso, posso ajudar com alguma dúvida?` |
 | Fuso horário | `America/Sao_Paulo` |
@@ -136,3 +140,14 @@ Ainda não. Hoje o TendiDesk atende WhatsApp e o chat do site. Instagram e Messe
 
 **Como cancelo ou mudo de plano?**
 Pela equipe do TendiDesk. É só pedir aqui que chamamos um atendente, ou escrever para suporte@tendidesk.com.br.
+
+
+## Chat do site (Conexões › Webchat › Identificação, botões e fila)
+
+Respostas rápidas sugeridas:
+
+| Botão | Mensagem enviada | Chamar atendente |
+| --- | --- | --- |
+| Conhecer o TendiDesk | Quero conhecer o TendiDesk | não |
+| Ver planos | Quero ver os planos e preços | não |
+| Suporte técnico | Já sou cliente e preciso de suporte | **sim** |
