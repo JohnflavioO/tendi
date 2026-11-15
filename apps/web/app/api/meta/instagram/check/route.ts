@@ -46,9 +46,10 @@ export async function POST(request: Request) {
 
   let pageId = '';
   try {
-    const page = await metaGet('/me', { access_token: token, fields: 'id,name' }) as { id?: string; name?: string };
+    // Só o id: o nome da Página exige pages_read_engagement, que o TendiDesk não pede.
+    const page = await metaGet('/me', { access_token: token, fields: 'id' }) as { id?: string };
     pageId = page.id ?? '';
-    steps.push({ label: 'Página do Facebook', ok: Boolean(pageId), detail: page.name ? `${page.name} (${pageId})` : pageId || 'Sem id' });
+    steps.push({ label: 'Página do Facebook', ok: Boolean(pageId), detail: pageId ? `id ${pageId}` : 'Sem id' });
   } catch (error) {
     steps.push({ label: 'Página do Facebook', ok: false, detail: errorText(error) });
   }
