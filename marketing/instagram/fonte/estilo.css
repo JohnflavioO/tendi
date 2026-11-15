@@ -133,3 +133,56 @@ h1 .ring { border: 6px solid var(--magenta); border-radius: 999px; padding: 0 22
 .form-row p { margin-top: 8px; font-size: 22px; color: var(--ink); line-height: 1.4; }
 
 .swipe { font-weight: 700; font-size: 26px; display: inline-flex; align-items: center; gap: 12px; }
+
+/* ---------- Webchat: navegador e janela do chat (igual ao widget) ---------- */
+.browser { border-radius: 26px; background: #fff; box-shadow: 0 30px 70px -24px rgba(28, 29, 71, .38); overflow: hidden; }
+.browser .top { display: flex; align-items: center; gap: 10px; padding: 16px 20px; background: #F1F2F8; border-bottom: 1px solid #E4E6F0; }
+.browser .top i { width: 13px; height: 13px; border-radius: 50%; background: #D8DAE6; }
+.browser .url { margin-left: 14px; flex: 1; height: 30px; border-radius: 10px; background: #fff; display: flex; align-items: center; padding: 0 14px; font-size: 16px; color: #8A8FB0; }
+.browser .page { position: relative; padding: 34px 36px; background: linear-gradient(135deg, #FBF7FD, #F3F4FA); }
+.skel { height: 16px; border-radius: 8px; background: #E5E7F1; }
+.skel + .skel { margin-top: 12px; }
+
+.wc { width: 400px; border-radius: 26px; overflow: hidden; background: #F6F7FB; box-shadow: 0 30px 70px -20px rgba(16, 18, 52, .45), 0 0 0 1px rgba(16, 18, 52, .06); font-family: 'Inter', sans-serif; }
+.wc .h { display: flex; align-items: center; gap: 14px; padding: 20px; color: #fff; background: radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,.18), transparent 55%), linear-gradient(140deg, #004751, #00303a); }
+.wc .av { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; font-weight: 800; font-size: 19px; background: rgba(255,255,255,.18); position: relative; }
+.wc .av::after { content: ''; position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; background: #22C55E; border: 2px solid #004751; }
+.wc .h b { display: block; font-size: 19px; }
+.wc .h span { font-size: 14px; opacity: .85; }
+.wc .body { padding: 18px 16px 10px; display: flex; flex-direction: column; gap: 10px; }
+.wc .who { font-size: 13px; font-weight: 600; color: #6B6F93; margin: 0 0 -4px 4px; }
+.wc .m { max-width: 86%; padding: 12px 16px; border-radius: 20px; font-size: 17px; line-height: 1.4; }
+.wc .m.them { align-self: flex-start; background: #fff; color: #1E2046; border-top-left-radius: 6px; box-shadow: 0 0 0 1px rgba(16,18,52,.05); }
+.wc .m.me { align-self: flex-end; background: linear-gradient(145deg, #004751, #00303a); color: #fff; border-top-right-radius: 6px; }
+.wc .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.wc .opt { border: 1.5px solid #004751; color: #004751; background: #fff; border-radius: 999px; padding: 8px 14px; font-size: 15px; font-weight: 600; }
+.wc .queue { margin: 4px 14px 10px; display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; background: linear-gradient(135deg, #FFF8EC, #FFF3DE); box-shadow: inset 0 0 0 1px #F6DDB0; color: #7A4B00; font-size: 14px; }
+.wc .queue b { display: block; font-size: 16px; color: #5C3800; }
+.wc .queue i { width: 12px; height: 12px; border-radius: 50%; background: #F59E0B; box-shadow: 0 0 0 6px rgba(245,158,11,.18); flex-shrink: 0; }
+.wc .acts { display: flex; gap: 8px; padding: 0 14px 12px; }
+.wc .act { border-radius: 999px; padding: 9px 14px; font-size: 15px; font-weight: 600; border: 1px solid #DCDFEC; background: #fff; color: #2F316B; white-space: nowrap; }
+.wc .act.hum { border-color: transparent; background: #004751; color: #fff; }
+.wc .foot { background: #fff; border-top: 1px solid #ECEEF5; padding: 12px 14px 8px; }
+.wc .box { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 16px; border-radius: 18px; background: #F4F5FA; box-shadow: inset 0 0 0 1px #E4E6F0; color: #9AA0BD; font-size: 16px; }
+.wc .send { width: 42px; height: 42px; border-radius: 14px; background: linear-gradient(145deg, #004751, #00303a); display: grid; place-items: center; color: #fff; font-size: 22px; }
+.wc .pw { text-align: center; font-size: 12px; color: #A3A7C2; padding-top: 7px; }
+.launch-mock { width: 76px; height: 76px; border-radius: 26px; display: grid; place-items: center; background: linear-gradient(145deg, #004751, #00303a); box-shadow: 0 16px 34px -10px rgba(16,18,52,.55); }
+
+.code { border-radius: 22px; background: #0B0D21; padding: 26px 28px; font-family: Consolas, 'Courier New', monospace; font-size: 21px; line-height: 1.5; color: #6EE7B7; box-shadow: 0 30px 60px -24px rgba(11,13,33,.6); }
+.code small { display: block; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; color: rgba(255,255,255,.6); margin-bottom: 12px; }
+.code .k { color: #F4A8DF; }
+
+.benefits { display: grid; gap: 16px; }
+.benefit { display: flex; align-items: center; gap: 20px; padding: 20px 24px; border-radius: 22px; background: #fff; box-shadow: 0 10px 30px -18px rgba(28,29,71,.3); }
+.benefit .n { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-family: 'Montserrat'; font-weight: 900; font-style: italic; font-size: 24px; color: #fff; background: #004751; flex-shrink: 0; }
+.benefit p { font-size: 25px; font-weight: 600; color: #25275B; line-height: 1.3; }
+
+/* Ajustes das artes do Webchat: navegador com o chat "saltando" para fora e números de passo menores. */
+.browser.pop { overflow: visible; }
+.browser.pop .top { border-radius: 26px 26px 0 0; }
+.browser.pop .page { border-radius: 0 0 26px 26px; }
+.big-num.sm { font-size: 150px; }
+.teaser { position: absolute; display: flex; gap: 14px; align-items: flex-start; width: 360px; padding: 18px 20px; border-radius: 22px 22px 8px 22px; background: #fff; box-shadow: 0 20px 44px -16px rgba(16,18,52,.4), 0 0 0 1px rgba(16,18,52,.06); }
+.teaser .av { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 18px; background: linear-gradient(145deg, #004751, #00303a); flex-shrink: 0; }
+.teaser b { display: block; font-size: 18px; color: #1E2046; }
+.teaser p { margin-top: 4px; font-size: 17px; line-height: 1.35; color: #3A3D63; }
