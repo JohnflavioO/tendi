@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Clock3 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -39,7 +40,7 @@ export function TrialNotice({ organizationId, dark = false }: { organizationId?:
     <div role="status" className="rounded-xl bg-white/[.06] p-3 text-xs text-white ring-1 ring-inset ring-white/10">
       <p className="flex items-center gap-2 font-semibold"><span className={`size-1.5 rounded-full ${urgent ? 'bg-rose-400' : 'bg-amber-300'}`} />Teste gratuito</p>
       <p className="mt-1 text-[#B9BBE0]">{message}</p>
-      <a href={href} className="mt-2.5 inline-flex h-7 items-center rounded-lg bg-white px-2.5 text-[11px] font-semibold text-tendi-navy transition hover:bg-tendi-mist">Assinar agora</a>
+      <Link href={href} className="mt-2.5 inline-flex h-7 items-center rounded-lg bg-white px-2.5 text-[11px] font-semibold text-tendi-navy transition hover:bg-tendi-mist">Assinar agora</Link>
     </div>
   );
 
@@ -47,7 +48,7 @@ export function TrialNotice({ organizationId, dark = false }: { organizationId?:
     <div role="status" className={`rounded-xl border p-3 text-xs ${urgent ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
       <p className="flex items-center gap-2 font-semibold"><Clock3 size={14}/>Teste gratuito</p>
       <p className="mt-1">{message}</p>
-      <a href={href} className="mt-2 inline-block font-semibold underline">Assinar agora</a>
+      <Link href={href} className="mt-2 inline-block font-semibold underline">Assinar agora</Link>
     </div>
   );
 }

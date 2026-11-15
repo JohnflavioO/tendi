@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, MessageCircle, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -271,7 +272,7 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
                 <button key={action.status} type="button" disabled={saving} onClick={() => void save(action.status)} className={`rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:opacity-40 ${action.className}`}>{action.label}</button>
               ))}
               {currentStatus && currentStatus !== 'scheduled' && <button type="button" disabled={saving} onClick={() => void save('scheduled')} className="rounded-lg border border-sky-200 px-3 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-50 disabled:opacity-40">Voltar para agendado</button>}
-              {editing.contact_id && <a href={`/inbox?contact=${editing.contact_id}`} className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-tendi-teal hover:bg-tendi-haze"><MessageCircle size={14} />Abrir conversa</a>}
+              {editing.contact_id && <Link href={`/inbox?contact=${editing.contact_id}`} className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-tendi-teal hover:bg-tendi-haze"><MessageCircle size={14} />Abrir conversa</Link>}
             </div>
           )}
 

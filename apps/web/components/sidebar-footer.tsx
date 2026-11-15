@@ -1,5 +1,7 @@
 'use client';
 
+import { clearWorkspace } from '@/lib/workspace-cache';
+import Link from 'next/link';
 import { Compass, CreditCard, ExternalLink, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { TOUR_EVENT } from '@/lib/onboarding';
 import { TrialNotice } from '@/components/trial-notice';
@@ -24,13 +26,13 @@ export function SidebarFooter({ organizationId, role, superAdmin, onSignOut }: {
     <TrialNotice organizationId={organizationId} dark />
     {manager && <AiUsageNotice organizationId={organizationId} compact dark />}
     <div className="space-y-0.5 border-t border-white/[.08] pt-3">
-      {canAccess(role, 'assinatura') && <a href={organizationId ? `/assinatura?organization=${organizationId}` : '/assinatura'} className={link}><CreditCard size={15} />Plano e assinatura</a>}
-      <a href={organizationId ? `/conta?organization=${organizationId}` : '/conta'} className={link}><UserRound size={15} />Minha conta</a>
+      {canAccess(role, 'assinatura') && <Link href={organizationId ? `/assinatura?organization=${organizationId}` : '/assinatura'} className={link}><CreditCard size={15} />Plano e assinatura</Link>}
+      <Link href={organizationId ? `/conta?organization=${organizationId}` : '/conta'} className={link}><UserRound size={15} />Minha conta</Link>
       <a href="/" target="_blank" rel="noopener" className={link}><ExternalLink size={15} />Ver site do TendiDesk</a>
-      {superAdmin && <a href="/admin" className={link}><ShieldCheck size={15} className="text-[#F27AD3]" />Console Super Admin</a>}
+      {superAdmin && <Link href="/admin" className={link}><ShieldCheck size={15} className="text-[#F27AD3]" />Console Super Admin</Link>}
       {onSignOut
         ? <button type="button" onClick={onSignOut} className={signOutClass}><LogOut size={15} />Sair da conta</button>
-        : <form action="/auth/signout" method="post"><button className={signOutClass}><LogOut size={15} />Sair da conta</button></form>}
+        : <form action="/auth/signout" method="post" onSubmit={() => clearWorkspace()}><button className={signOutClass}><LogOut size={15} />Sair da conta</button></form>}
     </div>
     {role && <div className="flex items-center justify-between gap-2 rounded-xl bg-white/[.04] px-3 py-2 ring-1 ring-inset ring-white/[.06]">
       {!superAdmin ? <p className="min-w-0 truncate text-[11px] text-[#8E91C4]">Perfil <b className="font-semibold text-white">{ROLE_INFO[role].label}</b></p> : <span className="text-[11px] text-[#8E91C4]">Super Admin</span>}

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search, ArrowLeft, MessageCircle, Users, KanbanSquare, ChartNoAxesCombined,
@@ -21,6 +22,7 @@ import { OnboardingTour } from '@/components/onboarding-tour';
 import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { WORKSPACE_NAV } from '@/components/workspace-shell';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
+import { clearWorkspace, isFresh, readWorkspace, writeWorkspace } from '@/lib/workspace-cache';
 import { canAccess } from '@/lib/team';
 import { provisionPendingWorkspace } from '@/lib/ensure-workspace';
 import { requestedOrganizationId, resolveCurrentOrganization, withOrganization } from '@/lib/current-organization';
@@ -105,9 +107,20 @@ export default function InboxPage() {
   };
 
   const loadOrganizations = useCallback(async () => {
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) { window.location.assign('/login'); return; }
-    setUserId(auth.user.id);
+    // Sessão salva no navegador (sem ida à rede); o servidor valida o login a cada carregamento completo.
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionUser = sessionData.session?.user;
+    if (!sessionUser) { clearWorkspace(); window.location.assign('/login'); return; }
+    setUserId(sessionUser.id);
+    // Veio de outra tela do menu: as empresas já estão na memória da aba, sem consultar de novo.
+    const cached = readWorkspace(requestedOrganizationId());
+    if (cached && cached.userId === sessionUser.id && cached.organization && cached.organizations.length && isFresh(cached)) {
+      setOrganizations(cached.organizations);
+      setOrganizationId(current => current || cached.organization!.id);
+      setLoading(false);
+      return;
+    }
+    const auth = { user: sessionUser };
     // O Inbox só lista empresas em que a pessoa trabalha: vínculo ativo ou acesso de suporte liberado
     // pelo cliente. O Super Admin enxerga o cadastro de todas, mas não entra nos atendimentos delas.
     const requestedId = requestedOrganizationId();
@@ -123,8 +136,17 @@ export default function InboxPage() {
     }
     setOrganizations(list);
     const requestedOrganization = requestedId && list.some(org => org.id === requestedId) ? requestedId : '';
-    setOrganizationId(current => current || requestedOrganization || list[0]?.id || '');
+    const chosen = requestedOrganization || list[0]?.id || '';
+    setOrganizationId(current => current || chosen);
     setLoading(false);
+    // Guarda para as próximas telas do menu (o papel entra pelo useWorkspaceRole).
+    const chosenOrg = list.find(org => org.id === chosen);
+    const previous = readWorkspace(chosen);
+    if (chosenOrg) writeWorkspace({
+      userId: auth.user.id, organization: chosenOrg, organizations: list,
+      role: previous?.role ?? null, superAdmin: previous?.superAdmin ?? false, supportUntil: previous?.supportUntil ?? null,
+      roleCheckedAt: previous?.userId === auth.user.id ? previous?.roleCheckedAt : undefined,
+    });
   }, [supabase]);
 
   const loadInbox = useCallback(async () => {
@@ -282,7 +304,7 @@ export default function InboxPage() {
 
     <section className={selectedId ? "flex min-w-0 flex-1 flex-col bg-tendi-haze" : "hidden min-w-0 flex-1 flex-col bg-tendi-haze md:flex"}>
       <header className="flex min-h-[60px] items-center justify-between gap-2 border-b border-tendi-line/80 bg-white px-2 md:min-h-[72px] md:px-5"><div className="flex min-w-0 items-center gap-2 md:gap-3">{selected&&<button onClick={()=>setSelectedId("")} className="td-icon-btn size-10 text-tendi-indigo md:hidden" aria-label="Voltar para conversas" title="Voltar para conversas"><ArrowLeft size={20}/></button>}<ContactAvatar contactId={selected?.contact_id} name={contact?.full_name} className="size-10 rounded-full text-xs ring-2 ring-white shadow-card"/><div className="min-w-0"><p className="truncate text-[14.5px] font-semibold tracking-tight text-tendi-navy">{contact?.full_name??'Selecione uma conversa'}</p><p className="mt-0.5 truncate text-[11.5px] text-slate-400">{selected?(<><span className="capitalize">{selected.channel}</span> · {selected.teams?.name??'Sem setor'}</>):'Sua central de relacionamento'}</p></div></div>
-        <div className="flex items-center gap-0.5">{selected?.contacts?.phone_e164?<a href={`tel:${selected.contacts.phone_e164}`} className="td-icon-btn" title="Ligar" aria-label="Ligar para o contato"><Phone size={17}/></a>:<span className="td-icon-btn cursor-not-allowed opacity-40 hover:bg-transparent hover:text-slate-400" title="Contato sem telefone"><Phone size={17}/></span>}<button onClick={()=>setShowDetails(!showDetails)} className={`td-icon-btn ${showDetails&&selected?'xl:bg-tendi-mist xl:text-tendi-indigo':''}`} title="Detalhes do contato" aria-label="Detalhes do contato"><Info size={17}/></button><div className="relative"><button onClick={()=>setConversationMenuOpen(v=>!v)} aria-label="Mais opções da conversa" aria-expanded={conversationMenuOpen} className={`td-icon-btn ${conversationMenuOpen?'bg-tendi-mist text-tendi-indigo':''}`} title="Mais opções"><MoreHorizontal size={18}/></button>{conversationMenuOpen&&<><button aria-label="Fechar opções" className="fixed inset-0 z-20 cursor-default" onClick={()=>setConversationMenuOpen(false)}/><div className="absolute right-0 top-11 z-30 w-56 animate-pop rounded-2xl border border-tendi-line bg-white p-1.5 shadow-pop">{[['Abrir contatos','/contatos'],['Abrir CRM','/crm'],['Configurações','/configuracoes']].map(([label,href])=><a key={href} href={withOrganization(href!,organizationId)} className="block rounded-lg px-3 py-2 text-[13px] text-slate-600 transition hover:bg-tendi-haze hover:text-tendi-navy">{label}</a>)}<button onClick={()=>window.location.reload()} className="w-full rounded-lg px-3 py-2 text-left text-[13px] text-slate-600 transition hover:bg-tendi-haze hover:text-tendi-navy">Atualizar Inbox</button><a href="mailto:suporte@tendidesk.com.br" className="block rounded-lg px-3 py-2 text-[13px] text-slate-600 transition hover:bg-tendi-haze hover:text-tendi-navy">Ajuda e suporte</a></div></>}</div></div>
+        <div className="flex items-center gap-0.5">{selected?.contacts?.phone_e164?<a href={`tel:${selected.contacts.phone_e164}`} className="td-icon-btn" title="Ligar" aria-label="Ligar para o contato"><Phone size={17}/></a>:<span className="td-icon-btn cursor-not-allowed opacity-40 hover:bg-transparent hover:text-slate-400" title="Contato sem telefone"><Phone size={17}/></span>}<button onClick={()=>setShowDetails(!showDetails)} className={`td-icon-btn ${showDetails&&selected?'xl:bg-tendi-mist xl:text-tendi-indigo':''}`} title="Detalhes do contato" aria-label="Detalhes do contato"><Info size={17}/></button><div className="relative"><button onClick={()=>setConversationMenuOpen(v=>!v)} aria-label="Mais opções da conversa" aria-expanded={conversationMenuOpen} className={`td-icon-btn ${conversationMenuOpen?'bg-tendi-mist text-tendi-indigo':''}`} title="Mais opções"><MoreHorizontal size={18}/></button>{conversationMenuOpen&&<><button aria-label="Fechar opções" className="fixed inset-0 z-20 cursor-default" onClick={()=>setConversationMenuOpen(false)}/><div className="absolute right-0 top-11 z-30 w-56 animate-pop rounded-2xl border border-tendi-line bg-white p-1.5 shadow-pop">{[['Abrir contatos','/contatos'],['Abrir CRM','/crm'],['Configurações','/configuracoes']].map(([label,href])=><Link key={href} href={withOrganization(href!,organizationId)} className="block rounded-lg px-3 py-2 text-[13px] text-slate-600 transition hover:bg-tendi-haze hover:text-tendi-navy">{label}</Link>)}<button onClick={()=>window.location.reload()} className="w-full rounded-lg px-3 py-2 text-left text-[13px] text-slate-600 transition hover:bg-tendi-haze hover:text-tendi-navy">Atualizar Inbox</button><a href="mailto:suporte@tendidesk.com.br" className="block rounded-lg px-3 py-2 text-[13px] text-slate-600 transition hover:bg-tendi-haze hover:text-tendi-navy">Ajuda e suporte</a></div></>}</div></div>
       </header>
       {selected?<><div className="flex items-center justify-between gap-2 border-b border-tendi-line/70 bg-white/80 px-3 py-2 backdrop-blur md:px-5"><div className="flex min-w-0 flex-wrap items-center gap-2"><span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10.5px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/15"><span className="relative flex size-1.5"><span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60"/><span className="relative inline-flex size-1.5 rounded-full bg-emerald-500"/></span>{statusLabel(selected.status)}</span>{agent?.is_enabled&&<AiControl mode={selected.ai_mode??'off'} agentName={agent.name} saving={aiSaving} onChange={mode=>void setAiMode(selected,mode)}/>}</div><div className="hidden items-center gap-1.5 text-[10.5px] text-slate-400 sm:flex"><Clock3 size={13}/> Última atividade {time(selected.last_message_at)||'—'}</div></div>
         <div className="relative min-h-0 flex-1"><div ref={threadRef} onScroll={onThreadScroll} className="h-full space-y-3 overflow-y-auto overscroll-contain bg-[radial-gradient(#E4E6F1_1px,transparent_1px)] [background-size:20px_20px] px-3 py-5 md:space-y-4 md:px-8 md:py-7">{thread.length?thread.map(message=>{const ai=senderLabel(message)?.ai;return <div key={message.id} className={message.direction==='inbound'?'flex justify-start':'flex justify-end'}><div className={message.direction==='internal'?'max-w-[86%] md:max-w-[72%] rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-card':message.direction==='inbound'?'max-w-[86%] md:max-w-[72%] rounded-[18px] rounded-tl-md border border-tendi-line/70 bg-white px-4 py-2.5 text-[14px] leading-6 text-slate-700 shadow-card':ai?'max-w-[86%] md:max-w-[72%] rounded-[18px] rounded-tr-md bg-gradient-to-br from-[#2F316B] via-[#2C2D66] to-[#4A2470] px-4 py-2.5 text-[14px] leading-6 text-white shadow-[0_10px_24px_-12px_rgba(74,36,112,.55)]':'max-w-[86%] md:max-w-[72%] rounded-[18px] rounded-tr-md bg-tendi-indigo px-4 py-2.5 text-[14px] leading-6 text-white shadow-[0_10px_24px_-12px_rgba(47,49,107,.55)]'}>{message.direction==='internal'&&<p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">Nota interna</p>}<SenderTag message={message}/><MessageMedia message={message} onOpenImage={()=>setViewerImageId(message.id)}/><div className={message.direction==='outbound'?'mt-1 flex items-center justify-end gap-1 text-[10px] text-white/60':'mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-400'}>{time(message.created_at)}{message.direction==='outbound'&&(message.delivery_status==='failed'?<span className="font-semibold text-rose-200">Falha ao enviar</span>:message.delivery_status==='queued'?<Clock3 size={13} aria-label="Na fila"/>:message.delivery_status==='read'?<CheckCheck size={13} className="text-sky-300" aria-label="Lida"/>:message.delivery_status==='delivered'?<CheckCheck size={13} aria-label="Entregue"/>:<Check size={13} aria-label="Enviada"/>)}</div></div></div>;}):<div className="grid h-full place-items-center"><EmptyState icon={MessageCircle} title="Conversa sem mensagens" description="As mensagens recebidas aparecerão neste espaço."/></div>}</div>

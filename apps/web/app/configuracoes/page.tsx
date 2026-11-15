@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Building2, Users, Save, Loader2, ShieldCheck, CreditCard, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -94,7 +95,7 @@ export default function SettingsPage() {
         <div className="mb-4"><AiUsageNotice organizationId={org?.id} /></div>
         <div className="flex flex-wrap items-center gap-2">
           {canEditCompany && <button disabled={saving || !name.trim() || name.trim() === org?.name} onClick={() => void saveName()} className="td-btn td-btn-teal  disabled:opacity-50"><Save size={14} />Salvar nome</button>}
-          {canAccess(role, 'assinatura') && <a href={withOrganization('/assinatura', org?.id)} className="td-btn td-btn-secondary"><CreditCard size={14} />Plano e assinatura</a>}
+          {canAccess(role, 'assinatura') && <Link href={withOrganization('/assinatura', org?.id)} className="td-btn td-btn-secondary"><CreditCard size={14} />Plano e assinatura</Link>}
         </div>
       </section>
 
@@ -111,7 +112,7 @@ export default function SettingsPage() {
         <div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 shrink-0 text-tendi-teal" size={20} /><div>
           <h2 className="td-title">Segurança e permissões</h2>
           <p className="mt-1 text-xs leading-5 text-slate-500">Cada pessoa da equipe tem seu próprio login e um papel que define o que ela vê: <b>Dono</b> e <b>Administrador</b> cuidam de tudo, inclusive assinatura e Agente de IA; <b>Supervisor</b> gerencia conexões, equipe e relatórios; <b>Atendente</b> fica com Inbox, Agenda, CRM e Contatos. Essas regras também são aplicadas no banco de dados, não só na tela.</p>
-          <p className="mt-2 text-xs text-slate-500">Seu papel: <b className="text-tendi-indigo">{role ? ROLE_INFO[role].label : superAdmin ? 'Super Admin' : '—'}</b>{canAccess(role, 'equipe') && <a href={withOrganization('/equipe', org?.id)} className="ml-3 inline-flex items-center gap-1 font-semibold text-tendi-teal hover:underline">Gerenciar equipe<ArrowRight size={12} /></a>}</p>
+          <p className="mt-2 text-xs text-slate-500">Seu papel: <b className="text-tendi-indigo">{role ? ROLE_INFO[role].label : superAdmin ? 'Super Admin' : '—'}</b>{canAccess(role, 'equipe') && <Link href={withOrganization('/equipe', org?.id)} className="ml-3 inline-flex items-center gap-1 font-semibold text-tendi-teal hover:underline">Gerenciar equipe<ArrowRight size={12} /></Link>}</p>
         </div></div>
       </section>
     </div>}

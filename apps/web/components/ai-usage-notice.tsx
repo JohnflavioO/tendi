@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Bot } from 'lucide-react';
 
@@ -31,7 +32,7 @@ export function AiUsageNotice({ organizationId, compact = false, dark = false }:
     <p className="flex items-center gap-2 font-semibold"><Bot size={14} className="text-[#B9BBE0]" />Agente de IA</p>
     <p className="mt-1 text-[#B9BBE0]">{usage.used.toLocaleString('pt-BR')} de {usage.limit.toLocaleString('pt-BR')} respostas no mês</p>
     <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10"><div className={reached ? 'h-full bg-rose-400' : 'h-full bg-amber-300'} style={{ width: `${percent}%` }} /></div>
-    {reached && <a href={`/assinatura?organization=${organizationId}`} className="mt-2 inline-block font-semibold text-white underline underline-offset-2">{usage.trial ? 'Assinar um plano' : 'Ver planos'}</a>}
+    {reached && <Link href={`/assinatura?organization=${organizationId}`} className="mt-2 inline-block font-semibold text-white underline underline-offset-2">{usage.trial ? 'Assinar um plano' : 'Ver planos'}</Link>}
   </div>;
 
   const tone = reached ? 'border-rose-200 bg-rose-50 text-rose-700' : usage.level === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-200 bg-white text-slate-600';
@@ -41,7 +42,7 @@ export function AiUsageNotice({ organizationId, compact = false, dark = false }:
     <p className="mt-1">{usage.used.toLocaleString('pt-BR')} de {usage.limit.toLocaleString('pt-BR')} respostas neste mês</p>
     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/5"><div className={reached ? 'h-full bg-rose-500' : usage.level === 'warning' ? 'h-full bg-amber-500' : 'h-full bg-[#004751]'} style={{ width: `${percent}%` }} /></div>
     {reached
-      ? <p className="mt-2">Limite atingido: as novas mensagens ficam para a sua equipe até o dia 1º. <a href={`/assinatura?organization=${organizationId}`} className="font-semibold underline">{usage.trial ? 'Assinar um plano' : 'Ver planos'}</a></p>
+      ? <p className="mt-2">Limite atingido: as novas mensagens ficam para a sua equipe até o dia 1º. <Link href={`/assinatura?organization=${organizationId}`} className="font-semibold underline">{usage.trial ? 'Assinar um plano' : 'Ver planos'}</Link></p>
       : usage.level === 'warning' ? <p className="mt-2">Você já usou {percent}% das respostas do mês.</p> : null}
   </div>;
 }
