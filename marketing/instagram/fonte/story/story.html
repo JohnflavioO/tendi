@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Story TendiDesk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:ital,wght@1,800;1,900&display=block" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #14153A; }
+  body { font-family: 'Inter', sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
+  #stage { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(180deg, #23255A 0%, #191A45 55%, #121335 100%); }
+  .blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55; }
+  .grain { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px); background-size: 6px 6px; }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .title { position: absolute; left: 90px; right: 90px; top: 300px; font-family: 'Montserrat', sans-serif; font-style: italic; font-weight: 900; font-size: 104px; line-height: 1.02; letter-spacing: -.02em; }
+  .title .hl { color: #F25CC7; }
+  .kick { position: absolute; left: 92px; top: 240px; font-family: 'Montserrat'; font-style: italic; font-weight: 800; font-size: 34px; color: #F4A8DF; letter-spacing: .02em; }
+  .line { display: block; }
+
+  /* logo */
+  #logo { position: absolute; left: 190px; top: 687px; width: 700px; }
+  #dot { position: absolute; width: 52px; height: 52px; border-radius: 50%; background: #CB0A9F; box-shadow: 0 0 60px rgba(203,10,159,.8); }
+  #tag { position: absolute; left: 0; right: 0; top: 1090px; text-align: center; font-size: 40px; font-weight: 600; color: #C9CBF0; }
+
+  /* cartões */
+  .card { position: absolute; background: #fff; color: #1E2046; border-radius: 36px; box-shadow: 0 50px 100px -30px rgba(0,0,0,.6); }
+  .row { display: flex; align-items: center; gap: 22px; padding: 22px 26px; border-radius: 24px; }
+  .av { width: 74px; height: 74px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 26px; color: #fff; flex-shrink: 0; }
+  .who { flex: 1; min-width: 0; }
+  .who b { display: block; font-size: 30px; color: #25275B; }
+  .who span { display: block; font-size: 24px; color: #6B6F93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag { border-radius: 999px; padding: 8px 16px; font-size: 20px; font-weight: 700; }
+  .badge { min-width: 42px; height: 42px; border-radius: 21px; background: #CB0A9F; color: #fff; font-size: 22px; font-weight: 800; display: grid; place-items: center; padding: 0 10px; }
+  .fly { position: absolute; padding: 18px 26px; border-radius: 28px; font-size: 28px; font-weight: 600; background: #fff; color: #1E2046; box-shadow: 0 20px 40px -14px rgba(0,0,0,.5); white-space: nowrap; }
+  .fly.me { background: #DCF8C6; }
+
+  .chat { position: absolute; left: 110px; width: 860px; top: 720px; border-radius: 40px; overflow: hidden; background: #F4F5FA; box-shadow: 0 60px 120px -30px rgba(0,0,0,.65); }
+  .chat .h { display: flex; align-items: center; gap: 20px; padding: 30px 34px; background: linear-gradient(140deg, #004751, #00303a); color: #fff; }
+  .chat .h .av { width: 70px; height: 70px; border-radius: 22px; background: rgba(255,255,255,.18); position: relative; }
+  .chat .h b { display: block; font-size: 32px; }
+  .chat .h span { font-size: 22px; opacity: .85; }
+  .chat .body { padding: 30px; display: flex; flex-direction: column; gap: 16px; min-height: 560px; }
+  .msg { max-width: 82%; padding: 20px 26px; border-radius: 28px; font-size: 29px; line-height: 1.38; }
+  .msg.in { align-self: flex-end; background: linear-gradient(145deg, #004751, #00303a); color: #fff; border-top-right-radius: 8px; }
+  .msg.out { align-self: flex-start; background: #fff; color: #1E2046; border-top-left-radius: 8px; box-shadow: 0 0 0 1px rgba(16,18,52,.06); }
+  .sig { display: block; font-weight: 800; font-size: 22px; color: #6B6F93; margin-bottom: 6px; }
+  .time { display: block; text-align: right; font-size: 18px; opacity: .65; margin-top: 6px; }
+  .typing { align-self: flex-start; display: flex; gap: 10px; padding: 24px 28px; background: #fff; border-radius: 28px; border-top-left-radius: 8px; }
+  .typing i { width: 14px; height: 14px; border-radius: 50%; background: #A7ABC8; }
+  .chips { display: flex; gap: 12px; flex-wrap: wrap; }
+  .chip { border: 2.5px solid #004751; color: #004751; background: #fff; border-radius: 999px; padding: 12px 22px; font-size: 25px; font-weight: 700; }
+  .moon { position: absolute; right: 120px; top: 560px; font-family: 'Montserrat'; font-style: italic; font-weight: 900; font-size: 64px; color: #F4A8DF; }
+
+  .kanban { position: absolute; left: 70px; right: 70px; top: 760px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .col { border-radius: 30px; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.12); padding: 24px 20px; height: 520px; }
+  .col h4 { font-size: 25px; font-weight: 700; color: #DADCF5; display: flex; align-items: center; gap: 10px; }
+  .col h4 i { width: 14px; height: 14px; border-radius: 50%; }
+  .deal { position: absolute; width: 272px; padding: 22px; border-radius: 22px; background: #fff; color: #1E2046; box-shadow: 0 24px 50px -16px rgba(0,0,0,.6); }
+  .deal b { display: block; font-size: 25px; }
+  .deal span { display: block; font-size: 20px; color: #6B6F93; margin-top: 4px; }
+  .deal em { display: block; font-style: normal; font-weight: 800; font-size: 24px; color: #004751; margin-top: 10px; }
+  .won { position: absolute; left: 90px; right: 90px; top: 1360px; text-align: center; }
+  .won small { display: block; font-size: 30px; font-weight: 600; color: #C9CBF0; }
+  .won b { display: block; font-family: 'Montserrat'; font-style: italic; font-weight: 900; font-size: 120px; color: #6EE7B7; letter-spacing: -.02em; }
+
+  .browser { position: absolute; left: 70px; right: 70px; top: 700px; height: 820px; border-radius: 36px; background: #F3F4FA; overflow: hidden; box-shadow: 0 60px 120px -30px rgba(0,0,0,.65); }
+  .browser .top { height: 74px; background: #E9EAF3; display: flex; align-items: center; gap: 12px; padding: 0 28px; }
+  .browser .top i { width: 18px; height: 18px; border-radius: 50%; background: #CDD0E0; }
+  .browser .url { margin-left: 18px; flex: 1; height: 42px; border-radius: 12px; background: #fff; color: #8A8FB0; font-size: 22px; display: flex; align-items: center; padding: 0 18px; }
+  .sk { position: absolute; border-radius: 12px; background: #DCDEEA; }
+  .wpanel { position: absolute; right: 36px; bottom: 140px; width: 560px; border-radius: 30px; overflow: hidden; background: #F6F7FB; box-shadow: 0 30px 70px -20px rgba(16,18,52,.45); transform-origin: bottom right; }
+  .wpanel .h { display: flex; align-items: center; gap: 16px; padding: 22px 24px; background: linear-gradient(140deg, #004751, #00303a); color: #fff; }
+  .wpanel .h .av { width: 56px; height: 56px; border-radius: 18px; background: rgba(255,255,255,.18); font-size: 22px; }
+  .wpanel .h b { display: block; font-size: 25px; } .wpanel .h span { font-size: 18px; opacity: .85; }
+  .wpanel .b { padding: 22px; display: flex; flex-direction: column; gap: 12px; }
+  .wpanel .msg { font-size: 22px; padding: 14px 18px; border-radius: 20px; }
+  .queue { margin: 0 18px 20px; display: flex; gap: 14px; align-items: center; padding: 16px 18px; border-radius: 18px; background: linear-gradient(135deg, #FFF8EC, #FFF3DE); box-shadow: inset 0 0 0 1.5px #F6DDB0; color: #7A4B00; font-size: 19px; }
+  .queue b { display: block; font-size: 22px; color: #5C3800; }
+  .queue i { width: 16px; height: 16px; border-radius: 50%; background: #F59E0B; flex-shrink: 0; }
+  .launcher { position: absolute; right: 36px; bottom: 36px; width: 86px; height: 86px; border-radius: 28px; background: linear-gradient(145deg, #004751, #00303a); display: grid; place-items: center; box-shadow: 0 16px 30px -10px rgba(0,0,0,.5); }
+
+  #cta-logo { position: absolute; left: 240px; top: 560px; width: 600px; }
+  .cta-title { position: absolute; left: 80px; right: 80px; top: 960px; text-align: center; font-family: 'Montserrat'; font-style: italic; font-weight: 900; font-size: 92px; line-height: 1.04; }
+  .pill { position: absolute; left: 50%; top: 1270px; transform: translateX(-50%); padding: 30px 54px; border-radius: 999px; background: #CB0A9F; font-family: 'Montserrat'; font-style: italic; font-weight: 900; font-size: 46px; white-space: nowrap; box-shadow: 0 20px 50px -10px rgba(203,10,159,.7); }
+  .site { position: absolute; left: 0; right: 0; top: 1440px; text-align: center; font-size: 36px; font-weight: 600; color: #C9CBF0; }
+  .feat { position: absolute; left: 90px; right: 90px; top: 1560px; display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+  .feat span { padding: 14px 22px; border-radius: 999px; background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.16); font-size: 26px; font-weight: 600; }
+  .cap { position: absolute; left: 90px; right: 90px; text-align: center; font-size: 34px; font-weight: 600; color: #DADCF5; line-height: 1.35; }
+  .cap b { color: #fff; }
+  #wave { position: absolute; left: -10%; width: 120%; bottom: -40px; height: 360px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="blob" id="b1" style="width:900px;height:900px;background:#CB0A9F"></div>
+  <div class="blob" id="b2" style="width:800px;height:800px;background:#4C4FB0"></div>
+  <div class="blob" id="b3" style="width:600px;height:600px;background:#0A7C8A"></div>
+  <div class="grain"></div>
+
+  <!-- 1. Abertura -->
+  <div class="scene" id="s1">
+    <img id="logo" src="logo-branca.png" alt="">
+    <div id="dot"></div>
+    <p id="tag">Atendimento, CRM e IA no WhatsApp</p>
+  </div>
+
+  <!-- 2. Inbox -->
+  <div class="scene" id="s2">
+    <p class="kick">Inbox compartilhado</p>
+    <h1 class="title"><span class="line">Um número.</span><span class="line hl">Toda a equipe.</span></h1>
+    <div class="card" id="inbox" style="left:90px;width:900px;top:760px;padding:26px">
+      <div class="row" style="background:#F0F0FA"><span class="av" style="background:#2F316B">MC</span><div class="who"><b>Mariana Costa</b><span>Quero agendar uma avaliação</span></div><span class="tag" style="background:#E8F4F2;color:#004751">Comercial</span><span class="badge">2</span></div>
+      <div class="row"><span class="av" style="background:#CB0A9F">PA</span><div class="who"><b>Pedro Alves</b><span>O pedido já saiu para entrega?</span></div><span class="tag" style="background:#F0F0FA;color:#2F316B">Suporte</span><span class="badge">1</span></div>
+      <div class="row"><span class="av" style="background:#004751">JR</span><div class="who"><b>Juliana Rocha</b><span>Pode me mandar a 2ª via?</span></div><span class="tag" style="background:#FDF0FA;color:#A3087F">Financeiro</span><span class="badge">3</span></div>
+      <div class="row"><span class="av" style="background:#7C7EC0">CM</span><div class="who"><b>Carlos Mendes</b><span>Qual o horário de sábado?</span></div><span class="tag" style="background:#FCEAF7;color:#B70A90">Agente de IA</span></div>
+    </div>
+    <p class="cap" id="c2" style="top:1390px">WhatsApp, setores e responsáveis.<br><b>Ninguém responde em dobro.</b></p>
+    <div class="fly" id="f1">Oi! Tem horário amanhã?</div>
+    <div class="fly me" id="f2">Pedido #482 confirmado</div>
+    <div class="fly" id="f3">Quanto custa o plano?</div>
+    <div class="fly me" id="f4">Te mandei a 2ª via</div>
+  </div>
+
+  <!-- 3. IA -->
+  <div class="scene" id="s3">
+    <p class="kick">Agente de IA</p>
+    <h1 class="title"><span class="line">Resposta na hora.</span><span class="line hl">24 horas.</span></h1>
+    <div class="moon" id="clock">23:04</div>
+    <div class="chat" id="chat">
+      <div class="h"><span class="av">B</span><div><b>Bia · Loja Bella</b><span>Online agora</span></div></div>
+      <div class="body">
+        <div class="msg in" id="m1">Boa noite! Vocês abrem sábado?<span class="time">23:04</span></div>
+        <div class="typing" id="typ"><i></i><i></i><i></i></div>
+        <div class="msg out" id="m2"><span class="sig">Duda · Agente de IA</span>Abrimos sim, das 8h às 12h. Quer reservar um horário?<span class="time">23:04</span></div>
+        <div class="chips" id="chips"><span class="chip">Reservar às 9h</span><span class="chip">Ver serviços</span><span class="chip">Falar com atendente</span></div>
+      </div>
+    </div>
+
+    <p class="cap" id="c3" style="top:1560px">Ela chama a equipe quando precisa.</p>
+  </div>
+
+  <!-- 4. CRM -->
+  <div class="scene" id="s4">
+    <p class="kick">CRM em funil</p>
+    <h1 class="title"><span class="line">Conversa boa</span><span class="line hl">vira venda.</span></h1>
+    <div class="kanban">
+      <div class="col"><h4><i style="background:#7C7EC0"></i>Novo lead</h4></div>
+      <div class="col"><h4><i style="background:#F59E0B"></i>Proposta</h4></div>
+      <div class="col" id="wincol"><h4><i style="background:#22C55E"></i>Fechado</h4></div>
+    </div>
+    <div class="deal" id="d1"><b>Loja Bella</b><span>Plano Pro anual</span><em>R$ 2.400</em></div>
+    <div class="deal" id="d2" style="left:96px;top:1000px"><b>Rafael Lima</b><span>Orçamento</span></div>
+    <div class="deal" id="d3" style="left:404px;top:860px"><b>Pedro Alves</b><span>Pacote 10 sessões</span></div>
+    <div class="won"><small>Ganho no mês</small><b id="money">R$ 0</b></div>
+  </div>
+
+  <!-- 5. Webchat -->
+  <div class="scene" id="s5">
+    <p class="kick">Chat do site</p>
+    <h1 class="title"><span class="line">Seu site</span><span class="line hl">também atende.</span></h1>
+    <div class="browser" id="browser">
+      <div class="top"><i></i><i></i><i></i><span class="url">www.suaempresa.com.br</span></div>
+      <div class="sk" style="left:40px;top:120px;width:420px;height:36px"></div>
+      <div class="sk" style="left:40px;top:176px;width:560px;height:20px"></div>
+      <div class="sk" style="left:40px;top:212px;width:480px;height:20px"></div>
+      <div class="sk" style="left:40px;top:270px;width:300px;height:200px;border-radius:24px"></div>
+      <div class="wpanel" id="wpanel">
+        <div class="h"><span class="av">B</span><div><b>Bia · Loja Bella</b><span>Aguardando atendente</span></div></div>
+        <div class="b">
+          <div class="msg in">Quero negociar um pedido grande</div>
+          <div class="msg out"><span class="sig" style="font-size:17px">Duda</span>Perfeito! Vou chamar alguém da equipe.</div>
+        </div>
+        <div class="queue" id="queue"><i></i><div><b>Você é o próximo a ser atendido</b>Um atendente já vai falar com você.</div></div>
+      </div>
+      <div class="launcher" id="launcher"><svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.9-.9L3 20.5l1.6-4.7A8.4 8.4 0 0 1 3.5 11.5 8.5 8.5 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/></svg></div>
+    </div>
+
+    <p class="cap" id="c5" style="top:1570px">As conversas caem no <b>mesmo Inbox</b>.</p>
+  </div>
+
+  <!-- 6. Chamada -->
+  <div class="scene" id="s6">
+    <img id="cta-logo" src="logo-branca.png" alt="">
+    <h2 class="cta-title" id="ctat"><span class="line">Atenda melhor.</span><span class="line" style="color:#F25CC7">Venda mais.</span></h2>
+    <div class="pill" id="pill">Teste grátis por 7 dias</div>
+    <p class="site" id="site">Link na bio · tendidesk.com.br</p>
+    <div class="feat" id="feat"><span>WhatsApp</span><span>Agente de IA</span><span>CRM</span><span>Agenda</span><span>Chat do site</span></div>
+    <svg id="wave" viewBox="0 0 1200 360" preserveAspectRatio="none"><path id="wavep" fill="#CB0A9F" opacity=".9"/><path id="wavep2" fill="#2F316B"/></svg>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const p = (t, a, b) => clamp((t - a) / (b - a));
+const outCubic = x => 1 - Math.pow(1 - x, 3);
+const inOutCubic = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const outBack = x => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const outBounce = x => { const n = 7.5625, d = 2.75; if (x < 1 / d) return n * x * x; if (x < 2 / d) return n * (x -= 1.5 / d) * x + .75; if (x < 2.5 / d) return n * (x -= 2.25 / d) * x + .9375; return n * (x -= 2.625 / d) * x + .984375; };
+const lerp = (a, b, x) => a + (b - a) * x;
+const set = (el, opacity, transform) => { el.style.opacity = opacity; if (transform !== undefined) el.style.transform = transform; };
+
+/** Entrada e saída de uma cena: aparece em [a, a+fi], some em [b-fo, b]. */
+function scene(el, t, a, b, fi = .35, fo = .35) {
+  const inn = outCubic(p(t, a, a + fi));
+  const out = p(t, b - fo, b);
+  const visible = t >= a && t <= b;
+  el.style.display = visible ? 'block' : 'none';
+  el.style.opacity = visible ? inn * (1 - out) : 0;
+  el.style.transform = `translateY(${(1 - inn) * 40 - out * 60}px) scale(${1 + out * .04})`;
+  return visible;
+}
+function lines(root, t, a, step = .12) {
+  root.querySelectorAll('.line').forEach((line, i) => {
+    const k = outCubic(p(t, a + i * step, a + i * step + .5));
+    set(line, k, `translateY(${(1 - k) * 70}px) skewY(${(1 - k) * 4}deg)`);
+  });
+}
+
+function seek(t) {
+  // fundo vivo
+  set($('b1'), .55, `translate(${lerp(-200, 380, (Math.sin(t * .45) + 1) / 2)}px, ${lerp(-260, 160, (Math.cos(t * .33) + 1) / 2)}px)`);
+  set($('b2'), .5, `translate(${lerp(300, -120, (Math.cos(t * .4) + 1) / 2)}px, ${lerp(1100, 1500, (Math.sin(t * .29) + 1) / 2)}px)`);
+  set($('b3'), .35, `translate(${lerp(500, 700, (Math.sin(t * .6) + 1) / 2)}px, ${lerp(500, 900, (Math.cos(t * .5) + 1) / 2)}px)`);
+
+  // 1. Abertura: o ponto cai, quica e vira o pingo do "i"
+  if (scene($('s1'), t, 0, 2.8, .01, .4)) {
+    const fall = outBounce(p(t, .1, 1.1));
+    const dot = $('dot');
+    const targetX = 779 - 26, targetY = 744 - 26;
+    dot.style.left = targetX + 'px';
+    dot.style.top = lerp(-120, targetY, fall) + 'px';
+    const squash = t > .55 && t < 1.15 ? 1 + Math.sin(p(t, .55, 1.15) * Math.PI * 3) * .12 * (1 - p(t, .55, 1.15)) : 1;
+    dot.style.transform = `scale(${squash}, ${2 - squash})`;
+    const logoIn = outCubic(p(t, .95, 1.6));
+    set($('logo'), logoIn, `scale(${lerp(.86, 1, logoIn)})`);
+    $('logo').style.filter = `blur(${(1 - logoIn) * 14}px)`;
+    dot.style.opacity = 1 - p(t, 1.5, 1.7);
+    const tag = outCubic(p(t, 1.5, 2.0));
+    set($('tag'), tag, `translateY(${(1 - tag) * 30}px)`);
+  }
+
+  // 2. Inbox: balões convergem
+  if (scene($('s2'), t, 2.6, 5.7)) {
+    lines($('s2'), t, 2.7);
+    const card = outBack(p(t, 3.0, 3.6));
+    set($('inbox'), clamp(card * 1.2), `translateY(${(1 - card) * 160}px) scale(${lerp(.92, 1, card)})`);
+    $('inbox').querySelectorAll('.row').forEach((row, i) => {
+      const k = outCubic(p(t, 3.3 + i * .14, 3.75 + i * .14));
+      set(row, k, `translateX(${(1 - k) * 120}px)`);
+      const badge = row.querySelector('.badge');
+      if (badge) { const b = outBack(p(t, 3.9 + i * .18, 4.25 + i * .18)); badge.style.transform = `scale(${b})`; }
+    });
+    const flies = [
+      { el: $('f1'), from: [-520, 1450], to: [120, 840], a: 3.05 },
+      { el: $('f2'), from: [1300, 1600], to: [560, 980], a: 3.2 },
+      { el: $('f3'), from: [-480, 1750], to: [200, 1120], a: 3.35 },
+      { el: $('f4'), from: [1250, 1300], to: [600, 1260], a: 3.5 },
+    ];
+    flies.forEach(({ el, from, to, a }) => {
+      const k = inOutCubic(p(t, a, a + .75));
+      const vanish = p(t, a + .7, a + .95);
+      el.style.left = lerp(from[0], to[0], k) + 'px';
+      el.style.top = lerp(from[1], to[1], k) + 'px';
+      set(el, (t < a ? 0 : 1) * (1 - vanish), `scale(${lerp(1, .4, vanish)}) rotate(${(1 - k) * (from[0] < 0 ? -10 : 10)}deg)`);
+    });
+  }
+
+  const cap = (id, a) => { const k = outCubic(p(t, a, a + .5)); set($(id), k, `translateY(${(1 - k) * 30}px)`); };
+  if (t >= 2.6 && t <= 5.7) cap('c2', 4.3);
+  if (t >= 5.4 && t <= 8.5) cap('c3', 7.9);
+  if (t >= 10.8 && t <= 13.3) cap('c5', 12.5);
+
+  // 3. IA respondendo à noite
+  if (scene($('s3'), t, 5.4, 8.5)) {
+    lines($('s3'), t, 5.5);
+    const chat = outBack(p(t, 5.75, 6.3));
+    set($('chat'), clamp(chat * 1.2), `translateY(${(1 - chat) * 140}px)`);
+    const clock = outCubic(p(t, 5.9, 6.3));
+    set($('clock'), clock, `translateX(${(1 - clock) * 60}px)`);
+    const m1 = outBack(p(t, 6.2, 6.55));
+    set($('m1'), clamp(m1), `scale(${lerp(.6, 1, m1)})`);
+    $('m1').style.transformOrigin = 'right top';
+    const typingOn = t >= 6.6 && t < 7.3;
+    $('typ').style.display = typingOn ? 'flex' : 'none';
+    $('typ').querySelectorAll('i').forEach((dot, i) => { dot.style.transform = `translateY(${Math.sin((t * 9) - i * .9) * -7}px)`; });
+    $('m2').style.display = t >= 7.3 ? 'block' : 'none';
+    const m2 = outBack(p(t, 7.3, 7.65));
+    set($('m2'), clamp(m2), `scale(${lerp(.6, 1, m2)})`);
+    $('m2').style.transformOrigin = 'left top';
+    $('chips').querySelectorAll('.chip').forEach((chip, i) => {
+      const k = outBack(p(t, 7.7 + i * .12, 8.0 + i * .12));
+      set(chip, clamp(k), `scale(${k})`);
+    });
+    $('chips').style.display = t >= 7.6 ? 'flex' : 'none';
+  }
+
+  // 4. CRM: card vai até "Fechado" e o valor sobe
+  if (scene($('s4'), t, 8.2, 11.1)) {
+    lines($('s4'), t, 8.3);
+    const cols = outCubic(p(t, 8.5, 9.0));
+    document.querySelectorAll('#s4 .col').forEach((col, i) => set(col, cols, `translateY(${(1 - cols) * (80 + i * 40)}px)`));
+    ['d2', 'd3'].forEach((id, i) => { const k = outBack(p(t, 8.75 + i * .1, 9.1 + i * .1)); set($(id), clamp(k), `scale(${k})`); });
+    const move = inOutCubic(p(t, 9.25, 10.05));
+    const x = lerp(96, 712, move), y = lerp(860, 860, move) - Math.sin(move * Math.PI) * 170;
+    const d1 = $('d1');
+    d1.style.left = x + 'px'; d1.style.top = y + 'px';
+    set(d1, outCubic(p(t, 8.85, 9.15)), `rotate(${Math.sin(move * Math.PI) * -6}deg) scale(${1 + Math.sin(move * Math.PI) * .08})`);
+    const glow = p(t, 9.95, 10.2) * (1 - p(t, 10.6, 11));
+    $('wincol').style.boxShadow = `inset 0 0 0 ${1.5 + glow * 3}px rgba(110,231,183,${.12 + glow * .7}), 0 0 ${glow * 80}px rgba(110,231,183,${glow * .5})`;
+    const money = Math.round(outCubic(p(t, 10.0, 10.7)) * 2400);
+    $('money').textContent = 'R$ ' + money.toLocaleString('pt-BR');
+    const won = outBack(p(t, 9.9, 10.25));
+    $('money').style.transform = `scale(${lerp(.7, 1, clamp(won))})`;
+  }
+
+  // 5. Webchat no site
+  if (scene($('s5'), t, 10.8, 13.3)) {
+    lines($('s5'), t, 10.9);
+    const br = outCubic(p(t, 11.1, 11.6));
+    set($('browser'), br, `translateY(${(1 - br) * 120}px)`);
+    const pop = outBack(p(t, 11.75, 12.2));
+    set($('wpanel'), clamp(pop * 1.3), `scale(${clamp(pop, 0, 1.2)})`);
+    const launch = 1 + Math.sin(p(t, 11.5, 11.8) * Math.PI) * .18;
+    $('launcher').style.transform = `scale(${launch})`;
+    const q = outBack(p(t, 12.35, 12.7));
+    set($('queue'), clamp(q), `translateY(${(1 - q) * 30}px)`);
+    $('queue').querySelector('i').style.boxShadow = `0 0 0 ${(Math.sin(t * 8) + 1) * 6}px rgba(245,158,11,.25)`;
+  }
+
+  // 6. Chamada final
+  if (scene($('s6'), t, 13.1, 16.2, .4, .01)) {
+    const logo = outBack(p(t, 13.2, 13.75));
+    set($('cta-logo'), clamp(logo), `scale(${lerp(.6, 1, clamp(logo, 0, 1.1))})`);
+    lines($('s6'), t, 13.6, .18);
+    const pill = outBack(p(t, 14.1, 14.5));
+    set($('pill'), clamp(pill), `translateX(-50%) scale(${lerp(.5, 1, clamp(pill, 0, 1.1)) * (1 + Math.sin(Math.max(0, t - 14.6) * 5) * .02)})`);
+    const site = outCubic(p(t, 14.4, 14.8));
+    set($('site'), site, `translateY(${(1 - site) * 20}px)`);
+    $('feat').querySelectorAll('span').forEach((chip, i) => { const k = outBack(p(t, 14.6 + i * .09, 14.9 + i * .09)); set(chip, clamp(k), `translateY(${(1 - k) * 24}px)`); });
+    const w = outCubic(p(t, 13.2, 14.2));
+    const phase = t * 1.6;
+    const wave = (amp, off, base) => { let d = `M0 360 L0 ${base}`; for (let x = 0; x <= 1200; x += 40) d += ` L${x} ${base + Math.sin(x / 170 + phase + off) * amp}`; return d + ' L1200 360 Z'; };
+    $('wavep').setAttribute('d', wave(26, 0, lerp(360, 190, w)));
+    $('wavep2').setAttribute('d', wave(20, 1.6, lerp(360, 250, w)));
+  }
+}
+window.seek = seek;
+window.DURATION = 16;
+seek(0);
+</script>
+</body>
+</html>

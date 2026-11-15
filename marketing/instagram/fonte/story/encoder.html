@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Encoder</title></head>
+<body style="margin:0;background:#000">
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+/*
+ * Codifica os quadros (frames/f0000.jpg...) em H.264 com o WebCodecs do Chrome, quadro a quadro
+ * (sem depender de tempo real), e monta um MP4 simples com o índice no início (toca antes de baixar tudo).
+ */
+function box(type, ...parts) {
+  const body = parts.flatMap(p => (p instanceof Uint8Array ? [p] : p));
+  const size = 8 + body.reduce((n, p) => n + p.length, 0);
+  const out = new Uint8Array(size);
+  const view = new DataView(out.buffer);
+  view.setUint32(0, size);
+  for (let i = 0; i < 4; i++) out[4 + i] = type.charCodeAt(i);
+  let offset = 8;
+  for (const p of body) { out.set(p, offset); offset += p.length; }
+  return out;
+}
+function bytes(...values) { // [valor, tamanho em bytes]
+  const total = values.reduce((n, [, size]) => n + size, 0);
+  const out = new Uint8Array(total);
+  const view = new DataView(out.buffer);
+  let o = 0;
+  for (const [value, size] of values) {
+    if (size === 1) view.setUint8(o, value); else if (size === 2) view.setUint16(o, value); else if (size === 4) view.setUint32(o, value);
+    o += size;
+  }
+  return out;
+}
+const str = s => new Uint8Array([...s].map(c => c.charCodeAt(0)));
+const zeros = n => new Uint8Array(n);
+const matrix = bytes([0x00010000, 4], [0, 4], [0, 4], [0, 4], [0x00010000, 4], [0, 4], [0, 4], [0, 4], [0x40000000, 4]);
+
+function buildMp4({ width, height, fps, samples, avcC }) {
+  const timescale = fps * 1000;
+  const delta = 1000;
+  const count = samples.length;
+  const durationMs = Math.round((count / fps) * 1000);
+  const mdatPayload = samples.reduce((n, s) => n + s.data.length, 0);
+  const ftyp = box('ftyp', str('isom'), bytes([512, 4]), str('isomiso2avc1mp41'));
+
+  const build = chunkOffset => {
+    const mvhd = box('mvhd', bytes([0, 4], [0, 4], [0, 4], [1000, 4], [durationMs, 4], [0x00010000, 4], [0x0100, 2], [0, 2]), zeros(8), matrix, zeros(24), bytes([2, 4]));
+    const tkhd = box('tkhd', bytes([0x00000003, 4], [0, 4], [0, 4], [1, 4], [0, 4], [durationMs, 4]), zeros(8), bytes([0, 2], [0, 2], [0, 2], [0, 2]), matrix, bytes([width << 16, 4], [height << 16, 4]));
+    const mdhd = box('mdhd', bytes([0, 4], [0, 4], [0, 4], [timescale, 4], [count * delta, 4], [0x55c4, 2], [0, 2]));
+    const hdlr = box('hdlr', bytes([0, 4], [0, 4]), str('vide'), zeros(12), str('TendiDesk video\0'));
+    const vmhd = box('vmhd', bytes([1, 4], [0, 2], [0, 2], [0, 2], [0, 2]));
+    const dinf = box('dinf', box('dref', bytes([0, 4], [1, 4]), box('url ', bytes([1, 4]))));
+    const avc1 = box('avc1', zeros(6), bytes([1, 2]), zeros(16), bytes([width, 2], [height, 2], [0x00480000, 4], [0x00480000, 4], [0, 4], [1, 2]), zeros(32), bytes([0x0018, 2], [0xffff, 2]), box('avcC', avcC));
+    const stsd = box('stsd', bytes([0, 4], [1, 4]), avc1);
+    const stts = box('stts', bytes([0, 4], [1, 4], [count, 4], [delta, 4]));
+    const keys = samples.map((s, i) => (s.key ? i + 1 : 0)).filter(Boolean);
+    const stss = box('stss', bytes([0, 4], [keys.length, 4]), ...keys.map(k => bytes([k, 4])));
+    const stsc = box('stsc', bytes([0, 4], [1, 4], [1, 4], [count, 4], [1, 4]));
+    const stsz = box('stsz', bytes([0, 4], [0, 4], [count, 4]), ...samples.map(s => bytes([s.data.length, 4])));
+    const stco = box('stco', bytes([0, 4], [1, 4], [chunkOffset, 4]));
+    const stbl = box('stbl', stsd, stts, stss, stsc, stsz, stco);
+    const minf = box('minf', vmhd, dinf, stbl);
+    const mdia = box('mdia', mdhd, hdlr, minf);
+    const trak = box('trak', tkhd, mdia);
+    return box('moov', mvhd, trak);
+  };
+  const moovSize = build(0).length;
+  const moov = build(ftyp.length + moovSize + 8);
+  const mdatHeader = bytes([mdatPayload + 8, 4]);
+  const out = new Uint8Array(ftyp.length + moov.length + 8 + mdatPayload);
+  let o = 0;
+  out.set(ftyp, o); o += ftyp.length;
+  out.set(moov, o); o += moov.length;
+  out.set(mdatHeader, o); o += 4;
+  out.set(str('mdat'), o); o += 4;
+  for (const s of samples) { out.set(s.data, o); o += s.data.length; }
+  return out;
+}
+
+async function record() {
+  const params = new URLSearchParams(location.search);
+  const total = Number(params.get('n'));
+  const fps = Number(params.get('fps')) || 30;
+  const width = 1080, height = 1920;
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const samples = [];
+  let avcC = null;
+  let failure = null;
+  const encoder = new VideoEncoder({
+    output: (chunk, meta) => {
+      if (meta?.decoderConfig?.description && !avcC) avcC = new Uint8Array(meta.decoderConfig.description);
+      const data = new Uint8Array(chunk.byteLength);
+      chunk.copyTo(data);
+      samples.push({ data, key: chunk.type === 'key', ts: chunk.timestamp });
+    },
+    error: e => { failure = e; },
+  });
+  const config = { codec: 'avc1.640028', width, height, bitrate: 14_000_000, framerate: fps, avc: { format: 'avc' } };
+  const support = await VideoEncoder.isConfigSupported(config);
+  if (!support.supported) throw new Error('H.264 não suportado neste Chrome.');
+  encoder.configure(config);
+  const load = i => new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('quadro ' + i));
+    img.src = `frames/f${String(i).padStart(4, '0')}.jpg`;
+  });
+  for (let i = 0; i < total; i++) {
+    const img = await load(i);
+    ctx.drawImage(img, 0, 0, width, height);
+    const frame = new VideoFrame(canvas, { timestamp: Math.round((i * 1e6) / fps), duration: Math.round(1e6 / fps) });
+    encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
+    frame.close();
+    while (encoder.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 2));
+    if (failure) throw failure;
+  }
+  await encoder.flush();
+  encoder.close();
+  if (failure) throw failure;
+  samples.sort((a, b) => a.ts - b.ts);
+  const mp4 = buildMp4({ width, height, fps, samples, avcC });
+  let binary = '';
+  for (let i = 0; i < mp4.length; i += 0x8000) binary += String.fromCharCode.apply(null, mp4.subarray(i, i + 0x8000));
+  return btoa(binary);
+}
+window.record = record;
+</script>
+</body>
+</html>

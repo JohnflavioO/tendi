@@ -186,3 +186,14 @@ Com o chat do TendiDesk, quem visita seu site conversa na hora: o Agente de IA r
 Teste grátis por 7 dias, sem cartão. Link na bio.
 
 #tendidesk #chatparasite #atendimentoaocliente #inteligenciaartificial #whatsappbusiness #pequenasempresas
+
+---
+
+# Story animado · stories/tendidesk-story.mp4
+
+Vídeo de 16 s em 1080×1920 (formato story), sem áudio: adicione uma música no próprio Instagram.
+Capa: `stories/tendidesk-story-capa.jpg`. Para refazer: `node marketing/instagram/fonte/story/render.js video`.
+
+Cenas: logo nascendo do ponto magenta · Inbox compartilhado · Agente de IA às 23h · card indo até "Fechado" com o valor subindo · chat do site com fila · chamada "Teste grátis por 7 dias".
+
+Sugestão de figurinhas no story: **link** para tendidesk.com.br (sobre a área vazia do fim) e **enquete** "Sua equipe perde mensagens no WhatsApp? Sim / Às vezes".
