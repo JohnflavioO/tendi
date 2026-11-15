@@ -63,7 +63,7 @@ export default function ChatbotsPage(){
   const selected=orgs?.find((o:any)=>o.id===requested)??orgs?.[0];
   if(!selected){setLoading(false);throw new Error('Nenhum workspace autorizado foi encontrado para sua conta.');}
   setWorkspace(selected.name);setOrganizationId(selected.id);
-  const {data,error:e}=await supabase.from('channel_connections').select('id,channel,display_name,status,phone_number_id,provider_account_id,updated_at').eq('organization_id',selected.id);
+  const {data,error:e}=await supabase.from('channel_connections').select('id,channel,display_name,status,phone_number_id,provider_account_id,updated_at').eq('organization_id',selected.id).order('created_at',{ascending:false});
   if(e)throw e;
   setRows(data??[]);setLoading(false);return selected.id;
  }

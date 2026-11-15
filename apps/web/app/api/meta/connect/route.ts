@@ -9,7 +9,7 @@ const TOKEN_COOKIE = 'tendi_meta_user_token';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function upsertConnection(admin: ReturnType<typeof createAdminClient>, input: { organizationId: string; channel: 'messenger' | 'instagram'; providerAccountId: string; displayName: string }): Promise<string> {
-  const existing = await admin!.from('channel_connections').select('id').eq('organization_id', input.organizationId).eq('channel', input.channel).maybeSingle();
+  const existing = await admin!.from('channel_connections').select('id').eq('organization_id', input.organizationId).eq('channel', input.channel).order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (existing.data) {
     await admin!.from('channel_connections').update({ provider_account_id: input.providerAccountId, display_name: input.displayName, status: 'connected', updated_at: new Date().toISOString() }).eq('id', existing.data.id);
     return existing.data.id as string;

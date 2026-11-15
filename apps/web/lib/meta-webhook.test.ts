@@ -43,7 +43,7 @@ class Query {
 
 function seed() {
   const db = new FakeDb();
-  db.t.channel_connections.push({ id: 'conn-1', organization_id: 'org-1', channel: 'instagram', provider_account_id: 'ig-page-1' });
+  db.t.channel_connections.push({ id: 'conn-1', organization_id: 'org-1', channel: 'instagram', provider_account_id: 'ig-page-1', status: 'connected' });
   return db;
 }
 const event = (overrides: Partial<{ pageId: string; senderId: string; text: string | null; kind: string; mid: string; timestamp: string }> = {}) => ({
@@ -51,6 +51,17 @@ const event = (overrides: Partial<{ pageId: string; senderId: string; text: stri
 });
 
 describe('processMetaEvent', () => {
+  it('com conexões repetidas da mesma conta (reconexões), usa a conectada mais recente', async () => {
+    const db = new FakeDb();
+    db.t.channel_connections.push(
+      { id: 'old', organization_id: 'org-1', channel: 'instagram', provider_account_id: 'ig-page-1', status: 'disconnected', created_at: '2026-11-15T15:01:00Z' },
+      { id: 'mid', organization_id: 'org-1', channel: 'instagram', provider_account_id: 'ig-page-1', status: 'connected', created_at: '2026-11-15T15:16:00Z' },
+      { id: 'new', organization_id: 'org-1', channel: 'instagram', provider_account_id: 'ig-page-1', status: 'connected', created_at: '2026-11-15T15:17:00Z' },
+    );
+    expect(await processMetaEvent(db as any, 'instagram', event())).toEqual({ handled: true });
+    expect(db.t.messages).toHaveLength(1);
+  });
+
   it('cria contato e conversa na primeira mensagem', async () => {
     const db = seed();
     const result = await processMetaEvent(db as any, 'instagram', event());
@@ -87,7 +98,7 @@ describe('processMetaEvent', () => {
 
   it('separa contatos do Instagram e do Messenger mesmo com o mesmo id de remetente', async () => {
     const db = seed();
-    db.t.channel_connections.push({ id: 'conn-2', organization_id: 'org-1', channel: 'messenger', provider_account_id: 'fb-page-1' });
+    db.t.channel_connections.push({ id: 'conn-2', organization_id: 'org-1', channel: 'messenger', provider_account_id: 'fb-page-1', status: 'connected' });
     await processMetaEvent(db as any, 'instagram', event());
     await processMetaEvent(db as any, 'messenger', event({ pageId: 'fb-page-1', mid: 'mid-fb-1' }));
     expect(db.t.contacts).toHaveLength(2);
@@ -99,7 +110,7 @@ describe('IA nas conversas da Meta', () => {
   function withAgent(auto: boolean) {
     const db = seed();
     db.t.ai_agents = [{ organization_id: 'org-1', is_enabled: true, auto_enable_new_conversations: auto }];
-    db.t.channel_connections.push({ id: 'conn-2', organization_id: 'org-1', channel: 'messenger', provider_account_id: 'fb-page-1' });
+    db.t.channel_connections.push({ id: 'conn-2', organization_id: 'org-1', channel: 'messenger', provider_account_id: 'fb-page-1', status: 'connected' });
     return db;
   }
 
