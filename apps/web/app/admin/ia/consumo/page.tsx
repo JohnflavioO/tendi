@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Gauge, Loader2, Save, ShieldCheck, TriangleAlert, Wallet } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { isInternalOrganization } from '@/lib/company-control';
 import { AdminShell } from '@/components/admin/admin-shell';
 import {
   monthStartIso, normalizeLimits, normalizePricing, resolveMonthlyLimit, typicalReplyCostBrl, usageLevel,
@@ -10,7 +11,7 @@ import {
 } from '@/lib/ai-limits';
 
 type Plan = { code: string; name: string; monthly_price: number | null; ai_monthly_replies: number | null };
-type Org = { id: string; name: string; status: string; plan_code: string | null };
+type Org = { id: string; name: string; status: string; plan_code: string | null; slug: string | null };
 type Agent = { organization_id: string; is_enabled: boolean; model: string | null; monthly_reply_limit: number | null };
 type Usage = { organization_id: string; replies: number; limit_hits: number; errors: number; input_tokens: number; output_tokens: number; cost_usd: number };
 
@@ -52,7 +53,7 @@ export default function AiUsagePage() {
     const ai = settingOf('ai');
     const planList = (planRes.data ?? []) as Plan[];
     setPlans(planList);
-    setOrgs(((orgRes.data ?? []) as Array<Org & { slug: string }>).filter(org => org.slug !== 'tendi'));
+    setOrgs((orgRes.data ?? []) as Org[]);
     setAgents((agentRes.data ?? []) as Agent[]);
     setUsage(((usageRes.data ?? []) as any[]).map(row => ({ ...row, replies: Number(row.replies), limit_hits: Number(row.limit_hits), errors: Number(row.errors), input_tokens: Number(row.input_tokens), output_tokens: Number(row.output_tokens), cost_usd: Number(row.cost_usd) })));
     setLimits(nextLimits);
@@ -81,15 +82,20 @@ export default function AiUsagePage() {
     })();
   }, [load]);
 
-  const rows = useMemo(() => orgs.map(org => {
+  const allRows = useMemo(() => orgs.map(org => {
     const agent = agents.find(item => item.organization_id === org.id);
     const plan = plans.find(item => item.code === org.plan_code);
     const used = usage.find(item => item.organization_id === org.id);
     const limit = resolveMonthlyLimit({ agentLimit: agent?.monthly_reply_limit, planLimit: plan?.ai_monthly_replies, isTrial: org.status === 'trial', settings: limits });
     const cost = (used?.cost_usd ?? 0) * pricing.usdBrl;
     const share = plan?.monthly_price ? cost / Number(plan.monthly_price) : null;
-    return { org, agent, plan, used, limit, cost, share, model: agent?.model || globalModel };
+    const internal = isInternalOrganization(org);
+    // O workspace interno não paga mensalidade: sem % da mensalidade.
+    return { org, agent, plan, used, limit, cost, share: internal ? null : share, model: agent?.model || globalModel, internal };
   }), [orgs, agents, plans, usage, limits, pricing, globalModel]);
+  // Os totais e a lista principal são só das empresas clientes; o uso interno (a Duda do TendiDesk) aparece à parte.
+  const rows = useMemo(() => allRows.filter(row => !row.internal), [allRows]);
+  const internalRows = useMemo(() => allRows.filter(row => row.internal), [allRows]);
 
   async function save() {
     setSaving(true); setMessage(null);
@@ -143,19 +149,20 @@ export default function AiUsagePage() {
 
       <section className={card}>
         <div className="mb-4 flex items-center gap-3"><span className="td-icon"><Gauge size={20} /></span><div><h2 className="td-title">Uso deste mês por empresa</h2><p className="text-xs text-slate-400">Ao atingir o limite, a IA para de responder e as conversas novas vão para “Aguardando atendente”. O mês vira no dia 1º (horário de Brasília).</p></div></div>
-        {rows.length ? <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-xs">
+        {allRows.length ? <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-xs">
           <thead className="text-[10px] uppercase tracking-wide text-slate-400"><tr><th className="py-2">Empresa</th><th>Plano</th><th>Respostas / limite</th><th>Custo IA</th><th>% da mensalidade</th><th>Modelo</th></tr></thead>
-          <tbody>{rows.map(row => {
+          <tbody>{[...rows, ...internalRows].map((row, index) => {
             const used = row.used?.replies ?? 0;
             const level = usageLevel(used, row.limit);
-            return <tr key={row.org.id} className="border-t border-tendi-line/70 align-middle">
-              <td className="py-3 font-semibold text-slate-700">{row.org.name}{row.org.status === 'trial' && <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">teste</span>}{!row.agent?.is_enabled && <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">IA desligada</span>}</td>
+            const firstInternal = row.internal && index === rows.length;
+            return <Fragment key={row.org.id}>{firstInternal && <tr><td colSpan={6} className="pb-1 pt-5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Uso interno · não entra nos totais acima</td></tr>}<tr className={row.internal ? 'border-t border-tendi-line/70 bg-tendi-haze/60 align-middle' : 'border-t border-tendi-line/70 align-middle'}>
+              <td className="py-3 font-semibold text-slate-700">{row.internal ? 'Workspace TendiDesk' : row.org.name}{row.internal && <span className="ml-2 rounded-full bg-fuchsia-50 px-2 py-0.5 text-[10px] text-tendi-magenta">interno</span>}{row.org.status === 'trial' && <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">teste</span>}{!row.agent?.is_enabled && <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">IA desligada</span>}</td>
               <td>{row.plan?.name ?? row.org.plan_code ?? '—'}</td>
               <td className="min-w-[180px]"><div className="flex items-center gap-2"><span className={level === 'reached' ? 'font-semibold text-rose-600' : level === 'warning' ? 'font-semibold text-amber-700' : 'text-slate-700'}>{num(used)} / {num(row.limit)}</span>{row.agent?.monthly_reply_limit ? <span className="text-[10px] text-slate-400">(exceção)</span> : null}</div><div className="mt-1 h-1.5 w-36 overflow-hidden rounded-full bg-slate-100"><div className={level === 'reached' ? 'h-full bg-rose-500' : level === 'warning' ? 'h-full bg-amber-500' : 'h-full bg-tendi-teal'} style={{ width: `${Math.min(100, (used / row.limit) * 100)}%` }} /></div>{row.used?.limit_hits ? <p className="mt-1 text-[10px] text-rose-600">{row.used.limit_hits} mensagem(ns) sem resposta por limite</p> : null}</td>
               <td>{brl(row.cost)}</td>
               <td>{row.share === null ? '—' : <span className={row.share > COST_ALERT ? 'font-semibold text-rose-600' : 'text-slate-700'}>{(row.share * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>}</td>
               <td className="font-mono text-[11px] text-slate-500">{row.model}</td>
-            </tr>;
+            </tr></Fragment>;
           })}</tbody></table></div> : <p className="text-xs text-slate-400">Nenhuma empresa cliente ainda.</p>}
       </section>
 
