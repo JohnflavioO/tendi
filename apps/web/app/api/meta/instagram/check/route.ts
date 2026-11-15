@@ -31,9 +31,9 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: 'Servidor sem credenciais do banco.' }, { status: 503 });
 
-  const { data: connection } = await admin.from('channel_connections').select('id,provider_account_id,status')
+  const { data: connection } = await admin.from('channel_connections').select('id,provider_account_id,status,settings')
     .eq('organization_id', organizationId).eq('channel', 'instagram').order('created_at', { ascending: false }).limit(1).maybeSingle();
-  const conn = connection as { id: string; provider_account_id: string | null; status: string } | null;
+  const conn = connection as { id: string; provider_account_id: string | null; status: string; settings?: { page_id?: unknown } | null } | null;
   if (!conn || conn.status !== 'connected') return NextResponse.json({ error: 'O Instagram não está conectado.' }, { status: 404 });
 
   const steps: Step[] = [];
@@ -44,15 +44,15 @@ export async function POST(request: Request) {
   }
   steps.push({ label: 'Token da Página', ok: true, detail: 'Guardado.' });
 
-  let pageId = '';
-  try {
-    // Só o id: o nome da Página exige pages_read_engagement, que o TendiDesk não pede.
-    const page = await metaGet('/me', { access_token: token, fields: 'id' }) as { id?: string };
-    pageId = page.id ?? '';
-    steps.push({ label: 'Página do Facebook', ok: Boolean(pageId), detail: pageId ? `id ${pageId}` : 'Sem id' });
-  } catch (error) {
-    steps.push({ label: 'Página do Facebook', ok: false, detail: errorText(error) });
+  // Ler a Página pelo /me exige pages_read_engagement, que o TendiDesk não pede. O id vem do que
+  // foi guardado ao conectar ou, nas conexões antigas, do Messenger da mesma empresa (mesma Página).
+  let pageId = typeof conn.settings?.page_id === 'string' ? conn.settings.page_id : '';
+  if (!pageId) {
+    const { data: messenger } = await admin.from('channel_connections').select('provider_account_id')
+      .eq('organization_id', organizationId).eq('channel', 'messenger').eq('status', 'connected').order('created_at', { ascending: false }).limit(1).maybeSingle();
+    pageId = (messenger as { provider_account_id?: string | null } | null)?.provider_account_id ?? '';
   }
+  steps.push({ label: 'Página do Facebook', ok: Boolean(pageId), detail: pageId ? `id ${pageId}` : 'Não identificada. Desconecte e conecte o Instagram de novo.' });
 
   if (conn.provider_account_id) {
     try {
