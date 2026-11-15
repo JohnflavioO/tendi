@@ -30,6 +30,7 @@ import { SupportBanner } from '@/components/support-banner';
 import { channelSupportsAi } from '@/lib/ai-agent';
 import { mergeMessages, previewText, statusLabel } from '@/lib/inbox-utils';
 import { channelLabel } from '@/lib/channels';
+import { planBadge, type PlanBadge } from '@/lib/complimentary';
 
 type Org = { id: string; name: string };
 type Contact = { id: string; full_name: string; phone_e164: string | null; email: string | null; tags: string[]; opt_in: boolean };
@@ -72,6 +73,7 @@ export default function InboxPage() {
   const [userId, setUserId] = useState('');
   const [organizations, setOrganizations] = useState<Org[]>([]);
   const [organizationId, setOrganizationId] = useState('');
+  const [badge, setBadge] = useState<PlanBadge | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [connectedChannels, setConnectedChannels] = useState<string[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -96,6 +98,18 @@ export default function InboxPage() {
   const lastCountRef = useRef(0);
   const [atBottom, setAtBottom] = useState(true);
   const [newSince, setNewSince] = useState(0);
+
+  // Selo do plano ao lado da logo (o Inbox desenha o próprio menu lateral).
+  useEffect(() => {
+    if (!organizationId) { setBadge(null); return; }
+    let active = true;
+    void (async () => {
+      const { data } = await (createClient() as any).from('organizations')
+        .select('plan_code,status,complimentary_since,complimentary_until').eq('id', organizationId).maybeSingle();
+      if (active) setBadge(planBadge(data));
+    })();
+    return () => { active = false; };
+  }, [organizationId]);
   const scrollToBottom = useCallback((smooth = true) => {
     const element = threadRef.current;
     if (element) element.scrollTo({ top: element.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
@@ -283,11 +297,13 @@ export default function InboxPage() {
 
   const supportOrganization = organizations.find(org => org.id === organizationId);
 
+
   const unreadCount = conversations.filter(item => item.unread_count > 0).length;
   const sidebar = (mobile: boolean) => <WorkspaceSidebar
     homeHref={withOrganization('/inbox', organizationId)}
     organizationId={organizationId}
     organizationName={supportOrganization?.name}
+    planBadge={badge}
     organizations={organizations}
     onSwitch={setOrganizationId}
     items={nav.map(([label, icon, href, area]) => ({ label, icon, href, area, active: area === 'inbox', badge: area === 'inbox' ? unreadCount : undefined }))}
