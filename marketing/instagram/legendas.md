@@ -176,3 +176,13 @@ Transforme visitas em conversas. Arraste para ver os 5 motivos para colocar o ch
 Teste grátis por 7 dias, sem cartão. Link na bio.
 
 #tendidesk #chatparasite #atendimentoaocliente #whatsappbusiness #crm #empreendedorismo
+
+## Post destaque · webchat/00-destaque
+
+Seu site atendendo 24 horas.
+
+Com o chat do TendiDesk, quem visita seu site conversa na hora: o Agente de IA responde, mostra opções em botões e chama a equipe quando precisa, com fila e posição para o cliente. Tudo cai no mesmo Inbox do seu WhatsApp. Para instalar, é só colar uma linha de código.
+
+Teste grátis por 7 dias, sem cartão. Link na bio.
+
+#tendidesk #chatparasite #atendimentoaocliente #inteligenciaartificial #whatsappbusiness #pequenasempresas

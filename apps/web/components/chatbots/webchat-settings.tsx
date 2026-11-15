@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Bot, Check, Copy, Globe2, Loader2, UsersRound } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { WebchatButtonsSettings } from '@/components/chatbots/webchat-buttons-settings';
+import { WebchatAvatarField } from '@/components/chatbots/webchat-avatar-field';
 import { buildWebchatEmbedSnippet, checkDisplayName, checkGreeting, isValidWebchatColor } from '@/lib/webchat';
 
-type Widget = { id: string; organization_id: string; public_key: string; is_enabled: boolean; display_name: string; greeting_message: string; color: string; ai_enabled: boolean; settings?: unknown };
+type Widget = { id: string; organization_id: string; public_key: string; is_enabled: boolean; display_name: string; greeting_message: string; color: string; ai_enabled: boolean; settings?: unknown; avatar_url?: string | null };
 
 const field = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#7C7EC0] disabled:bg-slate-50';
 const label = 'mb-1.5 block text-xs font-semibold text-slate-600';
@@ -28,7 +29,7 @@ export function WebchatSettingsCard({ organizationId, canManage }: { organizatio
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.from('webchat_widgets').select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color,ai_enabled,settings').eq('organization_id', organizationId).maybeSingle();
+      const { data } = await supabase.from('webchat_widgets').select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color,ai_enabled,settings,avatar_url').eq('organization_id', organizationId).maybeSingle();
       if (!active) return;
       if (data) {
         setWidget(data as Widget);
@@ -46,7 +47,7 @@ export function WebchatSettingsCard({ organizationId, canManage }: { organizatio
   async function createWidget() {
     setSaving('create');
     setMessage(null);
-    const { data, error } = await supabase.from('webchat_widgets').insert({ organization_id: organizationId }).select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color,ai_enabled,settings').single();
+    const { data, error } = await supabase.from('webchat_widgets').insert({ organization_id: organizationId }).select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color,ai_enabled,settings,avatar_url').single();
     setSaving('');
     if (error) { setMessage({ ok: false, text: `Não foi possível criar o widget: ${error.message}` }); return; }
     const created = data as Widget;
@@ -151,6 +152,9 @@ export function WebchatSettingsCard({ organizationId, canManage }: { organizatio
             <label><span className={label}>Nome exibido</span><input value={displayName} onChange={event => setDisplayName(event.target.value)} disabled={!canManage} className={field} /></label>
             <label><span className={label}>Mensagem de saudação</span><input value={greeting} onChange={event => setGreeting(event.target.value)} disabled={!canManage} className={field} /></label>
             <label><span className={label}>Cor</span><input type="color" value={/^#[0-9a-f]{6}$/i.test(color) ? color : '#004751'} onChange={event => setColor(event.target.value)} disabled={!canManage} className={`${field} h-[42px] cursor-pointer p-1`} /></label>
+          </div>
+          <div className="mt-4">
+            <WebchatAvatarField widgetId={widget.id} organizationId={widget.organization_id} value={widget.avatar_url ?? null} displayName={displayName} color={/^#[0-9a-f]{6}$/i.test(color) ? color : '#004751'} canManage={canManage} onChange={avatar_url => setWidget({ ...widget, avatar_url })} />
           </div>
           {canManage && <button type="button" onClick={() => void save()} disabled={saving === 'save'} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-[#004751] hover:bg-slate-50 disabled:opacity-50">{saving === 'save' && <Loader2 size={14} className="animate-spin" />}Salvar personalização</button>}
 

@@ -242,7 +242,33 @@ const browserFrame = (inner, height = 520, pop = false) => `<div class="browser$
     ${inner}
   </div></div>`;
 
+const CHECK_SVG = '<svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#CB0A9F"/><path d="m7 12.5 3.2 3L17 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const siteScreen = `<div class="site-nav"><span class="logo"></span><span class="links"><i></i><i></i><i></i></span></div>
+  <div class="site-hero"><div class="t1"></div><div class="t2"></div><div class="p"></div><div class="p"></div><div class="btn"></div></div>
+  <div class="site-cards"><i></i><i></i><i></i></div>`;
+
 const webchat = [
+  { file: '00-destaque', cls: 'hero', body: `
+    <p class="kicker">Webchat TendiDesk</p>
+    <h1 style="margin-top:18px;font-size:84px">Seu site atendendo<br><span class="hl">24 horas.</span></h1>
+    <div style="position:relative;height:560px;margin-top:34px">
+      <div class="laptop" style="position:absolute;right:-30px;top:0">
+        <div class="lid"><div class="scr">${siteScreen}</div></div>
+        <div class="base"></div>
+      </div>
+      ${chatAi('position:absolute;right:-40px;top:-26px;zoom:.86')}
+      <div class="phone-hero" style="left:-14px;top:50px"><div class="scr"><span class="notch"></span>
+        ${chatQueue('width:398px;zoom:.7;border-radius:0;box-shadow:none;padding-top:30px;background:#F6F7FB;height:672px;display:flex;flex-direction:column')}
+      </div></div>
+    </div>
+    <div class="feat" style="margin-top:40px">
+      <div>${CHECK_SVG}IA responde na hora</div>
+      <div>${CHECK_SVG}Fila com a posição</div>
+      <div>${CHECK_SVG}Mesmo Inbox do WhatsApp</div>
+      <div>${CHECK_SVG}Instala com uma linha</div>
+    </div>
+    <div class="footer" style="margin-top:auto"><img src="${LOGO_WHITE}" alt="TendiDesk"><span class="pill magenta-bg" style="font-size:28px">Teste grátis por 7 dias</span></div>` },
+
   { file: '01-post-seu-site-atende', cls: 'light', body: `${curves('arc', '#D9DAF0')}
     <p class="kicker">Webchat TendiDesk</p>
     <h1 style="margin-top:24px;font-size:96px">Seu site<br>também <span class="hl">atende.</span></h1>
