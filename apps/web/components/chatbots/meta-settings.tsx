@@ -62,6 +62,7 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
       cleanUrl(['igError', 'igDetail']);
     }
     if (igConnected) { setNotice(igConnected === '1' ? 'Instagram conectado.' : `Instagram conectado: @${igConnected}.`); cleanUrl(['igConnected']); void onChanged(); }
+    if (params.get('igWarning') === 'webhook') { setError('Instagram conectado, mas a Meta não aceitou inscrever a Página para receber mensagens. Desconecte e conecte de novo.'); cleanUrl(['igWarning']); }
     if (metaStep === 'choose') {
       setStep('choose');
       cleanUrl(['metaStep']);
