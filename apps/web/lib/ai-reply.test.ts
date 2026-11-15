@@ -250,11 +250,86 @@ describe('resposta automática no Webchat', () => {
     expect(sent).toMatchObject({ delivery_status: 'sent', provider: 'webchat', body: 'A limpeza custa R$ 150.' });
   });
 
-  it('ainda ignora canais que não são WhatsApp nem Webchat', async () => {
-    const { db, run, send } = setup();
-    db.t.conversations[0]!.channel = 'instagram';
-    expect(await run()).toEqual({ status: 'skipped', reason: 'conversation_not_found' });
+  it('nunca responde no Messenger, mesmo com a IA ligada na conversa', async () => {
+    const { db, deps, trigger, send, generate } = setup();
+    db.t.conversations[0]!.channel = 'messenger';
+    const sendInstagram = vi.fn(async () => ({}));
+    expect(await runAiAutoReply(db as any, trigger, { ...deps, sendInstagram })).toEqual({ status: 'skipped', reason: 'conversation_not_found' });
+    expect(generate).not.toHaveBeenCalled();
     expect(send).not.toHaveBeenCalled();
+    expect(sendInstagram).not.toHaveBeenCalled();
+    expect(db.t.messages.filter(m => m.direction === 'outbound')).toHaveLength(0);
+  });
+});
+
+describe('resposta automática no Instagram', () => {
+  function instagramSetup(options: Parameters<typeof setup>[0] = {}) {
+    const ctx = setup(options);
+    const { db } = ctx;
+    db.t.conversations[0]!.channel = 'instagram';
+    db.t.conversations[0]!.contacts = { phone_e164: null, full_name: 'Contato do Instagram', external_id: 'instagram:ig-user-7' };
+    // A conexão do WhatsApp continua lá só pela assinatura (configuração da empresa).
+    db.t.channel_connections.push({ id: 'conn-ig', organization_id: 'org1', channel: 'instagram', provider_account_id: 'ig-acc-1', status: 'connected' });
+    for (const m of db.t.messages) m.sent_at = m.created_at;
+    const sendInstagram = vi.fn(async (_input: { connectionId: string; accountId: string; recipientId: string; text: string }) => ({ recipient_id: 'ig-user-7', message_id: 'IG-MID-1' }));
+    const deps = { ...ctx.deps, sendInstagram };
+    return { ...ctx, sendInstagram, run: () => runAiAutoReply(db as any, ctx.trigger, deps) };
+  }
+
+  it('entrega pela Graph API com a assinatura sem asteriscos e registra o id da Meta', async () => {
+    const { db, run, send, sendInstagram } = instagramSetup();
+    expect(await run()).toEqual({ status: 'replied' });
+    expect(send).not.toHaveBeenCalled();
+    expect(sendInstagram).toHaveBeenCalledWith({ connectionId: 'conn-ig', accountId: 'ig-acc-1', recipientId: 'ig-user-7', text: 'Bia:\nA limpeza custa R$ 150.' });
+    const sent = db.t.messages.find(m => m.direction === 'outbound')!;
+    expect(sent).toMatchObject({ provider: 'instagram', delivery_status: 'sent', provider_message_id: 'IG-MID-1', body: 'A limpeza custa R$ 150.' });
+    expect(sent.payload.sender).toEqual({ type: 'ai', name: 'Bia' });
+    expect(db.t.ai_usage_events[0]).toMatchObject({ outcome: 'replied' });
+    expect(db.t.conversations[0].ai_mode).toBe('on');
+  });
+
+  it('não chama o cliente de "Contato" (nome provisório do Instagram)', async () => {
+    const { run, generate } = instagramSetup();
+    await run();
+    expect((generate.mock.calls[0]![0] as any).system).not.toMatch(/\bContato\b/);
+  });
+
+  it('opções rápidas viram lista numerada também no Instagram', async () => {
+    const { run, sendInstagram } = instagramSetup({ reply: 'Qual horário prefere? [[OPCOES: Manhã | Tarde]]' });
+    expect(await run()).toEqual({ status: 'replied' });
+    expect(sendInstagram.mock.calls[0]![0].text).toBe('Bia:\nQual horário prefere?\n\n1. Manhã\n2. Tarde');
+  });
+
+  it('marcador de transferência: envia o aviso e passa a conversa para a equipe', async () => {
+    const { db, run, sendInstagram } = instagramSetup({ reply: `Vou chamar alguém da equipe. ${HANDOFF_MARKER}` });
+    expect(await run()).toEqual({ status: 'handoff' });
+    expect(sendInstagram.mock.calls[0]![0].text).toBe('Bia:\nVou chamar alguém da equipe.');
+    expect(db.t.conversations[0].ai_mode).toBe('handoff');
+  });
+
+  it('fora da janela de 24 h da Meta: não chama o modelo, não envia e deixa com a equipe', async () => {
+    const { db, run, sendInstagram, generate } = instagramSetup();
+    for (const m of db.t.messages) m.sent_at = '2026-11-09T12:00:00.000Z'; // agora é 11/11 13:00
+    expect(await run()).toEqual({ status: 'handoff', reason: 'outside_24h_window' });
+    expect(generate).not.toHaveBeenCalled();
+    expect(sendInstagram).not.toHaveBeenCalled();
+    expect(db.t.messages.filter(m => m.direction === 'outbound')).toHaveLength(0);
+    expect(db.t.conversations[0].ai_mode).toBe('handoff');
+  });
+
+  it('a Meta recusou por janela vencida: marca a falha e passa para a equipe', async () => {
+    const { db, run, sendInstagram } = instagramSetup();
+    sendInstagram.mockRejectedValueOnce(new Error('(#10) This message is sent outside of allowed window.'));
+    expect((await run()).status).toBe('error');
+    expect(db.t.messages.find(m => m.direction === 'outbound')).toMatchObject({ delivery_status: 'failed' });
+    expect(db.t.conversations[0].ai_mode).toBe('handoff');
+  });
+
+  it('Instagram desconectado: registra o erro e não envia', async () => {
+    const { db, run, sendInstagram } = instagramSetup();
+    db.t.channel_connections.find(c => c.channel === 'instagram')!.status = 'disconnected';
+    expect(await run()).toEqual({ status: 'error', reason: 'Instagram da empresa desconectado.' });
+    expect(sendInstagram).not.toHaveBeenCalled();
   });
 });
 

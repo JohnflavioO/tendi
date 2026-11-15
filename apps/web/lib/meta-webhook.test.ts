@@ -94,3 +94,44 @@ describe('processMetaEvent', () => {
     expect(db.t.contacts.map(c => c.external_id)).toEqual(['instagram:visitor-1', 'messenger:visitor-1']);
   });
 });
+
+describe('IA nas conversas da Meta', () => {
+  function withAgent(auto: boolean) {
+    const db = seed();
+    db.t.ai_agents = [{ organization_id: 'org-1', is_enabled: true, auto_enable_new_conversations: auto }];
+    db.t.channel_connections.push({ id: 'conn-2', organization_id: 'org-1', channel: 'messenger', provider_account_id: 'fb-page-1' });
+    return db;
+  }
+
+  it('Instagram: conversa nova nasce com a IA ligada e devolve o gatilho da resposta', async () => {
+    const db = withAgent(true);
+    const result = await processMetaEvent(db as any, 'instagram', event());
+    expect(db.t.conversations[0]).toMatchObject({ channel: 'instagram', ai_mode: 'on' });
+    expect(result).toEqual({ handled: true, aiTrigger: { organizationId: 'org-1', conversationId: db.t.conversations[0]!.id, messageId: db.t.messages[0]!.id } });
+  });
+
+  it('Instagram: segue o agente quando ele não liga a IA sozinho em conversas novas', async () => {
+    const db = withAgent(false);
+    expect(await processMetaEvent(db as any, 'instagram', event())).toEqual({ handled: true });
+    expect(db.t.conversations[0]).toMatchObject({ ai_mode: 'off' });
+  });
+
+  it('Messenger: sempre sem IA, mesmo com o agente ligando a IA em conversas novas', async () => {
+    const db = withAgent(true);
+    expect(await processMetaEvent(db as any, 'messenger', event({ pageId: 'fb-page-1', mid: 'mid-fb-1' }))).toEqual({ handled: true });
+    expect(db.t.conversations[0]).toMatchObject({ channel: 'messenger', ai_mode: 'off' });
+  });
+
+  it('Messenger com ai_mode ligado por engano no banco: ainda não dispara a IA', async () => {
+    const db = withAgent(true);
+    await processMetaEvent(db as any, 'messenger', event({ pageId: 'fb-page-1', mid: 'mid-fb-1' }));
+    db.t.conversations[0]!.ai_mode = 'on';
+    expect(await processMetaEvent(db as any, 'messenger', event({ pageId: 'fb-page-1', mid: 'mid-fb-2' }))).toEqual({ handled: true });
+  });
+
+  it('reentrega da mesma mensagem não dispara a IA de novo', async () => {
+    const db = withAgent(true);
+    await processMetaEvent(db as any, 'instagram', event());
+    expect(await processMetaEvent(db as any, 'instagram', event())).toEqual({ handled: true, reason: 'duplicate' });
+  });
+});

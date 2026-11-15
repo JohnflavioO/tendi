@@ -1,17 +1,19 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
-  AI_TONES, HANDOFF_MARKER, customerFirstName, MAX_OPTION_CHARS, MAX_QUICK_OPTIONS, OPTIONS_MARKER, buildSystemPrompt, normalizeBusinessHours,
+  AI_TONES, HANDOFF_MARKER, channelSupportsAi, customerFirstName, MAX_OPTION_CHARS, MAX_QUICK_OPTIONS, OPTIONS_MARKER, buildSystemPrompt, normalizeBusinessHours,
   type AiProvider, type AiTone, type KnowledgeItem,
 } from './ai-agent';
 import type { ChatTurn, GenerateFn } from './ai-llm';
 import { friendlyAiError } from './ai-llm';
 import { friendlySendError, pickProviderMessageId, type SendFn } from './inbox-send';
+import { friendlyMetaSendError } from './meta-client';
 import { isTrialExpired } from './trial';
 import { aiSigner, normalizeSignature, signText } from './signature';
 import { monthStartIso, normalizeLimits, normalizePricing, resolveMonthlyLimit, estimateCostUsd } from './ai-limits';
 
 /**
- * Resposta automática do agente de IA no WhatsApp.
+ * Resposta automática do agente de IA no WhatsApp, no Webchat e no Instagram (o Messenger fica
+ * só com a equipe).
  *
  * Disparada pelo webhook depois que uma mensagem do cliente é gravada numa conversa com a IA ligada
  * (conversations.ai_mode = 'on'). Fluxo:
@@ -36,16 +38,28 @@ const HISTORY_LIMIT = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type AiTrigger = { organizationId: string; conversationId: string; messageId: string };
+/** Envio de texto pelo Instagram (Graph API da Meta). Quem implementa busca o token da página no Vault. */
+export type InstagramSendFn = (input: { connectionId: string; accountId: string; recipientId: string; text: string }) => Promise<unknown>;
 export type AiReplyDeps = {
   generate: GenerateFn;
   send: SendFn;
+  /** Só é usado nas conversas do Instagram. */
+  sendInstagram?: InstagramSendFn;
   resolveKey: (provider: AiProvider) => Promise<string | null>;
   sleep?: (ms: number) => Promise<void>;
   now?: () => Date;
 };
 export type AiReplyResult = { status: 'replied' | 'handoff' | 'skipped' | 'error'; reason?: string };
-/** Canais em que a resposta automática já funciona. Instagram/Messenger ainda não entram aqui. */
-const AI_REPLY_CHANNELS = ['whatsapp', 'webchat'];
+/**
+ * A Meta só aceita mensagem da empresa até 24 h depois da última mensagem do cliente
+ * (sem tags especiais). Fora disso a IA não envia e deixa a conversa com a equipe.
+ */
+export const META_REPLY_WINDOW_MS = DAY_MS;
+
+/** Erro da Graph API de mensagem fora da janela permitida. */
+function isOutsideWindowError(message: string): boolean {
+  return /outside (of )?(the )?allowed window|2018278/i.test(message);
+}
 
 const isRecord = (value: unknown): value is Json => typeof value === 'object' && value !== null && !Array.isArray(value);
 const text = (value: unknown) => (typeof value === 'string' ? value : '');
@@ -122,13 +136,13 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   // 1) Conversa com a IA ligada.
   const conversationResult = await db
     .from('conversations')
-    .select('id,organization_id,channel,ai_mode,contacts(phone_e164,full_name)')
+    .select('id,organization_id,channel,ai_mode,contacts(phone_e164,full_name,external_id)')
     .eq('id', conversationId)
     .eq('organization_id', organizationId)
     .maybeSingle();
   if (conversationResult.error) throw new Error(`conversations: ${conversationResult.error.message}`);
   const conversation = conversationResult.data as { channel: string; ai_mode: string; contacts: any } | null;
-  if (!conversation || !AI_REPLY_CHANNELS.includes(conversation.channel)) return { status: 'skipped', reason: 'conversation_not_found' };
+  if (!conversation || !channelSupportsAi(conversation.channel)) return { status: 'skipped', reason: 'conversation_not_found' };
   if (conversation.ai_mode !== 'on') return { status: 'skipped', reason: 'ai_off' };
 
   // 2) Esta precisa ser a última mensagem da conversa.
@@ -228,10 +242,23 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   const [profileResult, knowledgeResult, historyResult] = await Promise.all([
     db.from('ai_business_profiles').select('*').eq('organization_id', organizationId).maybeSingle(),
     db.from('ai_knowledge_items').select('title,content,is_active').eq('organization_id', organizationId).eq('is_active', true).order('created_at'),
-    db.from('messages').select('direction,message_type,body,created_at').eq('conversation_id', conversationId).neq('direction', 'internal')
+    db.from('messages').select('direction,message_type,body,created_at,sent_at').eq('conversation_id', conversationId).neq('direction', 'internal')
       .order('created_at', { ascending: false }).limit(HISTORY_LIMIT),
   ]);
   if (historyResult.error) throw new Error(`messages.history: ${historyResult.error.message}`);
+
+  // Instagram: fora da janela de 24 h da Meta a resposta seria recusada. Nem chama o modelo:
+  // passa a conversa para a equipe (que pode responder quando o cliente voltar a escrever).
+  const isInstagram = conversation.channel === 'instagram';
+  if (isInstagram) {
+    const rows = (historyResult.data ?? []) as Array<{ direction: string; created_at?: string | null; sent_at?: string | null }>;
+    const lastInbound = rows.find(row => row.direction === 'inbound');
+    const lastAt = Date.parse(text(lastInbound?.sent_at) || text(lastInbound?.created_at));
+    if (!Number.isFinite(lastAt) || now().getTime() - lastAt > META_REPLY_WINDOW_MS) {
+      await db.from('conversations').update({ ai_mode: 'handoff' }).eq('id', conversationId);
+      return { status: 'handoff', reason: 'outside_24h_window' };
+    }
+  }
   const profile = (profileResult.data ?? {}) as Json;
   const tone = (AI_TONES.some(item => item.value === agent.tone) ? agent.tone : 'cordial') as AiTone;
   const system = buildSystemPrompt({
@@ -274,15 +301,31 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   const reply = parsed.text || (parsed.handoff ? handoffMessage : '');
   if (!reply) return fail('O modelo devolveu uma resposta vazia.', tokens);
 
-  // 10) Entrega. WhatsApp fala com a D-API; Webchat só grava (quem lê é o navegador do visitante,
-  // que consulta /api/webchat/messages — não há provedor externo para chamar).
+  // 10) Entrega. WhatsApp fala com a D-API; Instagram com a Graph API da Meta; Webchat só grava
+  // (quem lê é o navegador do visitante, que consulta /api/webchat/messages — não há provedor externo).
   const isWebchat = conversation.channel === 'webchat';
+  const contact = Array.isArray(conversation.contacts) ? conversation.contacts[0] : conversation.contacts;
   let signer = '';
   let sessionId = '';
   let phone = '';
+  let instagram: { connectionId: string; accountId: string; recipientId: string } | null = null;
 
-  if (!isWebchat) {
-    const contact = Array.isArray(conversation.contacts) ? conversation.contacts[0] : conversation.contacts;
+  if (isInstagram) {
+    const externalId = text(contact?.external_id);
+    const recipientId = externalId.startsWith('instagram:') ? externalId.slice('instagram:'.length) : '';
+    const [connection, workspace] = await Promise.all([
+      db.from('channel_connections').select('id,provider_account_id,status').eq('organization_id', organizationId).eq('channel', 'instagram').maybeSingle(),
+      // A assinatura é uma configuração da empresa (guardada na conexão do WhatsApp, em Configurações).
+      db.from('channel_connections').select('settings').eq('organization_id', organizationId).eq('channel', 'whatsapp').maybeSingle(),
+    ]);
+    const accountId = text(connection.data?.provider_account_id);
+    if (!recipientId) return fail('O contato não tem um ID do Instagram válido.', tokens);
+    if (!accountId || connection.data?.status !== 'connected') return fail('Instagram da empresa desconectado.', tokens);
+    if (!deps.sendInstagram) return fail('Envio pelo Instagram indisponível no servidor.', tokens);
+    instagram = { connectionId: text(connection.data?.id), accountId, recipientId };
+    const signature = normalizeSignature(workspace.data?.settings);
+    signer = signature.enabled ? aiSigner(agent.name, signature.aiSuffix) : '';
+  } else if (!isWebchat) {
     phone = text(contact?.phone_e164).replace(/\D/g, '');
     const connection = await db
       .from('channel_connections')
@@ -307,7 +350,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
       message_type: 'text',
       body: reply,
       delivery_status: 'queued',
-      provider: isWebchat ? 'webchat' : 'd-api',
+      provider: isWebchat ? 'webchat' : isInstagram ? 'instagram' : 'd-api',
       sent_at: now().toISOString(),
       payload: basePayload,
     })
@@ -320,7 +363,9 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     await db.from('messages').update({ delivery_status: 'sent', sent_at: now().toISOString() }).eq('id', rowId);
   } else {
     try {
-      const response = await deps.send('/messages/send/text', { sessionId, to: phone, text: signText(reply, signer) });
+      const response = instagram && deps.sendInstagram
+        ? await deps.sendInstagram({ ...instagram, text: signText(reply, signer, 'plain') })
+        : await deps.send('/messages/send/text', { sessionId, to: phone, text: signText(reply, signer) });
       const providerMessageId = pickProviderMessageId(response);
       const patch = { delivery_status: 'sent', sent_at: now().toISOString() };
       const update = await db.from('messages').update(providerMessageId ? { ...patch, provider_message_id: providerMessageId } : patch).eq('id', rowId);
@@ -328,6 +373,11 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       await db.from('messages').update({ delivery_status: 'failed', payload: { ...basePayload, error: reason.slice(0, 300) } }).eq('id', rowId);
+      if (isInstagram) {
+        // A Meta recusou por janela vencida: a equipe assume a conversa.
+        if (isOutsideWindowError(reason)) await db.from('conversations').update({ ai_mode: 'handoff' }).eq('id', conversationId);
+        return fail(friendlyMetaSendError(error), tokens);
+      }
       return fail(friendlySendError(reason), tokens);
     }
   }
