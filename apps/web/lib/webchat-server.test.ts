@@ -114,14 +114,14 @@ describe('listWebchatMessagesSince', () => {
   it('lista as mensagens e assina o link de um anexo', async () => {
     const db = seed();
     db.t.messages.push(
-      { id: 'm1', conversation_id: 'conv-1', direction: 'outbound', body: 'Oi!', created_at: '2026-11-13T12:00:00.000Z', delivery_status: 'sent', payload: null },
+      { id: 'm1', conversation_id: 'conv-1', direction: 'outbound', body: 'Oi!', created_at: '2026-11-13T12:00:00.000Z', delivery_status: 'sent', payload: { sender: { type: 'ai', name: 'Duda' } } },
       { id: 'm2', conversation_id: 'conv-1', direction: 'outbound', body: null, created_at: '2026-11-13T12:01:00.000Z', delivery_status: 'sent', payload: { media: { path: 'org-1/conv-1/foto.jpg', filename: 'foto.jpg' } } },
       { id: 'm3', conversation_id: 'conv-2', direction: 'outbound', body: 'outra conversa', created_at: '2026-11-13T12:02:00.000Z', delivery_status: 'sent', payload: null },
     );
     const messages = await listWebchatMessagesSince(db as any, 'conv-1', null);
     expect(messages).toEqual([
-      { id: 'm1', direction: 'outbound', body: 'Oi!', createdAt: '2026-11-13T12:00:00.000Z', status: 'sent', mediaUrl: null, filename: null },
-      { id: 'm2', direction: 'outbound', body: null, createdAt: '2026-11-13T12:01:00.000Z', status: 'sent', mediaUrl: 'https://signed.example/org-1/conv-1/foto.jpg', filename: 'foto.jpg' },
+      { id: 'm1', direction: 'outbound', body: 'Oi!', createdAt: '2026-11-13T12:00:00.000Z', status: 'sent', mediaUrl: null, filename: null, senderName: 'Duda' },
+      { id: 'm2', direction: 'outbound', body: null, createdAt: '2026-11-13T12:01:00.000Z', status: 'sent', mediaUrl: 'https://signed.example/org-1/conv-1/foto.jpg', filename: 'foto.jpg', senderName: null },
     ]);
   });
 

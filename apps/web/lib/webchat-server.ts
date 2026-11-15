@@ -18,7 +18,7 @@ export function newWebchatToken(): { token: string; hash: string } {
 
 export const hashWebchatToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 
-export type WebchatWidget = { id: string; organization_id: string; is_enabled: boolean; display_name: string; greeting_message: string; color: string };
+export type WebchatWidget = { id: string; organization_id: string; is_enabled: boolean; display_name: string; greeting_message: string; color: string; ai_enabled?: boolean | null };
 
 /** Cria o contato, a conversa e a sessão de um novo visitante do widget. */
 export async function startWebchatSession(admin: Db, widget: WebchatWidget): Promise<{ token: string; conversationId: string }> {
@@ -32,7 +32,8 @@ export async function startWebchatSession(admin: Db, widget: WebchatWidget): Pro
   const conversation = await admin.from('conversations')
     .insert({
       organization_id: widget.organization_id, contact_id: contactId, channel: 'webchat', status: 'open',
-      unread_count: 0, last_message_at: nowIso, ai_mode: await initialAiMode(admin, widget.organization_id),
+      unread_count: 0, last_message_at: nowIso, // IA só quando a empresa deixou o Webchat com o agente (padrão) e o agente está liberado.
+      ai_mode: widget.ai_enabled === false ? 'off' : await initialAiMode(admin, widget.organization_id),
     })
     .select('id').single();
   if (conversation.error || !conversation.data) throw new Error(`Não foi possível iniciar a conversa: ${conversation.error?.message ?? 'sem retorno'}`);
@@ -102,7 +103,14 @@ export async function postWebchatMessage(admin: Db, session: WebchatSession, tex
   return { ok: true, messageId: (inserted.data as { id: string }).id, aiMode: session.aiMode };
 }
 
-export type WebchatMessageView = { id: string; direction: string; body: string | null; createdAt: string; status: string; mediaUrl: string | null; filename: string | null };
+export type WebchatMessageView = { id: string; direction: string; body: string | null; createdAt: string; status: string; mediaUrl: string | null; filename: string | null; senderName?: string | null };
+
+/** Nome de quem respondeu (agente de IA ou atendente), mostrado acima da mensagem no chat do site. */
+function senderNameOf(payload: Record<string, unknown> | null): string | null {
+  const sender = payload && typeof payload === 'object' ? (payload as Record<string, unknown>).sender : null;
+  const name = sender && typeof sender === 'object' && !Array.isArray(sender) ? (sender as Record<string, unknown>).name : null;
+  return typeof name === 'string' && name.trim() ? name.trim().slice(0, 40) : null;
+}
 
 /** Mensagens da conversa a partir de um instante, com link temporário para qualquer arquivo enviado pela equipe. */
 export async function listWebchatMessagesSince(admin: Db, conversationId: string, after: string | null): Promise<WebchatMessageView[]> {
@@ -121,6 +129,10 @@ export async function listWebchatMessagesSince(admin: Db, conversationId: string
       const signed = await admin.storage.from(MEDIA_BUCKET).createSignedUrl(path, 600);
       mediaUrl = signed.data?.signedUrl ?? null;
     }
-    return { id: row.id, direction: row.direction, body: row.body, createdAt: row.created_at, status: row.delivery_status, mediaUrl, filename: typeof filename === 'string' ? filename : null };
+    return {
+      id: row.id, direction: row.direction, body: row.body, createdAt: row.created_at, status: row.delivery_status, mediaUrl,
+      filename: typeof filename === 'string' ? filename : null,
+      ...(row.direction === 'outbound' ? { senderName: senderNameOf(row.payload) } : {}),
+    };
   }));
 }

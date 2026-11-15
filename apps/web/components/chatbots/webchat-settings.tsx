@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Copy, Globe2, Loader2 } from 'lucide-react';
+import { Bot, Check, Copy, Globe2, Loader2, UsersRound } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { buildWebchatEmbedSnippet, checkDisplayName, checkGreeting, isValidWebchatColor } from '@/lib/webchat';
 
-type Widget = { id: string; organization_id: string; public_key: string; is_enabled: boolean; display_name: string; greeting_message: string; color: string };
+type Widget = { id: string; organization_id: string; public_key: string; is_enabled: boolean; display_name: string; greeting_message: string; color: string; ai_enabled: boolean };
 
 const field = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#7C7EC0] disabled:bg-slate-50';
 const label = 'mb-1.5 block text-xs font-semibold text-slate-600';
@@ -21,11 +21,13 @@ export function WebchatSettingsCard({ organizationId, canManage }: { organizatio
   const [saving, setSaving] = useState('');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  // Agente de IA da empresa liberado (Console) — sem ele, a opção "IA" não tem efeito.
+  const [agentReady, setAgentReady] = useState<boolean | null>(null);
 
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.from('webchat_widgets').select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color').eq('organization_id', organizationId).maybeSingle();
+      const { data } = await supabase.from('webchat_widgets').select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color,ai_enabled').eq('organization_id', organizationId).maybeSingle();
       if (!active) return;
       if (data) {
         setWidget(data as Widget);
@@ -33,6 +35,8 @@ export function WebchatSettingsCard({ organizationId, canManage }: { organizatio
         setGreeting((data as Widget).greeting_message);
         setColor((data as Widget).color);
       }
+      const { data: agent } = await supabase.from('ai_agents').select('is_enabled').eq('organization_id', organizationId).maybeSingle();
+      if (active) setAgentReady(Boolean(agent?.is_enabled));
       setLoading(false);
     })();
     return () => { active = false; };
@@ -41,7 +45,7 @@ export function WebchatSettingsCard({ organizationId, canManage }: { organizatio
   async function createWidget() {
     setSaving('create');
     setMessage(null);
-    const { data, error } = await supabase.from('webchat_widgets').insert({ organization_id: organizationId }).select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color').single();
+    const { data, error } = await supabase.from('webchat_widgets').insert({ organization_id: organizationId }).select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color,ai_enabled').single();
     setSaving('');
     if (error) { setMessage({ ok: false, text: `Não foi possível criar o widget: ${error.message}` }); return; }
     const created = data as Widget;
@@ -59,6 +63,17 @@ export function WebchatSettingsCard({ organizationId, canManage }: { organizatio
     if (error) { setMessage({ ok: false, text: error.message }); return; }
     setWidget({ ...widget, is_enabled: !widget.is_enabled });
     setMessage({ ok: true, text: widget.is_enabled ? 'Widget desligado. O código no site para de responder.' : 'Widget ligado. Ele já responde no site.' });
+  }
+
+  async function setAiMode(enabled: boolean) {
+    if (!widget || widget.ai_enabled === enabled) return;
+    setSaving('ai');
+    setMessage(null);
+    const { error } = await supabase.from('webchat_widgets').update({ ai_enabled: enabled }).eq('id', widget.id);
+    setSaving('');
+    if (error) { setMessage({ ok: false, text: 'Não foi possível alterar o modo de atendimento.' }); return; }
+    setWidget({ ...widget, ai_enabled: enabled });
+    setMessage({ ok: true, text: enabled ? 'Pronto: o Agente de IA responde as próximas conversas do site.' : 'Pronto: as próximas conversas do site ficam só com a equipe.' });
   }
 
   async function save() {
@@ -113,6 +128,24 @@ export function WebchatSettingsCard({ organizationId, canManage }: { organizatio
 
       {widget && (
         <>
+          <div className="mt-5 border-t border-slate-100 pt-5">
+            <p className={label}>Quem responde as conversas do site</p>
+            <div role="radiogroup" aria-label="Quem responde as conversas do site" className="grid gap-3 sm:grid-cols-2">
+              {[
+                { value: true, icon: Bot, title: 'Agente de IA', text: 'Responde na hora, 24 horas, e chama a equipe quando precisa.' },
+                { value: false, icon: UsersRound, title: 'Só a equipe', text: 'Atendimento manual: as conversas chegam no Inbox para alguém responder.' },
+              ].map(option => {
+                const active = (widget.ai_enabled !== false) === option.value;
+                return <button key={String(option.value)} type="button" role="radio" aria-checked={active} disabled={!canManage || saving === 'ai'} onClick={() => void setAiMode(option.value)} className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition disabled:cursor-not-allowed ${active ? 'border-[#004751] bg-[#F1F8F7] ring-1 ring-[#004751]' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                  <span className={`rounded-xl p-2.5 ${active ? 'bg-[#004751] text-white' : 'bg-slate-100 text-slate-500'}`}><option.icon size={18} /></span>
+                  <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2 text-sm font-semibold text-[#25275B]">{option.title}{active && (saving === 'ai' ? <Loader2 size={14} className="animate-spin text-[#004751]" /> : <Check size={15} className="text-[#004751]" />)}</span><span className="mt-0.5 block text-xs leading-5 text-slate-500">{option.text}</span></span>
+                </button>;
+              })}
+            </div>
+            {widget.ai_enabled !== false && agentReady === false && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[11px] text-amber-800">O Agente de IA desta empresa ainda não está liberado. Até lá, as conversas do site ficam com a equipe.</p>}
+            <p className="mt-2 text-[11px] text-slate-400">Vale para as próximas conversas. Em cada conversa, a equipe ainda pode ligar ou desligar a IA pelo Inbox.</p>
+          </div>
+
           <div className="mt-5 grid gap-4 border-t border-slate-100 pt-5 md:grid-cols-[1fr_1fr_120px]">
             <label><span className={label}>Nome exibido</span><input value={displayName} onChange={event => setDisplayName(event.target.value)} disabled={!canManage} className={field} /></label>
             <label><span className={label}>Mensagem de saudação</span><input value={greeting} onChange={event => setGreeting(event.target.value)} disabled={!canManage} className={field} /></label>

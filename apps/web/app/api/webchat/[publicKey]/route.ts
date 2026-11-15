@@ -16,7 +16,7 @@ export function OPTIONS() {
 
 async function loadWidget(admin: ReturnType<typeof createAdminClient>, publicKey: string): Promise<WebchatWidget | null> {
   if (!admin || !isValidWebchatPublicKey(publicKey)) return null;
-  const { data } = await admin.from('webchat_widgets').select('id,organization_id,is_enabled,display_name,greeting_message,color').eq('public_key', publicKey).maybeSingle();
+  const { data } = await admin.from('webchat_widgets').select('id,organization_id,is_enabled,display_name,greeting_message,color,ai_enabled').eq('public_key', publicKey).maybeSingle();
   return data as WebchatWidget | null;
 }
 
