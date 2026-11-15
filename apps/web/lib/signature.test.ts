@@ -22,4 +22,9 @@ describe('assinatura', () => {
     expect(signText('  Olá ', 'Ana')).toBe('*Ana:*\nOlá');
     expect(signText('Olá', '')).toBe('Olá');
   });
+
+  it('no Instagram assina sem asteriscos (lá eles apareceriam no texto)', () => {
+    expect(signText('  Olá ', 'Duda', 'plain')).toBe('Duda:\nOlá');
+    expect(signText('Olá', '', 'plain')).toBe('Olá');
+  });
 });

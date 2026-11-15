@@ -48,9 +48,12 @@ export function aiSigner(agentName: string | null | undefined, aiSuffix: boolean
   return aiSuffix ? cleanName(`${name} · ${AI_SUFFIX}`) : name;
 }
 
-/** "*Ana:*\nOlá ..." — o formato que o WhatsApp mostra em negrito no topo do balão. */
-export function signText(text: string, signer: string): string {
+/**
+ * "*Ana:*\nOlá ..." — o formato que o WhatsApp mostra em negrito no topo do balão.
+ * style 'plain' ("Ana:\nOlá ...") é para canais que não interpretam os asteriscos, como o Instagram.
+ */
+export function signText(text: string, signer: string, style: 'whatsapp' | 'plain' = 'whatsapp'): string {
   const body = text.trim();
   if (!body || !signer) return text;
-  return `*${signer}:*\n${body}`;
+  return style === 'plain' ? `${signer}:\n${body}` : `*${signer}:*\n${body}`;
 }

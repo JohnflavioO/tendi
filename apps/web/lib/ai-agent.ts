@@ -24,6 +24,16 @@ export const MAX_QUICK_OPTIONS = 3;
 export const MAX_OPTION_CHARS = 24;
 export const MAX_KNOWLEDGE_CHARS = 24_000;
 
+/**
+ * Canais em que o agente de IA responde sozinho. O Messenger fica de fora de propósito:
+ * lá o atendimento é só com a equipe. Vale no servidor (resposta automática) e no Inbox
+ * (botão Ligar/Desligar IA).
+ */
+export const AI_REPLY_CHANNELS = ['whatsapp', 'webchat', 'instagram'] as const;
+export function channelSupportsAi(channel: string | null | undefined): boolean {
+  return (AI_REPLY_CHANNELS as readonly string[]).includes(channel ?? '');
+}
+
 export const WEEK_DAYS = [
   { key: 'mon', label: 'Segunda-feira', short: 'seg' },
   { key: 'tue', label: 'Terça-feira', short: 'ter' },
@@ -163,7 +173,7 @@ export type PromptInput = {
 /** Primeiro nome para a IA chamar o cliente. Ignora nome vazio, genérico ou que é só o telefone. */
 export function customerFirstName(fullName: string | null | undefined, phone?: string | null): string | null {
   const name = (fullName ?? '').replace(/\s+/g, ' ').trim();
-  if (!name || /^visitante do site$/i.test(name)) return null;
+  if (!name || /^(visitante do site|contato do instagram|contato do messenger)$/i.test(name)) return null;
   // Nome que é só o telefone (contato do WhatsApp sem nome salvo): não serve.
   const letters = name.replace(/[^\p{L}]/gu, '');
   if (letters.length < 2) return null;

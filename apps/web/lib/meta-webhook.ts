@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { MetaChannel, MetaMessageEvent } from './meta';
+import { channelSupportsAi } from './ai-agent';
+import { initialAiMode } from './dapi-webhook';
 
 /**
  * Processamento dos webhooks da Meta (Instagram/Messenger) no servidor.
@@ -7,12 +9,19 @@ import type { MetaChannel, MetaMessageEvent } from './meta';
  * garante contato e conversa, grava a mensagem uma única vez (idempotência por mid).
  *
  * Diferença do WhatsApp: a pessoa não tem telefone aqui, só um ID da plataforma (contacts.external_id).
- * A resposta automática da IA ainda não roda nestes dois canais (só WhatsApp e Webchat por enquanto).
+ * A IA responde no Instagram (a conversa nasce conforme a configuração do agente); o Messenger fica
+ * sempre com a equipe (ai_mode 'off').
  */
 
 type Db = SupabaseClient<any, any, any>;
 
-export type MetaProcessResult = { handled: boolean; reason?: string };
+export type MetaProcessResult = {
+  handled: boolean;
+  reason?: string;
+  /** Presente quando a IA deve responder esta mensagem (Instagram com a IA ligada). */
+  aiTrigger?: { organizationId: string; conversationId: string; messageId: string };
+};
+type MetaConversation = { id: string; unread_count: number; ai_mode: string | null };
 
 async function findMetaConnection(db: Db, channel: MetaChannel, pageId: string) {
   const { data } = await db.from('channel_connections').select('id,organization_id,display_name').eq('channel', channel).eq('provider_account_id', pageId).maybeSingle();
@@ -35,19 +44,20 @@ async function ensureMetaContact(db: Db, organizationId: string, channel: MetaCh
   return (inserted.data as { id: string }).id;
 }
 
-async function ensureMetaConversation(db: Db, organizationId: string, contactId: string, channel: MetaChannel, nowIso: string): Promise<{ id: string; unread_count: number }> {
-  const lookup = () => db.from('conversations').select('id,unread_count').eq('organization_id', organizationId).eq('contact_id', contactId).eq('channel', channel).neq('status', 'closed').order('last_message_at', { ascending: false }).limit(1).maybeSingle();
+async function ensureMetaConversation(db: Db, organizationId: string, contactId: string, channel: MetaChannel, nowIso: string): Promise<MetaConversation> {
+  const lookup = () => db.from('conversations').select('id,unread_count,ai_mode').eq('organization_id', organizationId).eq('contact_id', contactId).eq('channel', channel).neq('status', 'closed').order('last_message_at', { ascending: false }).limit(1).maybeSingle();
   const existing = await lookup();
-  if (existing.data) return existing.data as { id: string; unread_count: number };
-  // ai_mode fica sempre 'off': a resposta automática ainda não entrega por este canal.
-  const created = await db.from('conversations').insert({ organization_id: organizationId, contact_id: contactId, channel, status: 'open', unread_count: 0, last_message_at: nowIso, ai_mode: 'off' }).select('id,unread_count').single();
+  if (existing.data) return existing.data as MetaConversation;
+  // Instagram segue a configuração do agente (como o WhatsApp); Messenger é sempre só com a equipe.
+  const aiMode = channelSupportsAi(channel) ? await initialAiMode(db, organizationId) : 'off';
+  const created = await db.from('conversations').insert({ organization_id: organizationId, contact_id: contactId, channel, status: 'open', unread_count: 0, last_message_at: nowIso, ai_mode: aiMode }).select('id,unread_count,ai_mode').single();
   if (created.error?.code === '23505') {
     // Dois eventos simultâneos: o banco aceita uma só conversa aberta por contato; usa a que já existe.
     const again = await lookup();
-    if (again.data) return again.data as { id: string; unread_count: number };
+    if (again.data) return again.data as MetaConversation;
   }
   if (created.error || !created.data) throw new Error(`conversations.insert: ${created.error?.message ?? 'sem retorno'}`);
-  return created.data as { id: string; unread_count: number };
+  return created.data as MetaConversation;
 }
 
 /** Processa um evento (já extraído do corpo do webhook por parseMetaWebhookBody). */
@@ -79,5 +89,9 @@ export async function processMetaEvent(db: Db, channel: MetaChannel, event: Meta
   await db.from('conversations').update({ last_message_at: event.timestamp, unread_count: (conversation.unread_count ?? 0) + 1 }).eq('id', conversation.id);
   await db.from('contacts').update({ last_interaction_at: new Date().toISOString() }).eq('id', contactId);
 
+  const messageId = (inserted.data[0] as { id?: string } | undefined)?.id;
+  if (channelSupportsAi(channel) && conversation.ai_mode === 'on' && messageId) {
+    return { handled: true, aiTrigger: { organizationId: connection.organization_id, conversationId: conversation.id, messageId } };
+  }
   return { handled: true };
 }
