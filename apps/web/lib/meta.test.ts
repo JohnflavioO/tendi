@@ -81,6 +81,13 @@ describe('leitura do corpo do webhook', () => {
     expect(parseMetaWebhookBody(mk())).toEqual([{ pageId: 'page-1', senderId: 'user-1', mid: 'm1', text: 'Oi, tudo bem?', kind: 'text', timestamp: '2023-11-14T22:13:20.000Z' }]);
   });
 
+  it('lê o formato "changes" do Instagram (o mesmo do Teste do painel da Meta)', () => {
+    const body = { object: 'instagram', entry: [{ id: '0', time: 1700000000, changes: [{ field: 'messages', value: {
+      sender: { id: '12334' }, recipient: { id: '23245' }, timestamp: '1527459824', message: { mid: 'random_mid', text: 'random_text' },
+    } }] }] };
+    expect(parseMetaWebhookBody(body)).toEqual([expect.objectContaining({ pageId: '23245', senderId: '12334', mid: 'random_mid', text: 'random_text', kind: 'text' })]);
+  });
+
   it('ignora o eco da própria página', () => {
     expect(parseMetaWebhookBody(mk({ message: { mid: 'm1', text: 'oi', is_echo: true } }))).toEqual([]);
   });
