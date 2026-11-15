@@ -96,14 +96,21 @@ export function parseMetaWebhookBody(body: unknown): MetaMessageEvent[] {
   const events: MetaMessageEvent[] = [];
   for (const entry of body.entry) {
     if (!isRecord(entry)) continue;
-    const pageId = typeof entry.id === 'string' ? entry.id : '';
+    const entryId = typeof entry.id === 'string' ? entry.id : '';
+    // Formato comum: entry.messaging[]. O Instagram também pode mandar entry.changes[] com
+    // field "messages" e o evento em value (é o formato do "Teste" do painel da Meta).
     const messaging = Array.isArray(entry.messaging) ? entry.messaging : [];
-    for (const item of messaging) {
+    const changes = Array.isArray(entry.changes)
+      ? entry.changes.filter(change => isRecord(change) && change.field === 'messages' && isRecord(change.value)).map(change => (change as Record<string, unknown>).value)
+      : [];
+    for (const item of [...messaging, ...changes]) {
       if (!isRecord(item)) continue;
       const message = isRecord(item.message) ? item.message : null;
       if (!message || message.is_echo === true) continue;
       const sender = isRecord(item.sender) ? item.sender : {};
       const senderId = typeof sender.id === 'string' ? sender.id : '';
+      const recipient = isRecord(item.recipient) ? item.recipient : {};
+      const pageId = entryId && entryId !== '0' ? entryId : (typeof recipient.id === 'string' ? recipient.id : '');
       const mid = typeof message.mid === 'string' ? message.mid : '';
       if (!pageId || !senderId || !mid) continue;
       const timestampRaw = typeof item.timestamp === 'number' ? item.timestamp : Number(item.timestamp);
