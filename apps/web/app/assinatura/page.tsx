@@ -25,6 +25,9 @@ export default function SubscriptionPage() {
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [period, setPeriod] = useState<BillingPeriod>('monthly');
+  const [changeTo, setChangeTo] = useState('');
+  const [changing, setChanging] = useState(false);
+  const [notice, setNotice] = useState('');
 
   const loadSubscription = useCallback(async (organizationId: string) => {
     const supabase = createClient() as any;
@@ -81,6 +84,20 @@ export default function SubscriptionPage() {
     setError(data?.error ?? 'Não foi possível abrir o pagamento.');
   }
 
+  async function changePlan(planCode: string) {
+    setChanging(true); setError(''); setNotice('');
+    const response = await fetch('/api/billing/change-plan', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ organizationId: orgId, planCode }) }).catch(() => null);
+    const data = await response?.json().catch(() => null);
+    setChanging(false);
+    if (!response?.ok || !data?.ok) { setError(data?.error ?? 'Não foi possível trocar o plano.'); return; }
+    const name = plans.find(plan => plan.code === planCode)?.name ?? 'novo plano';
+    setChangeTo('');
+    setNotice(data.direction === 'upgrade'
+      ? `Pronto! O ${name} já está liberado. A partir de ${date(data.startsAt)}, a cobrança será de ${money(Number(data.price))}/${data.billingPeriod === 'annual' ? 'ano' : 'mês'}.`
+      : `Troca agendada. Você continua no plano atual até ${date(data.startsAt)}; depois passa para o ${name} por ${money(Number(data.price))}/${data.billingPeriod === 'annual' ? 'ano' : 'mês'}.`);
+    await loadSubscription(orgId);
+  }
+
   if (loading) return <main className="grid min-h-screen place-items-center bg-tendi-haze text-tendi-indigo"><Loader2 className="animate-spin" /></main>;
 
   const org = orgs.find(item => item.id === orgId) ?? null;
@@ -89,7 +106,16 @@ export default function SubscriptionPage() {
   const complimentary = org ? isComplimentaryActive(org) : false;
   const complimentaryDays = complimentary ? complimentaryDaysLeft(org) : null;
   const hasSubscription = Boolean(subscription && subscription.status !== 'canceled');
-  const currentPlan = plans.find(plan => plan.code === subscription?.plan_code);
+  // Numa descida agendada, a empresa continua no plano atual (organizations.plan_code) até a próxima cobrança.
+  const billedPlan = plans.find(plan => plan.code === subscription?.plan_code);
+  const currentPlan = plans.find(plan => plan.code === org?.plan_code) ?? billedPlan;
+  const scheduledPlan = billedPlan && currentPlan && billedPlan.code !== currentPlan.code ? billedPlan : null;
+  const subPeriod: BillingPeriod = subscription?.billing_period === 'annual' ? 'annual' : 'monthly';
+  const priceOf = (plan: Plan | undefined) => Number((subPeriod === 'annual' ? plan?.annual_price : plan?.monthly_price) ?? 0);
+  const switchable = (plan: Plan) => Boolean(priceOf(plan) && (subPeriod === 'annual' ? plan.pagarme_annual_plan_id : plan.pagarme_plan_id));
+  const otherPlans = plans.filter(plan => plan.code !== subscription?.plan_code);
+  const unit = subPeriod === 'annual' ? 'ano' : 'mês';
+  const card = subscription?.card_last_digits ? `${subscription.card_brand ?? 'cartão'} •••• ${subscription.card_last_digits}` : 'cartão cadastrado';
   // O seletor Mensal/Anual só aparece quando algum plano tem a versão anual vinculada.
   const hasAnnual = plans.some(plan => plan.annual_price && plan.pagarme_annual_plan_id);
   const bestDiscount = Math.max(0, ...plans.map(plan => annualDiscountPercent(plan.monthly_price, plan.annual_price) ?? 0)) || null;
@@ -129,7 +155,38 @@ export default function SubscriptionPage() {
           <Info label="Cartão" value={subscription.card_last_digits ? `${subscription.card_brand ?? 'Cartão'} •••• ${subscription.card_last_digits}` : '—'} />
         </div>
         {subscription.status === 'past_due' && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Não conseguimos cobrar o seu cartão. A Pagar.me vai tentar de novo nos próximos dias; se o cartão mudou, fale com o suporte em suporte@tendidesk.com.br para atualizar.</p>}
-        <p className="mt-4 text-xs text-slate-400">Para trocar de plano ou cancelar, fale com o suporte em suporte@tendidesk.com.br.</p>
+        {scheduledPlan && <p className="mt-4 flex items-start gap-2 rounded-xl bg-tendi-haze p-3 text-sm text-slate-600"><Clock3 size={16} className="mt-0.5 shrink-0 text-tendi-indigo" />Troca agendada: a partir de {date(subscription.next_billing_at)} você passa para o {scheduledPlan.name}, por {money(priceOf(scheduledPlan))}/{unit}.</p>}
+        {notice && <p role="status" className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
+
+        {subscription.status === 'active' && otherPlans.length > 0 && <div className="mt-6 border-t border-tendi-line/70 pt-5">
+          <p className="text-sm font-semibold text-tendi-navy">Trocar de plano</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {otherPlans.map(plan => {
+              const price = priceOf(plan);
+              const upgrade = price >= priceOf(billedPlan);
+              const open = changeTo === plan.code;
+              return <div key={plan.code} className="td-subtle p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div><p className="font-semibold text-tendi-navy">{plan.name}{subPeriod === 'annual' ? ' Anual' : ''}</p>
+                    <p className="text-sm text-slate-500">{price ? `${money(price)}/${unit}` : 'Indisponível'} · até {plan.max_attendants} atendentes{plan.ai_enabled ? ' · Agente de IA' : ''}</p></div>
+                  {!open && <button type="button" disabled={!switchable(plan) || changing} onClick={() => { setChangeTo(plan.code); setError(''); setNotice(''); }} className="td-btn td-btn-secondary td-btn-sm shrink-0">{plan.code === currentPlan?.code ? 'Manter este plano' : upgrade ? 'Fazer upgrade' : 'Mudar para este'}</button>}
+                </div>
+                {open && <div className="mt-3 rounded-xl border border-tendi-indigo/10 bg-white p-3 text-sm text-slate-600">
+                  {plan.code === currentPlan?.code
+                    ? <p>A troca agendada é desfeita e você continua no <b>{plan.name}</b>. A partir de <b>{date(subscription.next_billing_at)}</b>, o {card} segue sendo cobrado <b>{money(price)}/{unit}</b>.</p>
+                    : upgrade
+                    ? <p>O <b>{plan.name}</b> libera <b>agora</b>. Hoje não há cobrança extra. A partir de <b>{date(subscription.next_billing_at)}</b>, o {card} passa a ser cobrado <b>{money(price)}/{unit}</b>.</p>
+                    : <p>Você continua no <b>{currentPlan?.name ?? 'plano atual'}</b> até <b>{date(subscription.next_billing_at)}</b>. A partir daí, o {card} passa a ser cobrado <b>{money(price)}/{unit}</b> e os recursos que não fazem parte do {plan.name} deixam de valer. Não há reembolso do período já pago.</p>}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button type="button" disabled={changing} onClick={() => void changePlan(plan.code)} className="td-btn td-btn-teal td-btn-sm">{changing && <Loader2 size={14} className="animate-spin" />}Confirmar troca para {money(price)}/{unit}</button>
+                    <button type="button" disabled={changing} onClick={() => setChangeTo('')} className="td-btn td-btn-ghost td-btn-sm">Cancelar</button>
+                  </div>
+                </div>}
+              </div>;
+            })}
+          </div>
+        </div>}
+        <p className="mt-4 text-xs text-slate-400">Para cancelar a assinatura, fale com o suporte em suporte@tendidesk.com.br.</p>
       </section>}
 
       {!hasSubscription && hasAnnual && <div role="radiogroup" aria-label="Período de cobrança" className="td-tabs mt-8">

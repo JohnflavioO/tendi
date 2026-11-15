@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Este plano ainda não está disponível para assinatura.' }, { status: 409 });
   }
   if (current && current.status !== 'canceled') {
-    return NextResponse.json({ error: 'Este workspace já tem uma assinatura. Para trocar de plano, fale com o suporte.' }, { status: 409 });
+    return NextResponse.json({ error: 'Este workspace já tem uma assinatura. Para trocar de plano, use a opção "Trocar de plano" na tela Assinatura.' }, { status: 409 });
   }
 
   // Reaproveita um link recente do mesmo plano (evita criar vários por cliques repetidos).

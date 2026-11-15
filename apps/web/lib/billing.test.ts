@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { annualDiscountPercent, buildCheckoutPayload, buildPlanPayload, extractSubscriptionId, nextBillingStatus, processPagarmeEvent, readPlanPrice, readSubscription } from './billing';
+import { annualDiscountPercent, buildCheckoutPayload, buildPlanPayload, changeSubscriptionPlan, extractSubscriptionId, nextBillingStatus, processPagarmeEvent, readPlanPrice, readSubscription } from './billing';
 import { pagarmeBaseUrl, toCents, validateSecretKey } from './pagarme';
 import { isOrganizationBlocked, shouldBlockAccess } from './trial';
 
@@ -18,6 +18,14 @@ class Query {
   upsert(row: Row, opts: { onConflict: string }) { this.mode = 'upsert'; this.payload = row; this.conflict = opts.onConflict; return this; }
   eq(c: string, v: any) { this.preds.push(r => r[c] === v); return this; }
   in(c: string, v: any[]) { this.preds.push(r => v.includes(r[c])); return this; }
+  // Só o formato usado no código: "col.is.null,col.neq.valor".
+  or(expr: string) {
+    const tests = expr.split(',').map(part => {
+      const [c, op, ...rest] = part.split('.'); const v = rest.join('.');
+      return (r: Row) => (op === 'is' ? r[c!] == null : op === 'neq' ? r[c!] !== v : false);
+    });
+    this.preds.push(r => tests.some(t => t(r))); return this;
+  }
   limit() { return this; }
   private run(): any {
     const rows = this.db.t[this.table]!;
@@ -32,7 +40,7 @@ class Query {
       return { data: null, error: null };
     }
     const matched = rows.filter(r => this.preds.every(p => p(r)));
-    if (this.mode === 'update') { matched.forEach(r => Object.assign(r, this.payload)); return { data: null, error: null }; }
+    if (this.mode === 'update') { matched.forEach(r => Object.assign(r, this.payload)); return { data: matched, error: null }; }
     return { data: matched, error: null };
   }
   maybeSingle() { const r = this.run(); return Promise.resolve({ data: r.data?.[0] ?? null, error: r.error }); }
@@ -154,6 +162,8 @@ describe('funções de cobrança', () => {
   it('readSubscription ignora customer.code que não é id de empresa', () => {
     expect(readSubscription(subscription({ customer: { code: 'abc' } })).organizationId).toBeNull();
     expect(readSubscription(subscription()).organizationId).toBe(ORG);
+    // Assinatura agendada (future) vem sem next_billing_at: usa o start_at.
+    expect(readSubscription(subscription({ status: 'future', next_billing_at: undefined, start_at: '2026-12-15T00:00:00Z' })).nextBillingAt).toBe('2026-12-15T00:00:00Z');
   });
 
   it('payload do checkout: assinatura no cartão, vinculada à empresa e com retorno ao TendiDesk', () => {
@@ -176,7 +186,7 @@ describe('funções de cobrança', () => {
   it('chave secreta e ambiente', () => {
     expect(validateSecretKey('pk_abcdefghijklmnop')).toMatch(/pública/);
     expect(validateSecretKey('sk_test_abcdefghijklmnop')).toBeNull();
-    expect(pagarmeBaseUrl('sk_test_x')).toContain('sdx-api');
+    expect(pagarmeBaseUrl('sk_test_x')).toBe('https://api.pagar.me/core/v5');
     expect(pagarmeBaseUrl('sk_live')).toBe('https://api.pagar.me/core/v5');
   });
 });
@@ -247,5 +257,131 @@ describe('assinatura anual', () => {
     expect(annualDiscountPercent(289, 2947.8)).toBe(15);
     expect(annualDiscountPercent(189, null)).toBeNull();
     expect(annualDiscountPercent(100, 1300)).toBeNull();
+  });
+});
+
+describe('troca de plano', () => {
+  const NOW = new Date('2026-11-20T12:00:00Z');
+
+  /** Pagar.me de mentira: guarda as assinaturas e responde GET/POST/DELETE. */
+  function pagarme(opts: { failCancelOf?: string } = {}) {
+    const subs: Record<string, Row> = {
+      sub_abc: subscription({ card: { id: 'card_1', brand: 'Visa', last_four_digits: '4242' } }),
+    };
+    let n = 0;
+    const api = vi.fn(async (path: string, init: { method?: string; body?: any } = {}) => {
+      const id = path.split('/')[2];
+      if (init.method === 'POST' && path === '/subscriptions') {
+        const created = { id: `sub_new${++n}`, status: 'future', start_at: init.body.start_at, next_billing_at: init.body.start_at, plan: { id: init.body.plan_id },
+          customer: subs.sub_abc!.customer, card: subs.sub_abc!.card, metadata: init.body.metadata };
+        subs[created.id] = created; return created;
+      }
+      if (init.method === 'DELETE') {
+        if (id === opts.failCancelOf) throw new Error('falha ao cancelar');
+        subs[id!]!.status = 'canceled'; return subs[id!];
+      }
+      return subs[id!];
+    });
+    return { api, subs };
+  }
+
+  function setupChange(over: { plan_code?: string; status?: string; period?: string } = {}) {
+    const db = new FakeDb();
+    const planCode = over.plan_code ?? 'tendi_start';
+    db.t.organizations.push({ id: ORG, status: 'active', plan_code: planCode });
+    db.t.subscription_plans.push(
+      { code: 'tendi_start', name: 'TendiDesk Start', is_active: true, monthly_price: 189, annual_price: 1927.8, pagarme_plan_id: 'plan_start', pagarme_annual_plan_id: 'plan_start_year' },
+      { code: 'tendi_pro', name: 'TendiDesk Pro', is_active: true, monthly_price: 289, annual_price: 2947.8, pagarme_plan_id: 'plan_pro', pagarme_annual_plan_id: 'plan_pro_year' },
+    );
+    db.t.billing_subscriptions.push({ organization_id: ORG, provider_subscription_id: 'sub_abc', provider_customer_id: 'cus_1', plan_code: planCode,
+      billing_period: over.period ?? 'monthly', status: over.status ?? 'active', next_billing_at: '2026-12-12T00:00:00Z', card_brand: 'Visa', card_last_digits: '4242', last_event_type: null });
+    return db;
+  }
+
+  it('subida Start → Pro: assinatura nova no Pro com o mesmo cartão, começando na próxima cobrança; Pro libera na hora', async () => {
+    const db = setupChange();
+    const { api, subs } = pagarme();
+    const result = await changeSubscriptionPlan(db as any, api as any, { organizationId: ORG, planCode: 'tendi_pro' }, NOW);
+    expect(result).toMatchObject({ ok: true, direction: 'upgrade', subscriptionId: 'sub_new1', startsAt: '2026-12-12T00:00:00Z', price: 289 });
+    expect(api).toHaveBeenCalledWith('/subscriptions', expect.objectContaining({ method: 'POST', body: expect.objectContaining({
+      plan_id: 'plan_pro', customer_id: 'cus_1', card_id: 'card_1', start_at: '2026-12-12T00:00:00Z', payment_method: 'credit_card',
+      metadata: expect.objectContaining({ tendi_plan_change: 'true', tendi_plan_code: 'tendi_pro' }),
+    }) }));
+    expect(subs.sub_abc!.status).toBe('canceled');
+    expect(db.t.billing_subscriptions[0]).toMatchObject({ provider_subscription_id: 'sub_new1', plan_code: 'tendi_pro', status: 'active', billing_period: 'monthly' });
+    expect(db.t.organizations[0]!.plan_code).toBe('tendi_pro');
+  });
+
+  it('webhooks depois da subida não desfazem a troca', async () => {
+    const db = setupChange();
+    const { api } = pagarme();
+    await changeSubscriptionPlan(db as any, api as any, { organizationId: ORG, planCode: 'tendi_pro' }, NOW);
+    // Cancelamento da antiga chega depois: é atrasado e ignorado.
+    const stale = await processPagarmeEvent(db as any, api as any, { id: 'h1', type: 'subscription.canceled', data: { id: 'sub_abc' } });
+    expect(stale.body).toMatchObject({ reason: 'stale_subscription' });
+    // Criação da nova (status future) mantém o Pro.
+    await processPagarmeEvent(db as any, api as any, { id: 'h2', type: 'subscription.created', data: { id: 'sub_new1' } });
+    expect(db.t.organizations[0]).toMatchObject({ status: 'active', plan_code: 'tendi_pro' });
+    expect(db.t.billing_subscriptions[0]).toMatchObject({ provider_subscription_id: 'sub_new1', plan_code: 'tendi_pro', status: 'active' });
+  });
+
+  it('descida Pro → Start: continua no Pro até a próxima cobrança e só então vira Start', async () => {
+    const db = setupChange({ plan_code: 'tendi_pro' });
+    const { api, subs } = pagarme();
+    subs.sub_abc!.plan = { id: 'plan_pro' };
+    const result = await changeSubscriptionPlan(db as any, api as any, { organizationId: ORG, planCode: 'tendi_start' }, NOW);
+    expect(result).toMatchObject({ ok: true, direction: 'downgrade', price: 189 });
+    expect(db.t.organizations[0]!.plan_code).toBe('tendi_pro');
+    expect(db.t.billing_subscriptions[0]!.plan_code).toBe('tendi_start');
+    await processPagarmeEvent(db as any, api as any, { id: 'h1', type: 'subscription.created', data: { id: 'sub_new1' } });
+    expect(db.t.organizations[0]!.plan_code).toBe('tendi_pro');
+    // Na data, a assinatura nova começa e a primeira cobrança é paga.
+    subs.sub_new1!.status = 'active';
+    await processPagarmeEvent(db as any, api as any, { id: 'h2', type: 'invoice.paid', data: { id: 'in_1', subscription_id: 'sub_new1' } });
+    expect(db.t.organizations[0]!.plan_code).toBe('tendi_start');
+  });
+
+  it('desistir da descida agendada volta para o Pro', async () => {
+    const db = setupChange({ plan_code: 'tendi_pro' });
+    const { api } = pagarme();
+    await changeSubscriptionPlan(db as any, api as any, { organizationId: ORG, planCode: 'tendi_start' }, NOW);
+    const back = await changeSubscriptionPlan(db as any, api as any, { organizationId: ORG, planCode: 'tendi_pro' }, NOW);
+    expect(back).toMatchObject({ ok: true, direction: 'upgrade', subscriptionId: 'sub_new2', startsAt: '2026-12-12T00:00:00Z' });
+    expect(db.t.billing_subscriptions[0]!.plan_code).toBe('tendi_pro');
+    expect(db.t.organizations[0]!.plan_code).toBe('tendi_pro');
+  });
+
+  it('anual continua anual', async () => {
+    const db = setupChange({ period: 'annual' });
+    const { api } = pagarme();
+    const result = await changeSubscriptionPlan(db as any, api as any, { organizationId: ORG, planCode: 'tendi_pro' }, NOW);
+    expect(result).toMatchObject({ ok: true, price: 2947.8, billingPeriod: 'annual' });
+    expect(api).toHaveBeenCalledWith('/subscriptions', expect.objectContaining({ body: expect.objectContaining({ plan_id: 'plan_pro_year' }) }));
+  });
+
+  it('recusa: mesmo plano, pagamento pendente, sem assinatura', async () => {
+    const { api } = pagarme();
+    expect(await changeSubscriptionPlan(setupChange() as any, api as any, { organizationId: ORG, planCode: 'tendi_start' }, NOW)).toMatchObject({ ok: false, status: 409 });
+    expect(await changeSubscriptionPlan(setupChange({ status: 'past_due' }) as any, api as any, { organizationId: ORG, planCode: 'tendi_pro' }, NOW)).toMatchObject({ ok: false, error: expect.stringMatching(/pendente/) });
+    expect(await changeSubscriptionPlan(new FakeDb() as any, api as any, { organizationId: ORG, planCode: 'tendi_pro' }, NOW)).toMatchObject({ ok: false });
+    expect(api).not.toHaveBeenCalled();
+  });
+
+  it('segundo pedido ao mesmo tempo é barrado pela trava', async () => {
+    const db = setupChange();
+    db.t.billing_subscriptions[0]!.last_event_type = 'tendi_plan_change';
+    const { api } = pagarme();
+    expect(await changeSubscriptionPlan(db as any, api as any, { organizationId: ORG, planCode: 'tendi_pro' }, NOW)).toMatchObject({ ok: false, error: expect.stringMatching(/andamento/) });
+    expect(api).not.toHaveBeenCalledWith('/subscriptions', expect.anything());
+  });
+
+  it('se não der para cancelar a antiga, desfaz a nova e volta tudo como estava', async () => {
+    const db = setupChange();
+    const { api, subs } = pagarme({ failCancelOf: 'sub_abc' });
+    await expect(changeSubscriptionPlan(db as any, api as any, { organizationId: ORG, planCode: 'tendi_pro' }, NOW)).rejects.toThrow();
+    expect(subs.sub_new1!.status).toBe('canceled');
+    expect(subs.sub_abc!.status).toBe('active');
+    expect(db.t.billing_subscriptions[0]).toMatchObject({ provider_subscription_id: 'sub_abc', plan_code: 'tendi_start', last_event_type: null });
+    expect(db.t.organizations[0]!.plan_code).toBe('tendi_start');
   });
 });

@@ -152,6 +152,10 @@ export type SubscriptionSnapshot = {
   customerId: string | null;
   customerEmail: string | null;
   planId: string | null;
+  cardId: string | null;
+  startAt: string | null;
+  /** Criada pela troca de plano do TendiDesk (metadata.tendi_plan_change). */
+  fromPlanChange: boolean;
   currentPeriodEnd: string | null;
   nextBillingAt: string | null;
   cardBrand: string | null;
@@ -172,8 +176,12 @@ export function readSubscription(sub: Json): SubscriptionSnapshot {
     customerId: str(customer.id),
     customerEmail: str(customer.email)?.toLowerCase() ?? null,
     planId: isRecord(sub.plan) ? str(sub.plan.id) : null,
+    cardId: str(card.id),
+    startAt: str(sub.start_at),
+    fromPlanChange: isRecord(sub.metadata) && str(sub.metadata.tendi_plan_change) === 'true',
     currentPeriodEnd: str(cycle.end_at),
-    nextBillingAt: str(sub.next_billing_at),
+    // Assinatura "future" (troca agendada) vem sem next_billing_at: a primeira cobrança é no start_at.
+    nextBillingAt: str(sub.next_billing_at) ?? (sub.status === 'future' ? str(sub.start_at) : null),
     cardBrand: str(card.brand),
     cardLastDigits: last && /^\d{4}$/.test(last) ? last : null,
     canceledAt: str(sub.canceled_at),
@@ -269,11 +277,13 @@ export async function syncSubscription(db: Db, api: PagarmeRequest, subscription
   // Assinatura ativa encerra a cortesia: a empresa passou a pagar.
   const complimentary = isComplimentaryActive(org.data as ComplimentaryOrganization, now);
   if (status === 'canceled' && complimentary) return { organizationId, status, reason: 'complimentary_kept' };
+  // Assinatura "future" (troca de plano agendada) ainda não vale: o plano da empresa só muda quando ela começar.
+  const scheduledChange = snapshot.pagarmeStatus === 'future' && snapshot.fromPlanChange;
   const orgPatch = status === 'canceled'
     ? { status: 'suspended' }
     : {
       status: 'active',
-      ...(planCode ? { plan_code: planCode } : {}),
+      ...(planCode && !scheduledChange ? { plan_code: planCode } : {}),
       ...(status === 'active' && hasComplimentary(org.data as ComplimentaryOrganization)
         ? { complimentary_since: null, complimentary_until: null, complimentary_reason: null, complimentary_by: null }
         : {}),
@@ -282,6 +292,151 @@ export async function syncSubscription(db: Db, api: PagarmeRequest, subscription
   if (updated.error) throw new Error(`organizations.update: ${updated.error.message}`);
 
   return { organizationId, status };
+}
+
+// ---------- Troca de plano ----------
+
+/**
+ * A Pagar.me v5 não troca o plano de uma assinatura. A troca cria uma assinatura nova no plano escolhido,
+ * com o mesmo cliente e o mesmo cartão salvo, começando na próxima data de cobrança (status "future"),
+ * e cancela a antiga. Não há cobrança extra nem reembolso no dia da troca:
+ *  - Subida: os recursos do plano novo liberam na hora; o valor novo vale a partir da próxima cobrança.
+ *  - Descida: o plano atual continua até o fim do período já pago; o plano novo começa na próxima cobrança.
+ * O período (mensal/anual) continua o mesmo.
+ */
+export function buildPlanChangePayload(input: {
+  organizationId: string;
+  planCode: string;
+  pagarmePlanId: string;
+  customerId: string;
+  cardId: string;
+  startAt: string;
+  replacesSubscriptionId: string;
+}) {
+  return {
+    plan_id: input.pagarmePlanId,
+    payment_method: 'credit_card',
+    customer_id: input.customerId,
+    card_id: input.cardId,
+    start_at: input.startAt,
+    installments: 1,
+    statement_descriptor: 'TENDI',
+    metadata: {
+      tendi_organization_id: input.organizationId,
+      tendi_plan_code: input.planCode,
+      tendi_plan_change: 'true',
+      tendi_replaces_subscription: input.replacesSubscriptionId,
+    },
+  };
+}
+
+export type PlanChangeDirection = 'upgrade' | 'downgrade';
+export type PlanChangeResult =
+  | { ok: true; direction: PlanChangeDirection; subscriptionId: string; startsAt: string; planCode: string; price: number; billingPeriod: BillingPeriod }
+  | { ok: false; status: number; error: string };
+
+const PLAN_CHANGE_LOCK = 'tendi_plan_change';
+
+export async function changeSubscriptionPlan(db: Db, api: PagarmeRequest, input: { organizationId: string; planCode: string }, now = new Date()): Promise<PlanChangeResult> {
+  const fail = (status: number, error: string): PlanChangeResult => ({ ok: false, status, error });
+
+  const current = await db.from('billing_subscriptions').select('*').eq('organization_id', input.organizationId).maybeSingle();
+  const row = current.data ? { ...(current.data as Json) } : null; // cópia: usada para desfazer a troca
+  if (!row?.provider_subscription_id || row.status === 'canceled') return fail(409, 'Este workspace não tem uma assinatura ativa. Assine um plano primeiro.');
+  if (row.status !== 'active') return fail(409, 'Há um pagamento pendente nesta assinatura. Regularize o cartão antes de trocar de plano.');
+  if (row.plan_code === input.planCode) return fail(409, 'Este já é o plano da sua assinatura.');
+
+  const period: BillingPeriod = row.billing_period === 'annual' ? 'annual' : 'monthly';
+  const columns = 'code,name,is_active,monthly_price,annual_price,pagarme_plan_id,pagarme_annual_plan_id';
+  const [{ data: target }, { data: from }] = await Promise.all([
+    db.from('subscription_plans').select(columns).eq('code', input.planCode).maybeSingle(),
+    row.plan_code ? db.from('subscription_plans').select(columns).eq('code', row.plan_code).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const targetPlanId = (period === 'annual' ? target?.pagarme_annual_plan_id : target?.pagarme_plan_id) as string | null | undefined;
+  const targetPrice = Number((period === 'annual' ? target?.annual_price : target?.monthly_price) ?? 0);
+  if (!target?.is_active || !targetPlanId || !(targetPrice > 0)) return fail(409, 'Este plano não está disponível para troca no momento.');
+  const fromPrice = Number((period === 'annual' ? from?.annual_price : from?.monthly_price) ?? 0);
+  const direction: PlanChangeDirection = fromPrice > targetPrice ? 'downgrade' : 'upgrade';
+
+  // O estado verdadeiro vem da Pagar.me: cliente, cartão salvo e data da próxima cobrança.
+  const oldId = String(row.provider_subscription_id);
+  const live = readSubscription(await api(`/subscriptions/${encodeURIComponent(oldId)}`));
+  if (live.pagarmeStatus !== 'active' && live.pagarmeStatus !== 'future') return fail(409, 'A assinatura não está ativa na Pagar.me. Fale com o suporte.');
+  if (live.organizationId && live.organizationId !== input.organizationId) return fail(409, 'A assinatura não pertence a este workspace.');
+  const startAt = live.pagarmeStatus === 'future' ? (live.startAt ?? live.nextBillingAt) : live.nextBillingAt;
+  if (!live.customerId || !live.cardId || !startAt) return fail(409, 'Não encontramos o cartão desta assinatura na Pagar.me. Fale com o suporte.');
+  if (!(new Date(startAt).getTime() > now.getTime())) return fail(409, 'A cobrança deste ciclo está sendo processada. Tente trocar de plano amanhã.');
+
+  // Trava contra dois pedidos ao mesmo tempo (cliques repetidos criariam duas assinaturas).
+  const lock = await db.from('billing_subscriptions')
+    .update({ last_event_type: PLAN_CHANGE_LOCK })
+    .eq('organization_id', input.organizationId)
+    .eq('provider_subscription_id', oldId)
+    .or(`last_event_type.is.null,last_event_type.neq.${PLAN_CHANGE_LOCK}`)
+    .select('id');
+  if (lock.error) throw new Error(`billing_subscriptions.lock: ${lock.error.message}`);
+  if (!lock.data?.length) return fail(409, 'Já existe uma troca de plano em andamento. Aguarde alguns segundos e atualize a página.');
+  const release = () => db.from('billing_subscriptions').update({ last_event_type: row.last_event_type ?? null })
+    .eq('organization_id', input.organizationId).eq('provider_subscription_id', oldId);
+
+  let newId: string | null = null;
+  try {
+    const created = await api<Json>('/subscriptions', {
+      method: 'POST',
+      body: buildPlanChangePayload({
+        organizationId: input.organizationId,
+        planCode: input.planCode,
+        pagarmePlanId: targetPlanId,
+        customerId: live.customerId,
+        cardId: live.cardId,
+        startAt,
+        replacesSubscriptionId: oldId,
+      }),
+    });
+    newId = str(created?.id);
+    if (!newId) throw new Error('A Pagar.me não devolveu a assinatura nova.');
+
+    // Grava a assinatura nova ANTES de cancelar a antiga: o webhook do cancelamento vira evento atrasado e é ignorado.
+    const saved = await db.from('billing_subscriptions').upsert({
+      organization_id: input.organizationId,
+      provider: 'pagarme',
+      provider_subscription_id: newId,
+      provider_customer_id: live.customerId,
+      plan_code: input.planCode,
+      billing_period: period,
+      status: 'active',
+      next_billing_at: startAt,
+      card_brand: live.cardBrand ?? row.card_brand ?? null,
+      card_last_digits: live.cardLastDigits ?? row.card_last_digits ?? null,
+      canceled_at: null,
+      // A linha já aponta para a assinatura nova: pedidos atrasados com o id antigo não passam da trava.
+      last_event_type: 'tendi_plan_changed',
+      last_synced_at: now.toISOString(),
+    }, { onConflict: 'organization_id' });
+    if (saved.error) throw new Error(`billing_subscriptions.upsert: ${saved.error.message}`);
+  } catch (error) {
+    if (newId) await api(`/subscriptions/${encodeURIComponent(newId)}`, { method: 'DELETE', body: { cancel_pending_invoices: true } }).catch(() => null);
+    await release();
+    throw error;
+  }
+
+  try {
+    await api(`/subscriptions/${encodeURIComponent(oldId)}`, { method: 'DELETE', body: { cancel_pending_invoices: true } });
+  } catch (error) {
+    // Não conseguiu cancelar a antiga: desfaz a nova para o cliente nunca ficar com duas assinaturas.
+    const undone = await api(`/subscriptions/${encodeURIComponent(newId)}`, { method: 'DELETE', body: { cancel_pending_invoices: true } }).then(() => true, () => false);
+    await db.from('billing_subscriptions').upsert({ ...row, last_event_type: row.last_event_type ?? null }, { onConflict: 'organization_id' });
+    if (!undone) console.error('[Pagar.me troca de plano] duas assinaturas ativas, cancele uma manualmente', { organizationId: input.organizationId, oldId, newId });
+    throw error;
+  }
+
+  // Subida libera os recursos na hora. Descida espera a assinatura nova começar (o webhook aplica).
+  if (direction === 'upgrade') {
+    const updated = await db.from('organizations').update({ plan_code: input.planCode, status: 'active' }).eq('id', input.organizationId);
+    if (updated.error) throw new Error(`organizations.update: ${updated.error.message}`);
+  }
+
+  return { ok: true, direction, subscriptionId: newId, startsAt: startAt, planCode: input.planCode, price: targetPrice, billingPeriod: period };
 }
 
 export type WebhookOutcome = { status: number; body: Json };
