@@ -3,6 +3,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { MEDIA_BUCKET } from './inbox-attachments';
 import { initialAiMode } from './dapi-webhook';
 import { WEBCHAT_SESSION_DAYS } from './webchat';
+import { normalizeWebchatSettings, webchatState, type WebchatSettings, type WebchatState } from './webchat-config';
+import { describeBusinessHours, isWithinBusinessHours, normalizeBusinessHours } from './ai-agent';
 
 /**
  * Webchat no servidor: o visitante nunca fala direto com o Supabase, só com as rotas
@@ -32,8 +34,10 @@ export async function startWebchatSession(admin: Db, widget: WebchatWidget): Pro
   const conversation = await admin.from('conversations')
     .insert({
       organization_id: widget.organization_id, contact_id: contactId, channel: 'webchat', status: 'open',
-      unread_count: 0, last_message_at: nowIso, // IA só quando a empresa deixou o Webchat com o agente (padrão) e o agente está liberado.
-      ai_mode: widget.ai_enabled === false ? 'off' : await initialAiMode(admin, widget.organization_id),
+      unread_count: 0, last_message_at: nowIso,
+      // IA só quando a empresa deixou o Webchat com o agente (padrão) e o agente está liberado.
+      // Atendimento manual: a conversa já nasce aguardando atendente (entra na fila da equipe).
+      ai_mode: widget.ai_enabled === false ? 'handoff' : await initialAiMode(admin, widget.organization_id),
     })
     .select('id').single();
   if (conversation.error || !conversation.data) throw new Error(`Não foi possível iniciar a conversa: ${conversation.error?.message ?? 'sem retorno'}`);
@@ -135,4 +139,70 @@ export async function listWebchatMessagesSince(admin: Db, conversationId: string
       ...(row.direction === 'outbound' ? { senderName: senderNameOf(row.payload) } : {}),
     };
   }));
+}
+
+// ---------- Botões do chat e fila de atendimento ----------
+
+/** Configuração do chat do site da empresa (botões, fila, mensagem de encerramento). */
+export async function loadWebchatSettings(admin: Db, organizationId: string): Promise<WebchatSettings> {
+  const { data } = await admin.from('webchat_widgets').select('settings').eq('organization_id', organizationId).maybeSingle();
+  return normalizeWebchatSettings((data as { settings?: unknown } | null)?.settings);
+}
+
+/** Andamento do atendimento para o visitante: IA, fila (com posição), atendente ou encerrado. */
+export async function loadWebchatState(admin: Db, session: WebchatSession, now: Date = new Date()): Promise<WebchatState | null> {
+  const [conversationResult, settings, profileResult] = await Promise.all([
+    admin.from('conversations').select('status,ai_mode,assigned_to,handoff_at').eq('id', session.conversationId).maybeSingle(),
+    loadWebchatSettings(admin, session.organizationId),
+    admin.from('ai_business_profiles').select('business_hours,timezone').eq('organization_id', session.organizationId).maybeSingle(),
+  ]);
+  const conversation = conversationResult.data as { status: string; ai_mode: string | null; assigned_to: string | null; handoff_at: string | null } | null;
+  if (!conversation) return null;
+  const profile = profileResult.data as { business_hours?: unknown; timezone?: string } | null;
+  const hours = normalizeBusinessHours(profile?.business_hours);
+  const zone = profile?.timezone || 'America/Fortaleza';
+
+  let position: number | null = null;
+  if (conversation.ai_mode === 'handoff' && !conversation.assigned_to && conversation.status !== 'closed' && conversation.handoff_at) {
+    const { count } = await admin.from('conversations').select('id', { count: 'exact', head: true })
+      .eq('organization_id', session.organizationId).eq('ai_mode', 'handoff').is('assigned_to', null).neq('status', 'closed')
+      .lt('handoff_at', conversation.handoff_at);
+    position = typeof count === 'number' ? count + 1 : null;
+  }
+  return webchatState({ conversation, settings, position, inHours: isWithinBusinessHours(hours, zone, now), hoursText: describeBusinessHours(hours) });
+}
+
+async function internalNote(admin: Db, session: WebchatSession, body: string) {
+  await admin.from('messages').insert({
+    organization_id: session.organizationId, conversation_id: session.conversationId, direction: 'internal',
+    message_type: 'text', body, delivery_status: 'sent', provider: 'webchat', sent_at: new Date().toISOString(), payload: { source: 'webchat', event: 'visitor_action' },
+  });
+}
+
+export type WebchatActionResult = { ok: true } | { ok: false; status: number; error: string };
+
+/** Botão "Falar com atendente": tira a IA da conversa e coloca na fila da equipe. */
+export async function requestWebchatHuman(admin: Db, session: WebchatSession): Promise<WebchatActionResult> {
+  const settings = await loadWebchatSettings(admin, session.organizationId);
+  if (!settings.handoffButton.enabled) return { ok: false, status: 403, error: 'Opção indisponível.' };
+  const { data } = await admin.from('conversations').select('status,ai_mode,assigned_to').eq('id', session.conversationId).maybeSingle();
+  const conversation = data as { status: string; ai_mode: string | null; assigned_to: string | null } | null;
+  if (!conversation || conversation.status === 'closed') return { ok: false, status: 409, error: 'Este atendimento já foi encerrado.' };
+  if (conversation.assigned_to || conversation.ai_mode === 'handoff') return { ok: true }; // já está com a equipe ou na fila
+  const update = await admin.from('conversations').update({ ai_mode: 'handoff', unread_count: 1, last_message_at: new Date().toISOString() }).eq('id', session.conversationId);
+  if (update.error) return { ok: false, status: 500, error: 'Não foi possível chamar um atendente.' };
+  await internalNote(admin, session, 'O visitante pediu para falar com um atendente pelo botão do chat do site.');
+  return { ok: true };
+}
+
+/** Botão "Encerrar atendimento": fecha a conversa e invalida a sessão (a próxima mensagem abre outra). */
+export async function endWebchat(admin: Db, session: WebchatSession): Promise<WebchatActionResult> {
+  const settings = await loadWebchatSettings(admin, session.organizationId);
+  if (!settings.endButton.enabled) return { ok: false, status: 403, error: 'Opção indisponível.' };
+  const nowIso = new Date().toISOString();
+  const update = await admin.from('conversations').update({ status: 'closed', closed_at: nowIso, unread_count: 0 }).eq('id', session.conversationId);
+  if (update.error) return { ok: false, status: 500, error: 'Não foi possível encerrar o atendimento.' };
+  await internalNote(admin, session, 'O visitante encerrou o atendimento pelo chat do site.');
+  await admin.from('webchat_sessions').update({ expires_at: nowIso }).eq('conversation_id', session.conversationId);
+  return { ok: true };
 }

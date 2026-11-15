@@ -19,7 +19,7 @@
   var TYPING_TIMEOUT_MS = 45000;
   var TEASER_DELAY_MS = 5000;
 
-  var state = { open: false, config: null, token: null, after: null, messages: [], sending: false, typingSince: 0, unread: 0, lastPoll: 0 };
+  var state = { open: false, config: null, token: null, after: null, messages: [], sending: false, typingSince: 0, unread: 0, lastPoll: 0, chat: null, confirmEnd: false, ended: false };
   function readStore(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
   function writeStore(key, value) { try { window.localStorage.setItem(key, value); } catch (e) { /* modo privado: segue sem guardar */ } }
   state.token = readStore(storageKey);
@@ -95,6 +95,8 @@
   var ICON_CHAT = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.9-.9L3 20.5l1.6-4.7A8.4 8.4 0 0 1 3.5 11.5 8.5 8.5 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01" stroke-width="2.6"/></svg>';
   var ICON_DOWN = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
   var ICON_CLOSE = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  var ICON_END = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  var ICON_PERSON = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
   var ICON_SEND = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 
   // ---------- estrutura ----------
@@ -145,6 +147,15 @@
     'textarea{flex:1;min-height:24px;max-height:110px;padding:7px 0;border:0;outline:0;resize:none;background:transparent;font:inherit;font-size:15px;color:#1E2046}textarea::placeholder{color:#9AA0BD}' +
     '.send{flex-shrink:0;width:40px;height:40px;border:0;border-radius:14px;display:grid;place-items:center;cursor:pointer;color:var(--on);background:linear-gradient(145deg,var(--c),var(--c2));transition:opacity .15s,transform .15s}.send:disabled{opacity:.35;cursor:default}.send:not(:disabled):hover{transform:translateX(1px)}' +
     '.pw{display:block;text-align:center;font-size:10.5px;color:#A3A7C2;padding:7px 0 1px;text-decoration:none}.pw b{color:#6B6F93;font-weight:600}.pw:hover b{color:var(--c)}' +
+    '.hd{display:flex;gap:6px}.end{display:none;align-items:center;gap:6px;height:36px;padding:0 12px;border:0;border-radius:12px;cursor:pointer;color:var(--on);background:rgba(255,255,255,.14);font:inherit;font-size:12px;font-weight:600}.end:hover{background:rgba(255,255,255,.24)}.end.show{display:flex}' +
+    '.cf{display:none;align-items:center;justify-content:space-between;gap:8px;margin:0 12px 8px;padding:10px 12px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #E4E6F0;font-size:13px}.cf.show{display:flex}.cf div{display:flex;gap:6px}' +
+    '.cfy,.cfn{border:0;border-radius:10px;padding:7px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}.cfy{background:#B42318;color:#fff}.cfn{background:#F1F2F8;color:#4A4E75}' +
+    '.q{display:none;align-items:center;gap:10px;margin:0 12px 8px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,#FFF8EC,#FFF3DE);box-shadow:inset 0 0 0 1px #F6DDB0;color:#7A4B00;font-size:12px;line-height:1.4}.q.show{display:flex}.q b{display:block;font-size:13px;color:#5C3800}' +
+    '.qd{flex-shrink:0;width:10px;height:10px;border-radius:50%;background:#F59E0B;animation:pulse 1.6s infinite}' +
+    '.acts{display:flex;gap:6px;overflow-x:auto;padding:0 12px 8px;scrollbar-width:none}.acts::-webkit-scrollbar{display:none}' +
+    '.act{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;border:1px solid #DCDFEC;background:#fff;color:#2F316B;border-radius:999px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s}.act:hover{border-color:var(--c);color:var(--c)}.act.hum{border-color:transparent;background:var(--c);color:var(--on)}.act.hum:hover{opacity:.92;color:var(--on)}' +
+    '.done{align-self:center;margin:14px 0 6px;max-width:92%;text-align:center;padding:16px;border-radius:18px;background:#fff;box-shadow:0 0 0 1px rgba(16,18,52,.06)}.done p{font-size:13px;color:#4A4E75}.done button{margin-top:10px;border:0;border-radius:12px;padding:9px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--on);background:linear-gradient(145deg,var(--c),var(--c2))}' +
+    '@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(245,158,11,.5)}70%{box-shadow:0 0 0 8px rgba(245,158,11,0)}100%{box-shadow:0 0 0 0 rgba(245,158,11,0)}}' +
     '@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}' +
     '@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}' +
     '@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}' +
@@ -154,9 +165,12 @@
     '</style>' +
     '<div class="w" role="region" aria-label="Chat de atendimento">' +
     '  <div class="p" role="dialog" aria-modal="false" aria-labelledby="tdw-name">' +
-    '    <div class="h"><div class="row"><div class="av" aria-hidden="true"><span class="ini">A</span><i></i></div><div class="t"><p class="n" id="tdw-name">Atendimento</p><p class="s">Online agora · responde em instantes</p></div><button class="x" type="button" aria-label="Fechar o chat">' + ICON_CLOSE + '</button></div></div>' +
+    '    <div class="h"><div class="row"><div class="av" aria-hidden="true"><span class="ini">A</span><i></i></div><div class="t"><p class="n" id="tdw-name">Atendimento</p><p class="s">Online agora</p></div><div class="hd"><button class="end" type="button" title="Encerrar atendimento">' + ICON_END + '<span class="endl">Encerrar</span></button><button class="x" type="button" aria-label="Fechar o chat">' + ICON_CLOSE + '</button></div></div></div>' +
     '    <div class="l" role="log" aria-live="polite"></div>' +
     '    <div class="err" role="alert"></div>' +
+    '    <div class="cf" role="alertdialog" aria-label="Encerrar atendimento"><span>Encerrar este atendimento?</span><div><button class="cfn" type="button">Voltar</button><button class="cfy" type="button">Encerrar</button></div></div>' +
+    '    <div class="q" role="status"><span class="qd" aria-hidden="true"></span><div><b class="qt"></b><span class="qm"></span></div></div>' +
+    '    <div class="acts"></div>' +
     '    <div class="f"><div class="box"><textarea rows="1" placeholder="Escreva sua mensagem…" aria-label="Escreva sua mensagem"></textarea><button class="send" type="button" aria-label="Enviar mensagem" disabled>' + ICON_SEND + '</button></div>' +
     '    <a class="pw" href="https://tendidesk.com.br" target="_blank" rel="noopener">Atendimento por <b>TendiDesk</b></a></div>' +
     '  </div>' +
@@ -201,10 +215,88 @@
       html += '<p class="tm">' + clock(m.createdAt) + '</p></div>';
       lastSender = sender;
     }
+    if (state.ended) {
+      var endText = (state.config && state.config.endMessage) || 'Atendimento encerrado. Obrigado pelo contato!';
+      html += '<div class="done"><p>' + escapeHtml(endText) + '</p><button type="button" class="restart">Iniciar nova conversa</button></div>';
+    }
     html += '<div class="typing" aria-label="Digitando"><i></i><i></i><i></i></div>';
     list.innerHTML = html;
     updateTyping();
+    renderChrome();
     list.scrollTop = list.scrollHeight;
+  }
+
+  function queueTitle(position) {
+    if (!position || position < 1) return 'Você está na fila de atendimento';
+    return position === 1 ? 'Você é o próximo a ser atendido' : 'Você é o ' + position + 'º na fila';
+  }
+
+  /** Barra de botões, aviso de fila e botão de encerrar, conforme o andamento do atendimento. */
+  function renderChrome() {
+    var buttons = (state.config && state.config.buttons) || {};
+    var mode = state.ended ? 'closed' : (state.chat && state.chat.mode) || 'ai';
+    var hasConversation = Boolean(state.token) && !state.ended;
+    var html = '';
+    if (mode !== 'closed') {
+      if (buttons.handoff && mode === 'ai') html += '<button class="act hum" type="button" data-human="1">' + ICON_PERSON + escapeHtml(buttons.handoff) + '</button>';
+      (buttons.quickReplies || []).forEach(function (item, index) {
+        html += '<button class="act" type="button" data-quick="' + index + '">' + escapeHtml(item.label) + '</button>';
+      });
+    }
+    $('.acts').innerHTML = html;
+    $('.s').textContent = mode === 'queue' ? 'Aguardando atendente' : mode === 'human' ? 'Em atendimento com a equipe' : mode === 'closed' ? 'Atendimento encerrado' : 'Online agora';
+    $('.acts').style.display = html ? 'flex' : 'none';
+    var queue = $('.q');
+    if (mode === 'queue' && state.chat) {
+      $('.qt').textContent = state.chat.inHours ? queueTitle(state.chat.position) : 'Equipe fora do horário';
+      $('.qm').textContent = state.chat.message || '';
+      queue.className = 'q show';
+    } else {
+      queue.className = 'q';
+    }
+    var end = $('.end');
+    end.className = 'end' + (buttons.end && hasConversation ? ' show' : '');
+    $('.endl').textContent = buttons.end ? 'Encerrar' : '';
+    end.setAttribute('aria-label', buttons.end || 'Encerrar atendimento');
+    end.setAttribute('title', buttons.end || 'Encerrar atendimento');
+    $('.cf').className = 'cf' + (state.confirmEnd && hasConversation ? ' show' : '');
+    $('.f').style.display = mode === 'closed' ? 'none' : '';
+  }
+
+  function action(name) {
+    return ensureSession().then(function () {
+      return api('/api/webchat/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: state.token, action: name }) });
+    });
+  }
+
+  function askHuman() {
+    state.chat = { mode: 'queue', position: null, inHours: true, message: '' };
+    state.typingSince = 0;
+    renderChrome();
+    action('handoff').then(function (data) { if (data && data.state) state.chat = data.state; renderChrome(); poll(); })
+      .catch(function (error) { showError(error.message); });
+  }
+
+  function endChat() {
+    state.confirmEnd = false;
+    action('end').then(function () {
+      state.ended = true;
+      state.token = null; state.after = null; state.typingSince = 0; state.chat = null;
+      writeStore(storageKey, '');
+      render();
+    }).catch(function (error) { showError(error.message); renderChrome(); });
+  }
+
+  function restart() {
+    state.ended = false; state.messages = []; state.chat = null; state.after = null;
+    render();
+    if (window.matchMedia('(pointer:fine)').matches) input.focus();
+  }
+
+  function showError(message) {
+    var box = $('.err');
+    box.textContent = message || 'Algo deu errado. Tente de novo.';
+    box.style.display = 'block';
   }
 
   function updateTyping() {
@@ -228,6 +320,12 @@
     state.lastPoll = Date.now();
     var query = '?token=' + encodeURIComponent(state.token) + (state.after ? '&after=' + encodeURIComponent(state.after) : '');
     api('/api/webchat/messages' + query).then(function (data) {
+      if (data.state) {
+        var before = JSON.stringify(state.chat);
+        state.chat = data.state;
+        if (data.state.mode !== 'ai') state.typingSince = 0;
+        if (before !== JSON.stringify(state.chat)) renderChrome();
+      }
       var incoming = (data.messages || []).filter(function (m) { return !state.messages.some(function (x) { return x.id === m.id; }); });
       if (!incoming.length) { updateTyping(); return; }
       state.messages = state.messages.concat(incoming);
@@ -261,7 +359,7 @@
       return post();
     }).then(function () {
       if (typeof textOverride !== 'string') { input.value = ''; autosize(); }
-      state.typingSince = Date.now();
+      state.typingSince = !state.chat || state.chat.mode === 'ai' ? Date.now() : 0;
       poll();
     }).catch(function (error) {
       var box = $('.err');
@@ -315,7 +413,18 @@
   list.addEventListener('click', function (event) {
     var button = event.target.closest && event.target.closest('.opt');
     if (button) send(button.getAttribute('data-opt'));
+    if (event.target.closest && event.target.closest('.restart')) restart();
   });
+  $('.acts').addEventListener('click', function (event) {
+    var button = event.target.closest && event.target.closest('.act');
+    if (!button) return;
+    if (button.getAttribute('data-human')) { askHuman(); return; }
+    var item = ((state.config.buttons || {}).quickReplies || [])[Number(button.getAttribute('data-quick'))];
+    if (item) send(item.text || item.label);
+  });
+  $('.end').addEventListener('click', function () { state.confirmEnd = true; renderChrome(); });
+  $('.cfn').addEventListener('click', function () { state.confirmEnd = false; renderChrome(); });
+  $('.cfy').addEventListener('click', endChat);
   shadow.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && state.open) { toggle(false); launch.focus(); }
   });

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { WEBCHAT_CORS_HEADERS, checkWebchatMessage } from '@/lib/webchat';
-import { loadWebchatSession, listWebchatMessagesSince, postWebchatMessage } from '@/lib/webchat-server';
+import { endWebchat, loadWebchatSession, loadWebchatState, listWebchatMessagesSince, postWebchatMessage, requestWebchatHuman } from '@/lib/webchat-server';
 import { runAiAutoReply } from '@/lib/ai-reply';
 import { generateReply } from '@/lib/ai-llm';
 import { resolveProviderKey } from '@/lib/ai-keys';
@@ -46,12 +46,15 @@ export async function GET(request: Request) {
   const session = await loadWebchatSession(admin, token);
   if (!session) return json({ error: 'Sessão inválida ou vencida.' }, 401);
 
-  const messages = await listWebchatMessagesSince(admin, session.conversationId, after);
-  return json({ messages });
+  const [messages, state] = await Promise.all([
+    listWebchatMessagesSince(admin, session.conversationId, after),
+    loadWebchatState(admin, session).catch(() => null),
+  ]);
+  return json({ messages, state });
 }
 
 /**
- * POST /api/webchat/messages   { token, text }
+ * POST /api/webchat/messages   { token, text }  ou  { token, action: 'handoff' | 'end' }
  * Mensagem do visitante. Se a conversa estiver com a IA ligada, a resposta automática roda
  * depois do 200 (waitUntil), igual ao webhook do WhatsApp.
  */
@@ -62,6 +65,16 @@ export async function POST(request: Request) {
   const body: unknown = await request.json().catch(() => null);
   const input = body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : {};
   const token = typeof input.token === 'string' ? input.token : '';
+
+  // Botões do chat: falar com atendente / encerrar atendimento.
+  if (input.action === 'handoff' || input.action === 'end') {
+    const actionSession = await loadWebchatSession(admin, token);
+    if (!actionSession) return json({ error: 'Sessão inválida ou vencida.' }, 401);
+    const done = input.action === 'handoff' ? await requestWebchatHuman(admin, actionSession) : await endWebchat(admin, actionSession);
+    if (!done.ok) return json({ error: done.error }, done.status);
+    return json({ success: true, state: input.action === 'end' ? null : await loadWebchatState(admin, actionSession).catch(() => null) });
+  }
+
   const checked = checkWebchatMessage(input.text);
   if (!checked.ok) return json({ error: checked.error }, 400);
 
