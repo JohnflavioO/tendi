@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { WEBCHAT_CORS_HEADERS, isValidWebchatPublicKey } from '@/lib/webchat';
 import { startWebchatSession, type WebchatWidget } from '@/lib/webchat-server';
+import { normalizeWebchatSettings } from '@/lib/webchat-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ export function OPTIONS() {
 
 async function loadWidget(admin: ReturnType<typeof createAdminClient>, publicKey: string): Promise<WebchatWidget | null> {
   if (!admin || !isValidWebchatPublicKey(publicKey)) return null;
-  const { data } = await admin.from('webchat_widgets').select('id,organization_id,is_enabled,display_name,greeting_message,color,ai_enabled').eq('public_key', publicKey).maybeSingle();
+  const { data } = await admin.from('webchat_widgets').select('id,organization_id,is_enabled,display_name,greeting_message,color,ai_enabled,settings').eq('public_key', publicKey).maybeSingle();
   return data as WebchatWidget | null;
 }
 
@@ -29,7 +30,17 @@ export async function GET(_request: Request, { params }: Context) {
   const admin = createAdminClient();
   const widget = await loadWidget(admin, params.publicKey);
   if (!widget || !widget.is_enabled) return json({ error: 'Widget não encontrado.' }, 404);
-  return json({ displayName: widget.display_name, greetingMessage: widget.greeting_message, color: widget.color });
+  const settings = normalizeWebchatSettings((widget as WebchatWidget & { settings?: unknown }).settings);
+  return json({
+    displayName: widget.display_name, greetingMessage: widget.greeting_message, color: widget.color,
+    // Botões do chat (só o que o visitante precisa ver).
+    buttons: {
+      handoff: settings.handoffButton.enabled ? settings.handoffButton.label : null,
+      end: settings.endButton.enabled ? settings.endButton.label : null,
+      quickReplies: settings.quickReplies,
+    },
+    endMessage: settings.endMessage,
+  });
 }
 
 /**

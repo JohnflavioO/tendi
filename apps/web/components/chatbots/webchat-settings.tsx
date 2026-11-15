@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bot, Check, Copy, Globe2, Loader2, UsersRound } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { WebchatButtonsSettings } from '@/components/chatbots/webchat-buttons-settings';
 import { buildWebchatEmbedSnippet, checkDisplayName, checkGreeting, isValidWebchatColor } from '@/lib/webchat';
 
-type Widget = { id: string; organization_id: string; public_key: string; is_enabled: boolean; display_name: string; greeting_message: string; color: string; ai_enabled: boolean };
+type Widget = { id: string; organization_id: string; public_key: string; is_enabled: boolean; display_name: string; greeting_message: string; color: string; ai_enabled: boolean; settings?: unknown };
 
 const field = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#7C7EC0] disabled:bg-slate-50';
 const label = 'mb-1.5 block text-xs font-semibold text-slate-600';
@@ -27,7 +28,7 @@ export function WebchatSettingsCard({ organizationId, canManage }: { organizatio
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.from('webchat_widgets').select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color,ai_enabled').eq('organization_id', organizationId).maybeSingle();
+      const { data } = await supabase.from('webchat_widgets').select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color,ai_enabled,settings').eq('organization_id', organizationId).maybeSingle();
       if (!active) return;
       if (data) {
         setWidget(data as Widget);
@@ -45,7 +46,7 @@ export function WebchatSettingsCard({ organizationId, canManage }: { organizatio
   async function createWidget() {
     setSaving('create');
     setMessage(null);
-    const { data, error } = await supabase.from('webchat_widgets').insert({ organization_id: organizationId }).select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color,ai_enabled').single();
+    const { data, error } = await supabase.from('webchat_widgets').insert({ organization_id: organizationId }).select('id,organization_id,public_key,is_enabled,display_name,greeting_message,color,ai_enabled,settings').single();
     setSaving('');
     if (error) { setMessage({ ok: false, text: `Não foi possível criar o widget: ${error.message}` }); return; }
     const created = data as Widget;
@@ -152,6 +153,8 @@ export function WebchatSettingsCard({ organizationId, canManage }: { organizatio
             <label><span className={label}>Cor</span><input type="color" value={/^#[0-9a-f]{6}$/i.test(color) ? color : '#004751'} onChange={event => setColor(event.target.value)} disabled={!canManage} className={`${field} h-[42px] cursor-pointer p-1`} /></label>
           </div>
           {canManage && <button type="button" onClick={() => void save()} disabled={saving === 'save'} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-[#004751] hover:bg-slate-50 disabled:opacity-50">{saving === 'save' && <Loader2 size={14} className="animate-spin" />}Salvar personalização</button>}
+
+          <WebchatButtonsSettings widgetId={widget.id} initial={widget.settings} canManage={canManage} onSaved={settings => setWidget({ ...widget, settings })} />
 
           <div className="mt-5 rounded-xl bg-[#0B0D21] p-4">
             <div className="flex items-center justify-between"><p className="text-[11px] font-semibold text-white/70">Cole este código no site, antes de &lt;/body&gt;</p>
