@@ -81,6 +81,11 @@ describe('leitura do corpo do webhook', () => {
     expect(parseMetaWebhookBody(mk())).toEqual([{ pageId: 'page-1', senderId: 'user-1', mid: 'm1', text: 'Oi, tudo bem?', kind: 'text', timestamp: '2023-11-14T22:13:20.000Z' }]);
   });
 
+  it('mensagem apagada pelo cliente vira um evento "deleted" com o mesmo mid', () => {
+    const body = { object: 'instagram', entry: [{ id: 'ig-1', messaging: [{ sender: { id: 'u1' }, recipient: { id: 'ig-1' }, timestamp: 1700000000000, message: { mid: 'm9', is_deleted: true } }] }] };
+    expect(parseMetaWebhookBody(body)).toEqual([expect.objectContaining({ pageId: 'ig-1', senderId: 'u1', mid: 'm9', kind: 'deleted', text: null })]);
+  });
+
   it('lê o formato "changes" do Instagram (o mesmo do Teste do painel da Meta)', () => {
     const body = { object: 'instagram', entry: [{ id: '0', time: 1700000000, changes: [{ field: 'messages', value: {
       sender: { id: '12334' }, recipient: { id: '23245' }, timestamp: '1527459824', message: { mid: 'random_mid', text: 'random_text' },

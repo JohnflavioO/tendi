@@ -62,6 +62,15 @@ describe('processMetaEvent', () => {
     expect(db.t.messages).toHaveLength(1);
   });
 
+  it('mensagem apagada pelo cliente: troca o conteúdo pelo aviso, sem criar outra mensagem', async () => {
+    const db = seed();
+    await processMetaEvent(db as any, 'instagram', event());
+    const result = await processMetaEvent(db as any, 'instagram', event({ kind: 'deleted', text: null }));
+    expect(result).toEqual({ handled: true, reason: 'unsent' });
+    expect(db.t.messages).toHaveLength(1);
+    expect(db.t.messages[0]).toMatchObject({ body: '[Mensagem apagada pelo cliente]', payload: { deleted_by_customer: true } });
+  });
+
   it('cria contato e conversa na primeira mensagem', async () => {
     const db = seed();
     const result = await processMetaEvent(db as any, 'instagram', event());

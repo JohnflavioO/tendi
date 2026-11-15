@@ -111,6 +111,12 @@ export function parseMetaWebhookBody(body: unknown): MetaMessageEvent[] {
       const senderId = typeof sender.id === 'string' ? sender.id : '';
       const recipient = isRecord(item.recipient) ? item.recipient : {};
       const pageId = entryId && entryId !== '0' ? entryId : (typeof recipient.id === 'string' ? recipient.id : '');
+      // Mensagem apagada pelo cliente ("unsend"): a Meta reenvia o mesmo mid com is_deleted.
+      if (message.is_deleted === true) {
+        const deletedMid = typeof message.mid === 'string' ? message.mid : '';
+        if (pageId && senderId && deletedMid) events.push({ pageId, senderId, mid: deletedMid, timestamp: new Date().toISOString(), kind: 'deleted', text: null });
+        continue;
+      }
       const mid = typeof message.mid === 'string' ? message.mid : '';
       if (!pageId || !senderId || !mid) continue;
       const timestampRaw = typeof item.timestamp === 'number' ? item.timestamp : Number(item.timestamp);
