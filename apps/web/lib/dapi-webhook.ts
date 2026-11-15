@@ -1,3 +1,4 @@
+import { agentChannelEnabled } from './ai-agent';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ensureLeadForContact } from './crm-lead';
 import { parseReminderReply } from './agenda-reminders';
@@ -150,16 +151,19 @@ export async function ensureContact(db: Db, organizationId: string, phone: strin
 
 type ConversationRow = { id: string; status: string; unread_count: number; last_message_at: string | null; ai_mode?: string | null };
 
-/** Conversa nova já nasce com a IA ligada quando o agente da empresa está liberado e configurado para isso. */
-export async function initialAiMode(db: Db, organizationId: string): Promise<'on' | 'off'> {
+/**
+ * Conversa nova já nasce com a IA ligada quando o agente da empresa está liberado, configurado
+ * para ligar sozinho e com o canal marcado (ai_channels). '*' para funcionar antes da migração da coluna.
+ */
+export async function initialAiMode(db: Db, organizationId: string, channel: string = 'whatsapp'): Promise<'on' | 'off'> {
   try {
     const result = await db
       .from('ai_agents')
-      .select('is_enabled,auto_enable_new_conversations')
+      .select('*')
       .eq('organization_id', organizationId)
       .maybeSingle();
-    const agent = result.data as { is_enabled?: boolean; auto_enable_new_conversations?: boolean } | null;
-    return agent?.is_enabled && agent.auto_enable_new_conversations ? 'on' : 'off';
+    const agent = result.data as { is_enabled?: boolean; auto_enable_new_conversations?: boolean; ai_channels?: unknown } | null;
+    return agent?.is_enabled && agent.auto_enable_new_conversations && agentChannelEnabled(agent.ai_channels, channel) ? 'on' : 'off';
   } catch {
     return 'off';
   }

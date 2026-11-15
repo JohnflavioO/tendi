@@ -79,7 +79,7 @@ export async function startWebchatSession(admin: Db, widget: WebchatWidget, iden
     unread_count: 0, last_message_at: nowIso,
     // IA só quando a empresa deixou o Webchat com o agente (padrão) e o agente está liberado.
     // Atendimento manual: a conversa já nasce aguardando atendente (entra na fila da equipe).
-    ai_mode: widget.ai_enabled === false ? 'handoff' : await initialAiMode(admin, widget.organization_id),
+    ai_mode: widget.ai_enabled === false ? 'handoff' : await initialAiMode(admin, widget.organization_id, 'webchat'),
   };
   let conversation = await admin.from('conversations').insert(conversationRow).select('id').single();
   if (conversation.error?.code === '23505') {

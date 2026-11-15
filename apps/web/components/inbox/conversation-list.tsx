@@ -4,11 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { MessageCircle, RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
 import { ContactAvatar } from '@/components/inbox/contact-avatar';
 import { conversationTags, inboxTabOf, relativeTime, type InboxTab } from '@/lib/inbox-utils';
+import { CHANNEL_INFO, CHANNEL_ORDER, type ChannelKey } from '@/lib/channels';
+import { ChannelBadge } from '@/components/inbox/channel-badge';
 
 export type ListConversation = {
   id: string;
   contact_id: string;
   assigned_to: string | null;
+  channel: string;
   status: string;
   unread_count: number;
   last_message_at: string | null;
@@ -45,6 +48,7 @@ export function ConversationList({ conversations, userId, selectedId, onSelect, 
   const [showFilters, setShowFilters] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [status, setStatus] = useState('');
+  const [channel, setChannel] = useState<ChannelKey | ''>('');
   const [, setTick] = useState(0);
 
   // Atualiza o "há X min" sem depender de nova mensagem.
@@ -68,12 +72,16 @@ export function ConversationList({ conversations, userId, selectedId, onSelect, 
     if (activeTab !== 'todas' && inboxTabOf(item, userId) !== activeTab) return false;
     if (unreadOnly && item.unread_count === 0) return false;
     if (status && item.status !== status) return false;
+    if (channel && item.channel !== channel) return false;
     if (!term) return true;
     const name = (item.contacts?.full_name ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     return name.includes(term) || (item.contacts?.phone_e164 ?? '').includes(term.replace(/\D/g, '') || '\u0000');
   });
   const unreadTotal = conversations.filter(item => item.unread_count > 0).length;
   const filtersOn = unreadOnly || Boolean(status);
+  // Só mostra a escolha de canal quando há conversas de mais de um canal.
+  const channelsInUse = CHANNEL_ORDER.filter(key => conversations.some(item => item.channel === key));
+  const channelCount = (key: ChannelKey) => conversations.filter(item => item.channel === key).length;
 
   return <>
     <header className="px-4 pb-3 pt-5">
@@ -101,6 +109,10 @@ export function ConversationList({ conversations, userId, selectedId, onSelect, 
         </label>
         <button type="button" onClick={() => setShowFilters(open => !open)} aria-expanded={showFilters} aria-label="Filtros" title="Filtros" className={filtersOn ? 'relative flex size-10 items-center justify-center rounded-xl bg-tendi-indigo text-white shadow-card' : 'relative flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:text-tendi-indigo'}><SlidersHorizontal size={15} /></button>
       </div>
+      {(channelsInUse.length > 1 || channel) && <div role="group" aria-label="Filtrar por canal" className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5">
+        <button type="button" onClick={() => setChannel('')} aria-pressed={!channel} className={!channel ? 'shrink-0 rounded-full bg-tendi-navy px-3 py-1 text-[11px] font-semibold text-white' : 'shrink-0 rounded-full border border-tendi-line bg-white px-3 py-1 text-[11px] font-medium text-slate-500 hover:text-tendi-navy'}>Todos</button>
+        {channelsInUse.map(key => <button key={key} type="button" onClick={() => setChannel(current => current === key ? '' : key)} aria-pressed={channel === key} className={channel === key ? 'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-tendi-navy py-1 pl-1 pr-3 text-[11px] font-semibold text-white' : 'inline-flex shrink-0 items-center gap-1.5 rounded-full border border-tendi-line bg-white py-1 pl-1 pr-3 text-[11px] font-medium text-slate-600 hover:text-tendi-navy'}><ChannelBadge channel={key} className="size-[18px]" />{CHANNEL_INFO[key].label}<span className={channel === key ? 'text-white/70' : 'text-slate-400'}>{channelCount(key)}</span></button>)}
+      </div>}
       {showFilters && <div className="mt-2 flex animate-pop flex-wrap items-center gap-2 rounded-xl border border-tendi-line bg-tendi-haze/70 p-2.5">
         <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600"><input type="checkbox" checked={unreadOnly} onChange={e => setUnreadOnly(e.target.checked)} className="accent-tendi-magenta" />Só não lidas</label>
         <select aria-label="Status" value={status} onChange={e => setStatus(e.target.value)} className="ml-auto h-8 rounded-lg border border-tendi-line bg-white px-2 text-xs text-slate-600 outline-none focus:border-tendi-lilac">{STATUS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
@@ -115,7 +127,7 @@ export function ConversationList({ conversations, userId, selectedId, onSelect, 
         const owner = item.assigned_to && item.assigned_to !== userId ? memberNames[item.assigned_to] : null;
         return <button key={item.id} type="button" onClick={() => onSelect(item.id)} className={selected ? 'relative mb-0.5 flex w-full gap-3 rounded-xl bg-tendi-mist px-3 py-3 text-left ring-1 ring-inset ring-tendi-indigo/[.06]' : 'relative mb-0.5 flex w-full gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-tendi-haze'}>
           {selected && <span className="absolute inset-y-3 -left-2 w-[3px] rounded-r-full bg-tendi-magenta" />}
-          <ContactAvatar contactId={item.contact_id} name={item.contacts?.full_name} className="size-11 rounded-full text-[12px]" whatsapp />
+          <ContactAvatar contactId={item.contact_id} name={item.contacts?.full_name} className="size-11 rounded-full text-[12px]" channel={item.channel} />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <p className={unread ? 'truncate text-[14px] font-semibold text-tendi-navy' : 'truncate text-[14px] font-medium text-slate-700'}>{item.contacts?.full_name ?? 'Contato'}</p>

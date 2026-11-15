@@ -34,6 +34,19 @@ export function channelSupportsAi(channel: string | null | undefined): boolean {
   return (AI_REPLY_CHANNELS as readonly string[]).includes(channel ?? '');
 }
 
+export type AiChannel = (typeof AI_REPLY_CHANNELS)[number];
+
+/** Canais marcados no agente (coluna ai_channels). Sem a coluna ou com valor inválido: todos. */
+export function agentAiChannels(value: unknown): AiChannel[] {
+  if (!Array.isArray(value)) return [...AI_REPLY_CHANNELS];
+  return AI_REPLY_CHANNELS.filter(channel => value.includes(channel));
+}
+
+/** O canal atende com IA e está marcado no agente. */
+export function agentChannelEnabled(aiChannels: unknown, channel: string | null | undefined): boolean {
+  return channelSupportsAi(channel) && agentAiChannels(aiChannels).includes(channel as AiChannel);
+}
+
 export const WEEK_DAYS = [
   { key: 'mon', label: 'Segunda-feira', short: 'seg' },
   { key: 'tue', label: 'Terça-feira', short: 'ter' },

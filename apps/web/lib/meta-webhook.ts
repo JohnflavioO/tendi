@@ -49,7 +49,7 @@ async function ensureMetaConversation(db: Db, organizationId: string, contactId:
   const existing = await lookup();
   if (existing.data) return existing.data as MetaConversation;
   // Instagram segue a configuração do agente (como o WhatsApp); Messenger é sempre só com a equipe.
-  const aiMode = channelSupportsAi(channel) ? await initialAiMode(db, organizationId) : 'off';
+  const aiMode = channelSupportsAi(channel) ? await initialAiMode(db, organizationId, channel) : 'off';
   const created = await db.from('conversations').insert({ organization_id: organizationId, contact_id: contactId, channel, status: 'open', unread_count: 0, last_message_at: nowIso, ai_mode: aiMode }).select('id,unread_count,ai_mode').single();
   if (created.error?.code === '23505') {
     // Dois eventos simultâneos: o banco aceita uma só conversa aberta por contato; usa a que já existe.

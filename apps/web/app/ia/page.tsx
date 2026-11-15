@@ -9,7 +9,9 @@ import { canAccess } from '@/lib/team';
 import { WorkspaceShell } from '@/components/workspace-shell';
 import { AiUsageNotice } from '@/components/ai-usage-notice';
 import { BusinessEditor, EMPTY_PROFILE, type BusinessData } from '@/components/ai/business-editor';
-import { AI_TONES, buildSystemPrompt, type AiTone } from '@/lib/ai-agent';
+import { AI_REPLY_CHANNELS, AI_TONES, agentAiChannels, buildSystemPrompt, type AiChannel, type AiTone } from '@/lib/ai-agent';
+import { CHANNEL_INFO } from '@/lib/channels';
+import { ChannelBadge } from '@/components/inbox/channel-badge';
 
 type Org = { id: string; name: string; plan_code: string };
 type AgentForm = {
@@ -22,10 +24,12 @@ type AgentForm = {
   provider: string | null;
   model: string | null;
   monthly_reply_limit: number | null;
+  ai_channels: AiChannel[];
 };
 const DEFAULT_AGENT: AgentForm = {
   name: 'Assistente', is_enabled: false, niche: '', tone: 'cordial', system_instructions: '',
   auto_enable_new_conversations: false, provider: null, model: null, monthly_reply_limit: null,
+  ai_channels: [...AI_REPLY_CHANNELS],
 };
 
 const inputClass = 'td-input mt-1';
@@ -48,6 +52,7 @@ export default function WorkspaceAiPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [savedChannels, setSavedChannels] = useState<AiChannel[]>([...AI_REPLY_CHANNELS]);
 
   const { role, superAdmin } = useWorkspaceRole(org?.id);
   const allowed = role === undefined ? undefined : canAccess(role, 'ia') || superAdmin;
@@ -79,7 +84,9 @@ export default function WorkspaceAiPage() {
           provider: typeof data.provider === 'string' ? data.provider : null,
           model: typeof data.model === 'string' ? data.model : null,
           monthly_reply_limit: typeof data.monthly_reply_limit === 'number' ? data.monthly_reply_limit : null,
+          ai_channels: agentAiChannels(data.ai_channels),
         });
+        setSavedChannels(agentAiChannels(data.ai_channels));
       }
       setLoading(false);
     }
@@ -119,18 +126,28 @@ export default function WorkspaceAiPage() {
       tone: agent.tone,
       system_instructions: agent.system_instructions.trim(),
       auto_enable_new_conversations: agent.auto_enable_new_conversations,
+      ai_channels: agent.ai_channels,
     }, { onConflict: 'organization_id' });
+    if (saveError) { setSaving(false); setError(saveError.message); return; }
+    // Canal desmarcado agora: a IA sai das conversas abertas dele (a equipe ainda pode ligar em uma conversa).
+    const removed = savedChannels.filter(channel => !agent.ai_channels.includes(channel));
+    let turnedOff = 0;
+    if (removed.length) {
+      const { data: updated } = await supabase.from('conversations').update({ ai_mode: 'off' })
+        .eq('organization_id', org.id).in('channel', removed).eq('ai_mode', 'on').neq('status', 'closed').select('id');
+      turnedOff = (updated ?? []).length;
+    }
     setSaving(false);
-    if (saveError) { setError(saveError.message); return; }
+    setSavedChannels(agent.ai_channels);
     setAgentExists(true);
-    setNotice('Agente salvo.');
+    setNotice(turnedOff ? `Agente salvo. A IA saiu de ${turnedOff} conversa(s) aberta(s) dos canais desmarcados.` : 'Agente salvo.');
   }
 
   if (loading || allowed === undefined) return <main className="grid min-h-screen place-items-center bg-tendi-haze text-tendi-indigo"><Loader2 className="animate-spin" size={28} /></main>;
   if (!org) return <main className="grid min-h-screen place-items-center bg-tendi-haze p-6"><div className="td-card p-8 text-center"><p className="text-sm text-slate-500">Nenhum workspace encontrado para sua conta.</p></div></main>;
   if (!allowed) return <main className="grid min-h-screen place-items-center bg-tendi-haze p-6"><div className="td-card p-8 text-center"><ShieldAlert className="mx-auto text-tendi-magenta" size={30} /><h1 className="mt-3 font-bold text-tendi-indigo">Acesso restrito</h1><p className="mt-2 text-sm text-slate-500">Só o dono ou um administrador do workspace configura o agente de IA.</p></div></main>;
 
-  return <WorkspaceShell title="Agente de IA" description="Configure como a IA atende pelo WhatsApp e Webchat deste workspace">
+  return <WorkspaceShell title="Agente de IA" description="Configure como a IA atende pelo WhatsApp, Webchat e Instagram deste workspace">
     <div className="space-y-5">
       {error && <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-700 ring-1 ring-inset ring-rose-600/10">{error}</p>}
       {notice && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-xs text-emerald-700 ring-1 ring-inset ring-emerald-600/10">{notice}</p>}
@@ -160,6 +177,19 @@ export default function WorkspaceAiPage() {
           <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.is_enabled} onChange={e => setField('is_enabled', e.target.checked)} />Agente ativo (os atendentes poderão ligar a IA nas conversas)</label>
           <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.auto_enable_new_conversations} onChange={e => setField('auto_enable_new_conversations', e.target.checked)} />Ligar a IA automaticamente em conversas novas</label>
         </div>
+        <fieldset className="mt-4 td-subtle p-3">
+          <legend className="sr-only">Canais com IA</legend>
+          <p className="text-xs font-semibold text-slate-700">Canais em que a IA atende</p>
+          <p className="mt-0.5 text-[11px] text-slate-400">Conversas novas destes canais começam com a IA. Nos desmarcados, a equipe atende (e ainda pode ligar a IA numa conversa específica). O Messenger fica sempre com a equipe.</p>
+          <div className="mt-2.5 flex flex-wrap gap-2">{AI_REPLY_CHANNELS.map(channel => {
+            const info = CHANNEL_INFO[channel];
+            const checked = agent.ai_channels.includes(channel);
+            return <label key={channel} className={checked ? 'inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-tendi-navy ring-1 ring-inset ring-tendi-lilac/60 shadow-card' : 'inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/60 px-3 py-2 text-xs font-medium text-slate-400 ring-1 ring-inset ring-tendi-line'}>
+              <input type="checkbox" checked={checked} onChange={e => setField('ai_channels', e.target.checked ? AI_REPLY_CHANNELS.filter(item => item === channel || agent.ai_channels.includes(item)) : agent.ai_channels.filter(item => item !== channel))} className="accent-tendi-magenta" />
+              <ChannelBadge channel={channel} className="size-5" />{info.label}
+            </label>;
+          })}</div>
+        </fieldset>
         <p className="mt-4 td-subtle p-3 text-xs text-slate-500">
           Provedor e modelo: <b className="text-slate-700">{agent.provider ?? 'padrão da plataforma'}{agent.model ? ` · ${agent.model}` : ''}</b> · Limite mensal: <b className="text-slate-700">{agent.monthly_reply_limit ? `${agent.monthly_reply_limit.toLocaleString('pt-BR')} respostas` : 'do plano atual'}</b>
           <span className="mt-1 block text-slate-400">Definidos pelo Super Admin da plataforma.</span>
