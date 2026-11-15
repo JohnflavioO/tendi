@@ -51,14 +51,21 @@ export function messengerDialogUrl(input: { appId: string; redirectUri: string; 
   return url.toString();
 }
 
-/** Login do Instagram (Unified login): mesma tela do Facebook, autorizando a configuração indicada por `configId`. */
-export function instagramDialogUrl(input: { appId: string; redirectUri: string; state: string; configId: string }): string {
+/**
+ * Instagram pelo Facebook Login: as permissões de Página do Messenger mais as do Instagram.
+ * A "Configuração de login" do Instagram (config_id) só entrega permissões de Instagram, sem as
+ * de Página; sem elas não há como achar a Página ligada à conta, cujo token envia as mensagens.
+ */
+export const INSTAGRAM_OAUTH_SCOPES = [...MESSENGER_OAUTH_SCOPES, 'instagram_basic', 'instagram_manage_messages', 'business_management'];
+
+/** Login do Instagram: mesma tela do Facebook, pedindo Página + conta do Instagram. */
+export function instagramDialogUrl(input: { appId: string; redirectUri: string; state: string }): string {
   const url = new URL(`https://www.facebook.com/${META_GRAPH_VERSION}/dialog/oauth`);
   url.searchParams.set('client_id', input.appId);
   url.searchParams.set('redirect_uri', input.redirectUri);
   url.searchParams.set('state', input.state);
   url.searchParams.set('response_type', 'code');
-  url.searchParams.set('config_id', input.configId);
+  url.searchParams.set('scope', INSTAGRAM_OAUTH_SCOPES.join(','));
   return url.toString();
 }
 

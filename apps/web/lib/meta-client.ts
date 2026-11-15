@@ -49,14 +49,9 @@ export function isMessengerConfigured(): boolean {
   return Boolean(process.env.META_APP_ID?.trim() && process.env.META_APP_SECRET?.trim() && process.env.META_WEBHOOK_VERIFY_TOKEN?.trim());
 }
 
-/** Instagram está pronto para conectar (mesmo ID/chave do app + a Configuração de login própria + token do webhook). */
+/** Instagram está pronto para conectar: usa o mesmo app e o mesmo login do Messenger. */
 export function isInstagramConfigured(): boolean {
-  return Boolean(
-    process.env.META_APP_ID?.trim() &&
-    process.env.META_APP_SECRET?.trim() &&
-    process.env.META_WEBHOOK_VERIFY_TOKEN?.trim() &&
-    process.env.META_INSTAGRAM_CONFIG_ID?.trim(),
-  );
+  return isMessengerConfigured();
 }
 
 async function parseMetaResponse(response: Response): Promise<unknown> {

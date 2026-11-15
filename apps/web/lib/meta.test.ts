@@ -50,13 +50,13 @@ describe('diálogo de login do Messenger (Facebook)', () => {
 });
 
 describe('diálogo de login do Instagram (Unified login)', () => {
-  it('monta a URL de autorização na mesma tela do Facebook, com o config_id no lugar do scope', () => {
-    const url = new URL(instagramDialogUrl({ appId: '123', redirectUri: 'https://app.tendi.com.br/api/meta/instagram/oauth/callback', state: 'xyz', configId: '456' }));
+  it('monta a URL de autorização na mesma tela do Facebook, pedindo as permissões de Página e de Instagram', () => {
+    const url = new URL(instagramDialogUrl({ appId: '123', redirectUri: 'https://app.tendi.com.br/api/meta/instagram/oauth/callback', state: 'xyz' }));
     expect(url.origin + url.pathname).toBe('https://www.facebook.com/v21.0/dialog/oauth');
     expect(url.searchParams.get('client_id')).toBe('123');
     expect(url.searchParams.get('state')).toBe('xyz');
-    expect(url.searchParams.get('config_id')).toBe('456');
-    expect(url.searchParams.get('scope')).toBeNull();
+    expect(url.searchParams.get('config_id')).toBeNull();
+    expect(url.searchParams.get('scope')!.split(',')).toEqual(expect.arrayContaining(['pages_show_list', 'pages_manage_metadata', 'instagram_basic', 'instagram_manage_messages']));
   });
 });
 
