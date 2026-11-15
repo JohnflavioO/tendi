@@ -11,7 +11,9 @@ const ERROR_LABEL: Record<string, string> = {
   estado_invalido: 'A confirmação da Meta não bateu. Tente conectar de novo.',
   sessao_expirada: 'A sessão com a Meta expirou. Tente conectar de novo.',
   falha_na_troca_de_token: 'A Meta não concluiu o login. Tente de novo em instantes.',
-  falha_na_conexao: 'Não foi possível concluir a conexão com o Instagram. Tente de novo.',
+  falha_na_conexao: 'A conta foi encontrada, mas não foi possível salvar a conexão. Tente de novo.',
+  sem_conta_instagram: 'A Meta não liberou nenhuma conta do Instagram ligada a uma Página do Facebook. Na janela da Meta, marque a conta do Instagram e também a Página do Facebook dela.',
+  falha_ao_ler_conta: 'A Meta autorizou, mas não deixou ler a conta do Instagram.',
   servidor_sem_credenciais: 'O servidor está sem credenciais do banco no momento.',
 };
 
@@ -53,7 +55,11 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
     const metaStep = params.get('metaStep');
     const igConnected = params.get('igConnected');
     if (metaError) { setError(ERROR_LABEL[metaError] ?? 'Não foi possível conectar o Messenger.'); cleanUrl(['metaError']); }
-    if (igError) { setError(ERROR_LABEL[igError] ?? 'Não foi possível conectar o Instagram.'); cleanUrl(['igError']); }
+    if (igError) {
+      const detail = params.get('igDetail');
+      setError(`${ERROR_LABEL[igError] ?? 'Não foi possível conectar o Instagram.'}${detail ? ` (Meta: ${detail})` : ''}`);
+      cleanUrl(['igError', 'igDetail']);
+    }
     if (igConnected) { setNotice(igConnected === '1' ? 'Instagram conectado.' : `Instagram conectado: @${igConnected}.`); cleanUrl(['igConnected']); void onChanged(); }
     if (metaStep === 'choose') {
       setStep('choose');
