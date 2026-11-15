@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { metaAccessTokenParams } from '@/lib/meta';
-import { getInstagramAccount, getMetaAppId, getMetaAppSecret, metaGet } from '@/lib/meta-client';
+import { InstagramAccountNotFoundError, getInstagramAccount, getMetaAppId, getMetaAppSecret, metaGet } from '@/lib/meta-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,15 +54,33 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
   if (!admin) return clearState(NextResponse.redirect(backToChannels(request, organizationId, { igError: 'servidor_sem_credenciais' })));
 
+  // Cada etapa devolve um código próprio, com o motivo curto da Meta, para a tela dizer onde parou.
+  const fail = (code: string, error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[Instagram OAuth] falha ao concluir a conexão', { code, message });
+    return clearState(NextResponse.redirect(backToChannels(request, organizationId, { igError: code, igDetail: message.slice(0, 160) })));
+  };
+
+  let appId: string, appSecret: string, userToken: string;
   try {
-    const appId = getMetaAppId();
-    const appSecret = getMetaAppSecret();
+    appId = getMetaAppId();
+    appSecret = getMetaAppSecret();
     const redirectUri = new URL('/api/meta/instagram/oauth/callback', request.url).toString();
     const exchanged = await metaGet('/oauth/access_token', metaAccessTokenParams({ appId, appSecret, redirectUri, code })) as { access_token?: string };
-    const userToken = exchanged.access_token;
-    if (!userToken) throw new Error('A Meta não devolveu um token de acesso.');
+    if (!exchanged.access_token) throw new Error('A Meta não devolveu um token de acesso.');
+    userToken = exchanged.access_token;
+  } catch (error) {
+    return fail('falha_na_troca_de_token', error);
+  }
 
-    const account = await getInstagramAccount(userToken);
+  let account: Awaited<ReturnType<typeof getInstagramAccount>>;
+  try {
+    account = await getInstagramAccount(userToken, `${appId}|${appSecret}`);
+  } catch (error) {
+    return fail(error instanceof InstagramAccountNotFoundError ? 'sem_conta_instagram' : 'falha_ao_ler_conta', error);
+  }
+
+  try {
 
     const connectionId = await upsertInstagramConnection(admin, {
       organizationId,
@@ -73,7 +91,6 @@ export async function GET(request: Request) {
 
     return clearState(NextResponse.redirect(backToChannels(request, organizationId, { igConnected: account.username ?? '1' })));
   } catch (error) {
-    console.error('[Instagram OAuth] falha ao concluir a conexão', { message: error instanceof Error ? error.message : String(error) });
-    return clearState(NextResponse.redirect(backToChannels(request, organizationId, { igError: 'falha_na_conexao' })));
+    return fail('falha_na_conexao', error);
   }
 }

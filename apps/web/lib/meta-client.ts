@@ -125,12 +125,45 @@ export async function sendMessengerText(pageAccessToken: string, recipientId: st
 
 export type InstagramAccount = { id: string; username: string | null; pageId: string; pageAccessToken: string };
 
+export class InstagramAccountNotFoundError extends Error {
+  constructor() {
+    super('Nenhuma conta do Instagram vinculada foi encontrada nas páginas autorizadas.');
+    this.name = 'InstagramAccountNotFoundError';
+  }
+}
+
+type PageWithInstagram = { id?: unknown; access_token?: unknown; instagram_business_account?: unknown };
+
+function pickInstagram(page: PageWithInstagram): InstagramAccount | null {
+  const ig = page.instagram_business_account as { id?: unknown; username?: unknown } | undefined;
+  if (ig && typeof ig.id === 'string' && typeof page.id === 'string' && typeof page.access_token === 'string') {
+    return { id: ig.id, username: typeof ig.username === 'string' ? ig.username : null, pageId: page.id, pageAccessToken: page.access_token };
+  }
+  return null;
+}
+
 /**
- * Entre as páginas do usuário, acha a primeira com uma conta do Instagram vinculada. A
- * Configuração de login (config_id) já restringe o login a uma única Página + conta, então
- * normalmente só virá uma.
+ * Páginas liberadas no login, lidas das permissões do token (debug_token → granular_scopes).
+ * No Login do Facebook para Empresas os ativos são escolhidos no portfólio empresarial e o
+ * /me/accounts pode vir vazio, mas as permissões trazem os ids das Páginas autorizadas.
  */
-export async function getInstagramAccount(userAccessToken: string): Promise<InstagramAccount> {
+async function grantedPageIds(userAccessToken: string, appAccessToken: string): Promise<string[]> {
+  const data = await metaGet('/debug_token', { input_token: userAccessToken, access_token: appAccessToken });
+  const scopes = (data as { data?: { granular_scopes?: Array<{ scope?: unknown; target_ids?: unknown }> } })?.data?.granular_scopes ?? [];
+  const ids = new Set<string>();
+  for (const item of scopes) {
+    if (typeof item.scope !== 'string' || !item.scope.startsWith('pages_') || !Array.isArray(item.target_ids)) continue;
+    for (const id of item.target_ids) if (typeof id === 'string') ids.add(id);
+  }
+  return [...ids];
+}
+
+/**
+ * Acha a conta do Instagram autorizada e a Página do Facebook ligada a ela (o token da Página é
+ * o que envia as mensagens). Primeiro pelo /me/accounts; se vier vazio (comum no login
+ * empresarial), pelas Páginas que aparecem nas permissões do token.
+ */
+export async function getInstagramAccount(userAccessToken: string, appAccessToken?: string): Promise<InstagramAccount> {
   const data = await metaGet('/me/accounts', {
     access_token: userAccessToken,
     fields: 'id,name,access_token,instagram_business_account{id,username}',
@@ -138,13 +171,17 @@ export async function getInstagramAccount(userAccessToken: string): Promise<Inst
   const list = data && typeof data === 'object' && Array.isArray((data as Record<string, unknown>).data) ? (data as { data: unknown[] }).data : [];
   for (const item of list) {
     if (!item || typeof item !== 'object') continue;
-    const page = item as { id?: unknown; access_token?: unknown; instagram_business_account?: unknown };
-    const ig = page.instagram_business_account as { id?: unknown; username?: unknown } | undefined;
-    if (ig && typeof ig.id === 'string' && typeof page.id === 'string' && typeof page.access_token === 'string') {
-      return { id: ig.id, username: typeof ig.username === 'string' ? ig.username : null, pageId: page.id, pageAccessToken: page.access_token };
+    const found = pickInstagram(item as PageWithInstagram);
+    if (found) return found;
+  }
+  if (appAccessToken) {
+    for (const pageId of await grantedPageIds(userAccessToken, appAccessToken)) {
+      const page = await metaGet(`/${pageId}`, { access_token: userAccessToken, fields: 'id,access_token,instagram_business_account{id,username}' }).catch(() => null);
+      const found = page && typeof page === 'object' ? pickInstagram(page as PageWithInstagram) : null;
+      if (found) return found;
     }
   }
-  throw new Error('Nenhuma conta do Instagram vinculada foi encontrada nas páginas autorizadas.');
+  throw new InstagramAccountNotFoundError();
 }
 
 /** Envia texto por uma conta do Instagram, usando o token da Página do Facebook vinculada a ela. */
