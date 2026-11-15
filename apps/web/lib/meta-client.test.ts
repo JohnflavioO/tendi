@@ -18,6 +18,17 @@ describe('Messenger (graph.facebook.com)', () => {
     expect(String(fetchMock.mock.calls[0]![0])).toContain('graph.facebook.com/v21.0/me/accounts');
   });
 
+  it('no login empresarial, lista as Páginas marcadas pelas permissões do token quando /me/accounts vem vazio', async () => {
+    vi.stubGlobal('fetch', vi.fn((url: string | URL) => {
+      const href = String(url);
+      if (href.includes('/me/accounts')) return jsonResponse({ data: [] });
+      if (href.includes('/debug_token')) return jsonResponse({ data: { granular_scopes: [{ scope: 'pages_messaging', target_ids: ['p7'] }, { scope: 'pages_show_list', target_ids: ['p7'] }] } });
+      if (href.includes('/p7')) return jsonResponse({ id: 'p7', name: 'TendiDesk', access_token: 'tok-7' });
+      return jsonResponse({ error: { message: 'inesperado' } }, false);
+    }));
+    expect(await listMetaPages('user-token', 'app|secret')).toEqual([{ id: 'p7', name: 'TendiDesk', access_token: 'tok-7' }]);
+  });
+
   it('envia uma mensagem de texto pelo token da página', async () => {
     const fetchMock = vi.fn().mockReturnValue(jsonResponse({ message_id: 'm1' }));
     vi.stubGlobal('fetch', fetchMock);

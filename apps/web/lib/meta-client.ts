@@ -105,10 +105,25 @@ export async function metaPost(path: string, params: Record<string, string>): Pr
 export type MetaPage = { id: string; name: string; access_token: string };
 
 /** Páginas do Facebook que o usuário administra, cada uma com o token para falar em nome dela. */
-export async function listMetaPages(userAccessToken: string): Promise<MetaPage[]> {
+export async function listMetaPages(userAccessToken: string, appAccessToken: string | null = envAppAccessToken()): Promise<MetaPage[]> {
   const data = await metaGet('/me/accounts', { access_token: userAccessToken, fields: 'id,name,access_token' });
   const list = data && typeof data === 'object' && Array.isArray((data as Record<string, unknown>).data) ? (data as { data: unknown[] }).data : [];
-  return list.filter((item): item is MetaPage => Boolean(item && typeof item === 'object' && typeof (item as MetaPage).id === 'string'));
+  const pages = list.filter((item): item is MetaPage => Boolean(item && typeof item === 'object' && typeof (item as MetaPage).id === 'string'));
+  if (pages.length || !appAccessToken) return pages;
+  // Login do Facebook para Empresas: /me/accounts pode vir vazio mesmo com a Página marcada.
+  const found: MetaPage[] = [];
+  for (const pageId of await grantedPageIds(userAccessToken, appAccessToken)) {
+    const page = await metaGet(`/${pageId}`, { access_token: userAccessToken, fields: 'id,name,access_token' }).catch(() => null) as Partial<MetaPage> | null;
+    if (page && typeof page.id === 'string' && typeof page.access_token === 'string') found.push({ id: page.id, name: typeof page.name === 'string' ? page.name : 'Página', access_token: page.access_token });
+  }
+  return found;
+}
+
+/** Token do app (id|chave) para o debug_token; null se o app não estiver configurado. */
+function envAppAccessToken(): string | null {
+  const id = process.env.META_APP_ID?.trim();
+  const secret = process.env.META_APP_SECRET?.trim();
+  return id && secret ? `${id}|${secret}` : null;
 }
 
 /** Envia texto pelo Messenger de uma página. */
@@ -163,7 +178,7 @@ async function grantedPageIds(userAccessToken: string, appAccessToken: string): 
  * o que envia as mensagens). Primeiro pelo /me/accounts; se vier vazio (comum no login
  * empresarial), pelas Páginas que aparecem nas permissões do token.
  */
-export async function getInstagramAccount(userAccessToken: string, appAccessToken?: string): Promise<InstagramAccount> {
+export async function getInstagramAccount(userAccessToken: string, appAccessToken: string | null = envAppAccessToken()): Promise<InstagramAccount> {
   const data = await metaGet('/me/accounts', {
     access_token: userAccessToken,
     fields: 'id,name,access_token,instagram_business_account{id,username}',
