@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { metaAccessTokenParams } from '@/lib/meta';
-import { InstagramAccountNotFoundError, diagnoseMetaPages, getInstagramAccount, getMetaAppId, getMetaAppSecret, metaGet } from '@/lib/meta-client';
+import { InstagramAccountNotFoundError, diagnoseMetaPages, getInstagramAccount, getMetaAppId, getMetaAppSecret, metaGet, metaPost } from '@/lib/meta-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +91,14 @@ export async function GET(request: Request) {
     });
     await admin.rpc('set_channel_secret', { p_connection_id: connectionId, p_value: account.pageAccessToken });
 
-    return clearState(NextResponse.redirect(backToChannels(request, organizationId, { igConnected: account.username ?? '1' })));
+    // Sem inscrever a Página no app, a Meta não entrega as mensagens do Instagram no webhook.
+    const subscribed = await metaPost(`/${account.pageId}/subscribed_apps`, { access_token: account.pageAccessToken, subscribed_fields: 'messages,messaging_postbacks' })
+      .then(() => true)
+      .catch(error => { console.warn('[Instagram OAuth] inscrição do webhook falhou', { pageId: account.pageId, message: error instanceof Error ? error.message : String(error) }); return false; });
+
+    const params: Record<string, string> = { igConnected: account.username ?? '1' };
+    if (!subscribed) params.igWarning = 'webhook';
+    return clearState(NextResponse.redirect(backToChannels(request, organizationId, params)));
   } catch (error) {
     return fail('falha_na_conexao', error);
   }
