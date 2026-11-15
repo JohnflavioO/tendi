@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Check, Facebook, Instagram, Loader2, Unplug } from 'lucide-react';
+import { AlertTriangle, Check, CircleCheck, CircleX, Facebook, Instagram, Loader2, Stethoscope, Unplug } from 'lucide-react';
 
 type Connection = { id: string; channel: string; display_name: string; status: string };
 type MetaPage = { id: string; name: string };
@@ -42,6 +42,8 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [checkSteps, setCheckSteps] = useState<Array<{ label: string; ok: boolean; detail: string }> | null>(null);
 
   useEffect(() => {
     fetch('/api/meta/status').then(response => response.json())
@@ -89,6 +91,16 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
     setPages(null);
     setNotice(`Messenger conectado: ${payload.pageName}.`);
     await onChanged();
+  }
+
+  async function checkInstagram() {
+    setChecking(true);
+    setCheckSteps(null);
+    const response = await fetch('/api/meta/instagram/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ organizationId }) }).catch(() => null);
+    const payload = response ? await response.json().catch(() => ({})) : {};
+    setChecking(false);
+    if (!response?.ok) { setError(typeof payload.error === 'string' ? payload.error : 'Não foi possível verificar.'); return; }
+    setCheckSteps(Array.isArray(payload.steps) ? payload.steps : []);
   }
 
   async function disconnect(connectionId: string) {
@@ -153,7 +165,13 @@ export function MetaConnectionCard({ organizationId, connections, canManage, onC
             {instagram?.status === 'connected' && <p className="mt-1 truncate text-[11px] text-slate-400">{instagram.display_name}</p>}
             <div className="mt-3">
               {instagram?.status === 'connected' ? (
-                canManage && <button type="button" onClick={() => void disconnect(instagram.id)} disabled={busy === instagram.id} className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 hover:underline disabled:opacity-50">{busy === instagram.id ? <Loader2 size={13} className="animate-spin" /> : <Unplug size={13} />}Desconectar</button>
+                canManage && <div>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <button type="button" onClick={() => void checkInstagram()} disabled={checking} className="flex items-center gap-1.5 text-xs font-semibold text-tendi-indigo hover:underline disabled:opacity-50">{checking ? <Loader2 size={13} className="animate-spin" /> : <Stethoscope size={13} />}Verificar recebimento</button>
+                    <button type="button" onClick={() => void disconnect(instagram.id)} disabled={busy === instagram.id} className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 hover:underline disabled:opacity-50">{busy === instagram.id ? <Loader2 size={13} className="animate-spin" /> : <Unplug size={13} />}Desconectar</button>
+                  </div>
+                  {checkSteps && <ul className="mt-3 space-y-1.5 rounded-lg bg-tendi-haze/70 p-2.5">{checkSteps.map(step => <li key={step.label} className="flex items-start gap-1.5 text-[11px] leading-4">{step.ok ? <CircleCheck size={13} className="mt-px shrink-0 text-emerald-600" /> : <CircleX size={13} className="mt-px shrink-0 text-rose-600" />}<span><b className="font-semibold text-slate-700">{step.label}:</b> <span className="break-all text-slate-500">{step.detail}</span></span></li>)}</ul>}
+                </div>
               ) : !configured.instagram ? (
                 <p className="flex items-start gap-1.5 text-[11px] leading-4 text-amber-800"><AlertTriangle size={13} className="mt-0.5 shrink-0" />Falta <code>META_INSTAGRAM_CONFIG_ID</code> no servidor.</p>
               ) : canManage && (
