@@ -83,15 +83,21 @@ Vault é o da Página (é ele que autoriza enviar mensagens pela conta do Instag
 Depois de conectado, as mensagens recebidas em qualquer um dos dois passam a aparecer na Inbox
 do Tendi.
 
-## O que ainda não existe
+## Responder e IA
 
-- **Responder pelo Inbox**: por enquanto, só a recepção está pronta. Enviar uma resposta de
-  dentro do Tendi para o Instagram/Messenger ainda não foi implementado; responda direto pelo
-  Instagram/Messenger enquanto isso.
-- **Resposta automática da IA**: liberada só para WhatsApp e Webchat nesta etapa.
+- **Responder pelo Inbox:** a equipe responde no Instagram e no Messenger pelo próprio Inbox. Por
+  enquanto só texto (sem anexo nem áudio), até 1000 caracteres no Instagram e 2000 no Messenger.
+- **Agente de IA:** responde **só no Instagram**, seguindo o mesmo agente do WhatsApp (ligar/desligar,
+  instruções, limite mensal). No Messenger a conversa fica sempre com a equipe.
+- **Janela de 24 h da Meta:** só é possível responder até 24 h depois da última mensagem do cliente.
+  Fora disso o Tendi não envia: a IA passa a conversa para a equipe e o Inbox mostra o aviso.
+- **Passagem para a equipe:** quando a IA chama um atendente ou alguém responde pelo Inbox, a IA para
+  naquela conversa, como no WhatsApp.
+
+## Limitações conhecidas
+
 - **Nome do contato**: como o webhook não traz o nome de quem escreve, o contato chega como
   "Contato do Instagram/Messenger" — edite o nome manualmente em Contatos.
-- **Este fluxo não foi testado por nós contra a API real da Meta** antes de vocês tentarem — ele
-  segue o que o próprio painel da Meta mostrou durante a configuração, mas a Meta muda esses
-  detalhes com frequência. Se algo não bater com o que a tela da Meta pedir, me avise com a
-  mensagem de erro exata.
+- **Este fluxo ainda não foi testado contra a API real da Meta.** Ele segue a documentação e o
+  que o painel da Meta mostrou durante a configuração, mas a Meta muda esses detalhes com
+  frequência. Se algo não bater, anote a mensagem de erro exata.
