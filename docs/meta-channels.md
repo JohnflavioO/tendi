@@ -27,6 +27,12 @@ Em **Login do Facebook para Empresas → Configurações**:
 
 ## 2.1. Configuração de login do Instagram (Unified login)
 
+> **Não é mais usada.** Essa configuração só entrega permissões de Instagram, sem as de Página, e sem
+> a Página não há como enviar mensagens. O botão "Conectar Instagram" agora usa o mesmo login do
+> Messenger, pedindo `pages_show_list`, `pages_messaging`, `pages_manage_metadata`, `instagram_basic`,
+> `instagram_manage_messages` e `business_management`. Na janela da Meta, marque a Página e a conta do
+> Instagram ligada a ela. Os URIs de redirecionamento continuam cadastrados no Login do Facebook para Empresas.
+
 Vá em **Instagram → API setup with Unified login** → seção **"1. Configure seu app"** → clique em
 **"Criar nova configuração"**:
 
@@ -53,7 +59,7 @@ Repita em cada um dos dois casos de uso (Messenger e Instagram), na aba **Webhoo
 | --- | --- |
 | `META_APP_ID` | ID do app, do topo do painel (passo 1) — usado pelo Messenger **e** pelo Instagram |
 | `META_APP_SECRET` | Chave secreta do app, do topo do painel (passo 1) — usado pelo Messenger **e** pelo Instagram |
-| `META_INSTAGRAM_CONFIG_ID` | ID da Configuração de login do Instagram (passo 2.1) |
+| `META_INSTAGRAM_CONFIG_ID` | Não é mais usada (veja a nota do passo 2.1) |
 | `META_WEBHOOK_VERIFY_TOKEN` | O token de verificação que você inventou no passo 3 (os dois produtos usam o mesmo) |
 
 Sem as credenciais de um produto, a tela de Conexões mostra que aquele botão ainda não foi
