@@ -1,9 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { MAX_CAPTION_LENGTH, buildDapiMediaRequest, validateAttachment } from './inbox-attachments';
 import { humanSigner, normalizeSignature, signText } from './signature';
+import { friendlyMetaSendError } from './meta-client';
 
 /**
- * Envio de resposta do Inbox pelo WhatsApp (D-API, Fase 4).
+ * Envio de resposta do Inbox pelo WhatsApp (D-API, Fase 4), Webchat, Instagram e Messenger
+ * (Graph API da Meta, só texto e dentro da janela de 24 h; ver sendMetaReply).
  *
  * Fluxo: valida a conversa (as regras de acesso do Supabase garantem que o usuário
  * só enxerga conversas do próprio workspace) -> grava a mensagem como "queued" ->
@@ -32,10 +34,23 @@ export type SendFn = (path: string, body: Json, options?: { timeoutMs?: number }
 /** Gera um link temporário para a D-API baixar o arquivo do Storage. Retorna null se o arquivo não existir. */
 export type SignFn = (path: string) => Promise<string | null>;
 
+/**
+ * Envio pela Graph API da Meta (Instagram ou Messenger). Quem implementa busca o token da página
+ * no Vault (get_channel_secret, só com a chave de serviço). Devolve o JSON da Meta ({ message_id }).
+ */
+export type MetaSendFn = (input: { channel: MetaInboxChannel; connectionId: string; accountId: string; recipientId: string; text: string }) => Promise<unknown>;
+export type MetaInboxChannel = 'instagram' | 'messenger';
+
 export const MAX_TEXT_LENGTH = 4096;
+/** A Graph API recusa textos de mensagem acima de 1000 caracteres no Instagram e 2000 no Messenger. */
+const META_TEXT_LIMIT: Record<MetaInboxChannel, number> = { instagram: 1000, messenger: 2000 };
+/** A Meta só aceita resposta da empresa até 24 h depois da última mensagem do cliente. */
+export const META_WINDOW_MS = 24 * 60 * 60 * 1000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-/** Canais em que o Inbox já consegue enviar a resposta do atendente. Instagram/Messenger ainda não. */
+/** Canais em que o Inbox envia a resposta do atendente. Instagram/Messenger precisam do envio da Meta (sendMeta). */
 const SENDABLE_CHANNELS = ['whatsapp', 'webchat'];
+const META_CHANNELS: MetaInboxChannel[] = ['instagram', 'messenger'];
+const isMetaChannel = (channel: string): channel is MetaInboxChannel => (META_CHANNELS as string[]).includes(channel);
 
 const isRecord = (value: unknown): value is Json =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -76,7 +91,96 @@ export function friendlySendError(message: string): string {
 
 const fail = (status: number, error: string): SendOutcome => ({ status, body: { success: false, error } });
 
-export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, writeDb: Db = db, signUrl?: SignFn): Promise<SendOutcome> {
+/**
+ * Resposta do atendente no Instagram ou no Messenger (só texto nesta etapa).
+ * Mesmo registro do WhatsApp: grava "queued", envia, marca "sent" com o id da Meta (ou "failed").
+ */
+async function sendMetaReply(
+  db: Db,
+  writeDb: Db,
+  input: SendInput,
+  conversation: { id: string; organization_id: string; channel: MetaInboxChannel; contacts: unknown; teams?: unknown },
+  text: string,
+  sendMeta: MetaSendFn,
+  now: () => Date,
+): Promise<SendOutcome> {
+  const channel = conversation.channel;
+  const label = channel === 'instagram' ? 'Instagram' : 'Messenger';
+  if (input.attachment !== undefined && input.attachment !== null) {
+    return fail(422, `Anexos ainda não podem ser enviados pelo ${label}. Envie só o texto.`);
+  }
+
+  const contact = (Array.isArray(conversation.contacts) ? conversation.contacts[0] : conversation.contacts) as { external_id?: string | null } | null;
+  const externalId = asString(contact?.external_id) ?? '';
+  const recipientId = externalId.startsWith(`${channel}:`) ? externalId.slice(channel.length + 1) : '';
+  if (!recipientId) return fail(422, `O contato não tem um ID do ${label} válido.`);
+
+  const [connectionResult, workspaceResult, lastInboundResult] = await Promise.all([
+    db.from('channel_connections').select('id,provider_account_id,status').eq('organization_id', conversation.organization_id).eq('channel', channel).maybeSingle(),
+    // A assinatura é uma configuração da empresa (guardada na conexão do WhatsApp, em Configurações).
+    db.from('channel_connections').select('settings').eq('organization_id', conversation.organization_id).eq('channel', 'whatsapp').maybeSingle(),
+    db.from('messages').select('sent_at,created_at').eq('conversation_id', conversation.id).eq('direction', 'inbound')
+      .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  if (connectionResult.error) return fail(500, `Não foi possível consultar a conexão do ${label}.`);
+  const connection = connectionResult.data as { id: string; provider_account_id: string | null; status: string } | null;
+  if (!connection?.provider_account_id || connection.status !== 'connected') {
+    return fail(409, `O ${label} deste workspace não está conectado. Conecte em Conexões.`);
+  }
+
+  // Janela de 24 h da Meta: depois dela a Graph API recusa a mensagem.
+  const lastInbound = lastInboundResult.data as { sent_at?: string | null; created_at?: string | null } | null;
+  const lastAt = Date.parse(lastInbound?.sent_at || lastInbound?.created_at || '');
+  if (!Number.isFinite(lastAt) || now().getTime() - lastAt > META_WINDOW_MS) {
+    return fail(422, `Já passou de 24 h desde a última mensagem do cliente. O ${label} só deixa responder quando ele escrever de novo.`);
+  }
+
+  const senderName = asString(input.senderName) ?? 'Atendente';
+  const signature = normalizeSignature((workspaceResult.data as { settings?: unknown } | null)?.settings);
+  const team = (Array.isArray(conversation.teams) ? conversation.teams[0] : conversation.teams) as { name?: string } | null | undefined;
+  const signer = signature.enabled ? humanSigner({ name: senderName, team: team?.name, format: signature.format }) : '';
+  const outgoing = signText(text, signer, 'plain');
+  if (outgoing.length > META_TEXT_LIMIT[channel]) {
+    return fail(400, `No ${label} a mensagem (com a assinatura) pode ter até ${META_TEXT_LIMIT[channel]} caracteres.`);
+  }
+  const basePayload = { source: 'inbox', sender: { type: 'human', name: senderName, user_id: input.userId }, ...(signer ? { signature: signer } : {}) };
+
+  const inserted = await writeDb
+    .from('messages')
+    .insert({
+      organization_id: conversation.organization_id,
+      conversation_id: conversation.id,
+      direction: 'outbound',
+      message_type: 'text',
+      body: text,
+      delivery_status: 'queued',
+      sender_id: input.userId,
+      provider: channel,
+      sent_at: now().toISOString(),
+      payload: basePayload,
+    })
+    .select('id')
+    .single();
+  if (inserted.error || !inserted.data) return fail(500, 'Não foi possível registrar a mensagem.');
+  const messageRowId = (inserted.data as { id: string }).id;
+
+  try {
+    const response = await sendMeta({ channel, connectionId: connection.id, accountId: connection.provider_account_id, recipientId, text: outgoing });
+    const providerMessageId = pickProviderMessageId(response);
+    const sentPatch = { delivery_status: 'sent', sent_at: now().toISOString() };
+    const update = await writeDb.from('messages').update(providerMessageId ? { ...sentPatch, provider_message_id: providerMessageId } : sentPatch).eq('id', messageRowId);
+    if (update.error && providerMessageId) await writeDb.from('messages').update(sentPatch).eq('id', messageRowId);
+    // Atendente respondeu: assume a conversa e a IA para de responder (pode ser religada no Inbox).
+    await writeDb.from('conversations').update({ last_message_at: now().toISOString(), status: 'open', ai_mode: 'off' }).eq('id', conversation.id);
+    return { status: 200, body: { success: true, messageId: messageRowId, delivery_status: 'sent', providerMessageId } };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'erro desconhecido';
+    await writeDb.from('messages').update({ delivery_status: 'failed', payload: { ...basePayload, error: reason.slice(0, 300) } }).eq('id', messageRowId);
+    return { status: 502, body: { success: false, error: friendlyMetaSendError(error), messageId: messageRowId } };
+  }
+}
+
+export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, writeDb: Db = db, signUrl?: SignFn, sendMeta?: MetaSendFn, clock: () => Date = () => new Date()): Promise<SendOutcome> {
   const text = input.text.trim();
   const hasAttachment = input.attachment !== undefined && input.attachment !== null;
   if (!UUID_RE.test(input.conversationId)) return fail(400, 'Conversa inválida.');
@@ -87,7 +191,7 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
 
   const conversationResult = await db
     .from('conversations')
-    .select('id,organization_id,channel,contacts(phone_e164),teams(name)')
+    .select('id,organization_id,channel,contacts(phone_e164,external_id),teams(name)')
     .eq('id', input.conversationId)
     .maybeSingle();
   if (conversationResult.error) return fail(500, 'Não foi possível consultar a conversa.');
@@ -99,6 +203,9 @@ export async function sendWhatsappText(db: Db, input: SendInput, send: SendFn, w
     teams?: { name: string } | Array<{ name: string }> | null;
   } | null;
   if (!conversation) return fail(404, 'Conversa não encontrada.');
+  if (isMetaChannel(conversation.channel) && sendMeta) {
+    return sendMetaReply(db, writeDb, input, { ...conversation, channel: conversation.channel }, text, sendMeta, clock);
+  }
   if (!SENDABLE_CHANNELS.includes(conversation.channel)) return fail(422, 'Este canal ainda não está disponível para envio.');
   const isWebchat = conversation.channel === 'webchat';
 

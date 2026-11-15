@@ -14,9 +14,16 @@ class Q {
   insert(r: Row) { this.mode = 'insert'; this.payload = r; return this; }
   update(p: Row) { this.mode = 'update'; this.payload = p; return this; }
   eq(c: string, v: any) { this.filters.push([c, v]); return this; }
+  sortBy: string | null = null;
+  order(c: string) { this.sortBy = c; return this; } // sempre decrescente, como no código
+  limit() { return this; }
   private run(): { data: any; error: any } {
     const rows = this.db.t[this.table];
-    if (this.mode === 'select') return { data: rows.filter(r => this.filters.every(([c, v]) => r[c] === v)), error: null };
+    if (this.mode === 'select') {
+      const found = rows.filter(r => this.filters.every(([c, v]) => r[c] === v));
+      const col = this.sortBy;
+      return { data: col ? [...found].sort((a, b) => (a[col] < b[col] ? 1 : -1)) : found, error: null };
+    }
     this.db.writes++;
     if (this.mode === 'update') { rows.filter(r => this.filters.every(([c, v]) => r[c] === v)).forEach(r => Object.assign(r, this.payload)); return { data: null, error: null }; }
     const row = { id: `m${++this.db.n}`, ...this.payload }; rows.push(row); return { data: [row], error: null };
@@ -186,5 +193,77 @@ describe('assinatura no WhatsApp', () => {
     expect((send.mock.calls[0] as any)[1].text).toBe('*Ana · Suporte:*\nOlá ...');
     expect(db.t.messages[0]).toMatchObject({ body: 'Olá ...' });
     expect(db.t.messages[0].payload.signature).toBe('Ana · Suporte');
+  });
+});
+
+describe('envio no Instagram e no Messenger', () => {
+  const NOW = new Date('2026-11-14T12:00:00.000Z');
+  function meta(channel: 'instagram' | 'messenger', over: { conn?: Row; lastInboundAt?: string | null } = {}) {
+    const db = make({ conv: { channel, contacts: { phone_e164: null, external_id: `${channel}:user-9` } } });
+    db.t.channel_connections.push({ id: `conn-${channel}`, organization_id: ORG, channel, provider_account_id: channel === 'instagram' ? 'ig-acc-1' : 'fb-page-1', status: 'connected', ...over.conn });
+    if (over.lastInboundAt !== null) {
+      db.t.messages.push({ id: 'in-1', conversation_id: CID, direction: 'inbound', body: 'Oi', created_at: over.lastInboundAt ?? '2026-11-14T11:00:00.000Z', sent_at: over.lastInboundAt ?? '2026-11-14T11:00:00.000Z' });
+    }
+    const sendMeta = vi.fn(async (_input: { channel: string; connectionId: string; accountId: string; recipientId: string; text: string }) => ({ recipient_id: 'user-9', message_id: 'm_META_1' }));
+    const run = (text = 'Olá!', extra: object = {}) => sendWhatsappText(db as any, input({ text, ...extra }), okSend() as any, db as any, sign, sendMeta, () => NOW);
+    const outbound = () => db.t.messages.find(m => m.direction === 'outbound');
+    return { db, sendMeta, run, outbound };
+  }
+
+  it('Instagram: envia pela Graph API com a assinatura sem asteriscos e grava o id da Meta', async () => {
+    const { db, sendMeta, run, outbound } = meta('instagram');
+    db.t.conversations[0].ai_mode = 'handoff';
+    const r = await run('  Olá! ');
+    expect(r.status).toBe(200);
+    expect(sendMeta).toHaveBeenCalledWith({ channel: 'instagram', connectionId: 'conn-instagram', accountId: 'ig-acc-1', recipientId: 'user-9', text: 'Maria:\nOlá!' });
+    expect(outbound()).toMatchObject({ provider: 'instagram', delivery_status: 'sent', provider_message_id: 'm_META_1', body: 'Olá!', sender_id: 'u1' });
+    expect(outbound()!.payload.sender).toMatchObject({ type: 'human', name: 'Maria' });
+    expect(db.t.conversations[0]).toMatchObject({ status: 'open', ai_mode: 'off' });
+  });
+
+  it('Messenger: envia pela página conectada', async () => {
+    const { sendMeta, run, outbound } = meta('messenger');
+    expect((await run()).status).toBe(200);
+    expect(sendMeta.mock.calls[0]![0]).toMatchObject({ channel: 'messenger', connectionId: 'conn-messenger', accountId: 'fb-page-1', recipientId: 'user-9' });
+    expect(outbound()).toMatchObject({ provider: 'messenger', delivery_status: 'sent' });
+  });
+
+  it('fora da janela de 24 h: não envia e explica o motivo', async () => {
+    const { sendMeta, run, outbound } = meta('instagram', { lastInboundAt: '2026-11-13T11:00:00.000Z' });
+    const r = await run();
+    expect(r.status).toBe(422);
+    expect(String(r.body.error)).toMatch(/24 h/);
+    expect(sendMeta).not.toHaveBeenCalled();
+    expect(outbound()).toBeUndefined();
+  });
+
+  it('sem mensagem do cliente, canal desconectado, contato sem ID ou com anexo: não envia', async () => {
+    expect((await meta('instagram', { lastInboundAt: null }).run()).status).toBe(422);
+    expect((await meta('instagram', { conn: { status: 'disconnected' } }).run()).status).toBe(409);
+    const noId = meta('messenger'); noId.db.t.conversations[0].contacts = { external_id: 'instagram:user-9' };
+    expect((await noId.run()).status).toBe(422);
+    const withFile = meta('instagram');
+    expect((await withFile.run('', { attachment: att() })).status).toBe(422);
+    expect(withFile.sendMeta).not.toHaveBeenCalled();
+  });
+
+  it('texto acima do limite da Meta (contando a assinatura) é recusado', async () => {
+    const { run, sendMeta } = meta('instagram');
+    expect((await run('a'.repeat(995))).status).toBe(400);
+    expect(sendMeta).not.toHaveBeenCalled();
+  });
+
+  it('falha na Meta marca a mensagem como falha com mensagem amigável', async () => {
+    const { run, sendMeta, outbound } = meta('instagram');
+    sendMeta.mockRejectedValueOnce(new Error('Error validating access token: Session has expired'));
+    const r = await run();
+    expect(r.status).toBe(502);
+    expect(r.body.error).toBe('O acesso a esta conexão da Meta expirou. Reconecte em Conexões.');
+    expect(outbound()).toMatchObject({ delivery_status: 'failed' });
+  });
+
+  it('sem o envio da Meta no servidor, continua recusando o canal', async () => {
+    const { db } = meta('instagram');
+    expect((await sendWhatsappText(db as any, input(), okSend() as any)).status).toBe(422);
   });
 });

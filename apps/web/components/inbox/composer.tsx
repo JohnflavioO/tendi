@@ -20,10 +20,13 @@ const sizeLabel = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 
  * O arquivo vai direto para o Storage e só o caminho dele segue para a API de envio.
  */
 export function Composer({ conversation, onSent, onError }: {
-  conversation: { id: string; organization_id: string };
+  conversation: { id: string; organization_id: string; channel?: string };
   onSent: () => Promise<void> | void;
   onError: (message: string) => void;
 }) {
+  // Instagram e Messenger: só texto por enquanto, com o limite de tamanho da Meta.
+  const metaLimit = conversation.channel === 'instagram' ? 1000 : conversation.channel === 'messenger' ? 2000 : null;
+  const textOnly = metaLimit !== null;
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -99,16 +102,16 @@ export function Composer({ conversation, onSent, onError }: {
         <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-slate-700">{pending.file.name}</p><p className="text-[10px] text-slate-400">{KIND_LABEL[pending.kind]}{pending.voice ? ' · nota de voz' : ''} · {sizeLabel(pending.file.size)}</p></div>
         <button type="button" onClick={dropPending} disabled={sending} aria-label="Remover anexo" className="rounded-lg p-2 text-slate-400 hover:bg-tendi-haze"><X size={16} /></button>
       </div>}
-      <textarea ref={textareaRef} value={draft} disabled={audioPending} maxLength={pending ? MAX_CAPTION_LENGTH : undefined} onChange={e => setDraft(e.target.value)}
+      <textarea ref={textareaRef} value={draft} disabled={audioPending} maxLength={pending ? MAX_CAPTION_LENGTH : metaLimit ?? undefined} onChange={e => setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
-        onPaste={e => { const image = Array.from(e.clipboardData?.files ?? []).find(file => file.type.startsWith('image/')); if (image) { e.preventDefault(); selectFile(image); } }}
+        onPaste={e => { if (textOnly) return; const image = Array.from(e.clipboardData?.files ?? []).find(file => file.type.startsWith('image/')); if (image) { e.preventDefault(); selectFile(image); } }}
         placeholder={placeholder} rows={2} className="w-full resize-none bg-transparent px-1 py-1 text-[13px] leading-6 outline-none focus-visible:outline-none placeholder:text-slate-400 disabled:cursor-not-allowed" />
       <div className="flex items-center justify-between border-t border-tendi-line/70 pt-2">
         <div className="flex items-center gap-1 text-slate-400">
-          <input ref={fileInputRef} type="file" accept={ATTACHMENT_ACCEPT} hidden aria-label="Escolher arquivo" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) selectFile(file); }} />
-          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={sending || !!pending} aria-label="Anexar arquivo" title="Anexar imagem, vídeo, áudio ou documento" className="rounded-lg p-2 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"><Paperclip size={16} /></button>
+          {!textOnly && <><input ref={fileInputRef} type="file" accept={ATTACHMENT_ACCEPT} hidden aria-label="Escolher arquivo" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) selectFile(file); }} />
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={sending || !!pending} aria-label="Anexar arquivo" title="Anexar imagem, vídeo, áudio ou documento" className="rounded-lg p-2 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"><Paperclip size={16} /></button></>}
           <div className="relative"><button type="button" onClick={() => setEmojiOpen(v => !v)} aria-label="Emojis" aria-expanded={emojiOpen} disabled={audioPending} className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40" title="Emojis"><Smile size={16} /></button>{emojiOpen && <EmojiPicker onClose={() => setEmojiOpen(false)} onPick={insertEmoji} />}</div>
-          <VoiceRecorder disabled={sending || !!pending} onError={onError} onRecorded={(audio: RecordedAudio) => selectFile(audio.file, audio.voice)} />
+          {!textOnly && <VoiceRecorder disabled={sending || !!pending} onError={onError} onRecorded={(audio: RecordedAudio) => selectFile(audio.file, audio.voice)} />}
           <span className="ml-2 hidden text-[10px] sm:inline">Enter para enviar · Shift + Enter para nova linha</span>
         </div>
         <button disabled={sending || (!draft.trim() && !pending)} className="td-btn td-btn-teal  disabled:cursor-not-allowed disabled:opacity-40">{sending ? <Loader2 className="animate-spin" size={15} /> : <Send size={15} />}Enviar</button>

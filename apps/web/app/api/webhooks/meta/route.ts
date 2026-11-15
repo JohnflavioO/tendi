@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { metaChannelFromObject, parseMetaWebhookBody, verifyMetaSignature } from '@/lib/meta';
-import { getMetaAppSecret, getMetaWebhookVerifyToken, sendInstagramText } from '@/lib/meta-client';
+import { getMetaAppSecret, getMetaWebhookVerifyToken } from '@/lib/meta-client';
+import { createMetaSender } from '@/lib/meta-send';
 import { processMetaEvent } from '@/lib/meta-webhook';
 import { runAiAutoReply, type AiTrigger } from '@/lib/ai-reply';
 import { generateReply } from '@/lib/ai-llm';
@@ -19,11 +20,7 @@ async function replyWithAi(admin: Admin, trigger: AiTrigger) {
       generate: generateReply,
       resolveKey: provider => resolveProviderKey(admin as any, provider),
       send: async () => { throw new Error('Envio pela D-API não se aplica ao Instagram.'); },
-      sendInstagram: async ({ connectionId, accountId, recipientId, text }) => {
-        const { data: token, error } = await (admin as any).rpc('get_channel_secret', { p_connection_id: connectionId });
-        if (error || typeof token !== 'string' || !token) throw new Error('Token do Instagram não encontrado. Reconecte o Instagram em Conexões (access token).');
-        return sendInstagramText(token, accountId, recipientId, text);
-      },
+      sendInstagram: input => createMetaSender(admin as any)({ ...input, channel: 'instagram' }),
     });
     console.info('[Instagram][IA] resposta automática', { conversationId: trigger.conversationId, ...result });
   } catch (error) {

@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { dapiRequest } from '@/lib/dapi';
 import { sendWhatsappText } from '@/lib/inbox-send';
 import { MEDIA_BUCKET } from '@/lib/inbox-attachments';
+import { createMetaSender } from '@/lib/meta-send';
 
 export const dynamic = 'force-dynamic';
 // Envio de mídia pode levar alguns segundos (a D-API baixa o arquivo e envia ao WhatsApp).
@@ -11,7 +12,8 @@ export const maxDuration = 60;
 
 /**
  * POST /api/inbox/send  { conversationId, text, attachment? }
- * Envia a resposta do atendente pelo WhatsApp (D-API). A chave da D-API fica só no servidor
+ * Envia a resposta do atendente pelo WhatsApp (D-API), Webchat, Instagram ou Messenger (Graph API).
+ * As chaves (D-API e token da página da Meta) ficam só no servidor
  * e o acesso à conversa segue as regras do Supabase para o usuário logado.
  * attachment = { path, mimetype, filename, size, voice? } de um arquivo já enviado ao Storage.
  */
@@ -39,7 +41,8 @@ export async function POST(request: Request) {
     const senderName = fullName || emailName || null;
 
     // Gravações e link do arquivo com a chave de serviço, depois de o acesso à conversa já ter sido validado.
-    const writeClient = createAdminClient() ?? supabase;
+    const admin = createAdminClient();
+    const writeClient = admin ?? supabase;
     const signUrl = async (path: string) => {
       const { data, error } = await writeClient.storage.from(MEDIA_BUCKET).createSignedUrl(path, 600);
       return error || !data?.signedUrl ? null : (data.signedUrl as string);
@@ -55,6 +58,8 @@ export async function POST(request: Request) {
       }),
       writeClient,
       signUrl,
+      // Instagram/Messenger: o token da página só sai do Vault com a chave de serviço.
+      admin ? createMetaSender(admin as any) : undefined,
     );
     return NextResponse.json(outcome.body, { status: outcome.status });
   } catch (error) {
