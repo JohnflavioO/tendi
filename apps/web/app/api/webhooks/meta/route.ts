@@ -7,6 +7,7 @@ import { processMetaEvent } from '@/lib/meta-webhook';
 import { runAiAutoReply, type AiTrigger } from '@/lib/ai-reply';
 import { generateReply } from '@/lib/ai-llm';
 import { resolveProviderKey } from '@/lib/ai-keys';
+import { createBoletoService } from '@/lib/boleto-server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -40,6 +41,7 @@ async function replyWithAi(admin: Admin, trigger: AiTrigger) {
     const result = await runAiAutoReply(admin as any, trigger, {
       generate: generateReply,
       resolveKey: provider => resolveProviderKey(admin as any, provider),
+      boleto: createBoletoService(admin as any),
       send: async () => { throw new Error('Envio pela D-API não se aplica ao Instagram.'); },
       sendInstagram: input => createMetaSender(admin as any)({ ...input, channel: 'instagram' }),
     });

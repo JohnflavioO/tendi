@@ -24,6 +24,10 @@ class Query {
   neq(c: string, v: any) { this.preds.push(r => r[c] !== v); return this; }
   in(c: string, v: any[]) { this.preds.push(r => v.includes(r[c])); return this; }
   gte(c: string, v: any) { this.preds.push(r => r[c] >= v); return this; }
+  contains(c: string, v: any) {
+    const subset = (a: any, b: any): boolean => b && typeof b === 'object' ? Boolean(a) && Object.keys(b).every(k => subset(a[k], b[k])) : a === b;
+    this.preds.push(r => subset(r[c], v)); return this;
+  }
   or(expr: string) { const id = expr.split('.neq.')[1]; this.preds.push(r => r.ai_replied_to_message_id == null || r.ai_replied_to_message_id !== id); return this; }
   order(c: string, o?: { ascending?: boolean }) { this.orders.push([c, o?.ascending !== false]); return this; }
   limit(n: number) { this.max = n; return this; }
@@ -351,5 +355,77 @@ describe('opções rápidas da IA', () => {
     expect(extractQuickOptions('Certo! [[OPCOES: Sim]]')).toEqual({ text: 'Certo!', options: [] });
     expect(extractQuickOptions('Sem opções aqui.')).toEqual({ text: 'Sem opções aqui.', options: [] });
     expect(withQuickOptions('Oi', [])).toBe('Oi');
+  });
+});
+
+describe('2ª via de boleto pela IA', () => {
+  const found = [{ id: 'pay_1', amount: 189, dueDate: '2026-11-20', overdue: false, description: null, digitableLine: '23793.38128', pdfUrl: 'https://x/pdf', invoiceUrl: null }];
+  function withBoleto(options: { reply?: string; available?: boolean; find?: () => Promise<any[]> } = {}) {
+    const base = setup({ reply: options.reply ?? '[[SEGUNDA_VIA: 529.982.247-25]]' });
+    const find = vi.fn(options.find ?? (async () => found));
+    const boleto = { available: vi.fn(async () => options.available ?? true), find };
+    return { ...base, find, run: () => runAiAutoReply(base.db as any, base.trigger, { ...base.deps, boleto }) };
+  }
+
+  it('com a integração ligada, o prompt ensina a Duda a pedir o CPF', async () => {
+    const { run, generate } = withBoleto({ reply: 'Me passa o CPF do titular?' });
+    await run();
+    expect((generate.mock.calls[0]![0] as any).system).toContain('[[SEGUNDA_VIA:');
+  });
+
+  it('sem a integração, o prompt não fala de boleto', async () => {
+    const { run, generate } = withBoleto({ reply: 'Oi!', available: false });
+    await run();
+    expect((generate.mock.calls[0]![0] as any).system).not.toContain('SEGUNDA_VIA');
+  });
+
+  it('busca pelo CPF e envia a linha digitável e o PDF, sem guardar o CPF inteiro', async () => {
+    const { db, run, send, find } = withBoleto();
+    expect(await run()).toEqual({ status: 'replied' });
+    expect(find).toHaveBeenCalledWith('org1', '52998224725');
+    const text = (send.mock.calls[0] as any)[1].text as string;
+    expect(text).toContain('Linha digitável: 23793.38128');
+    expect(text).toContain('PDF do boleto: https://x/pdf');
+    expect(text).not.toContain('SEGUNDA_VIA');
+    const sent = db.t.messages.find(m => m.direction === 'outbound')!;
+    expect(sent.payload.boleto).toEqual({ lookup: true, found: 1, document: 'CPF final 47-25', ids: ['pay_1'] });
+    expect(JSON.stringify(sent)).not.toContain('52998224725');
+  });
+
+  it('nada em aberto: avisa o cliente e a IA continua na conversa', async () => {
+    const { db, run, send } = withBoleto({ find: async () => [] });
+    expect(await run()).toEqual({ status: 'replied' });
+    expect((send.mock.calls[0] as any)[1].text).toContain('Não encontrei boleto em aberto para o CPF final 47-25');
+    expect(db.t.conversations[0].ai_mode).toBe('on');
+  });
+
+  it('CPF inválido: pede de novo, sem consultar o provedor', async () => {
+    const { run, send, find } = withBoleto({ reply: '[[SEGUNDA_VIA: 111.111.111-11]]' });
+    expect(await run()).toEqual({ status: 'replied' });
+    expect(find).not.toHaveBeenCalled();
+    expect((send.mock.calls[0] as any)[1].text).toContain('não parece válido');
+  });
+
+  it('provedor fora do ar: avisa e passa para a equipe', async () => {
+    const { db, run, send } = withBoleto({ find: async () => { throw new Error('timeout'); } });
+    expect(await run()).toEqual({ status: 'handoff' });
+    expect((send.mock.calls[0] as any)[1].text).toContain('Não consegui consultar o boleto agora');
+    expect(db.t.conversations[0].ai_mode).toBe('handoff');
+  });
+
+  it('muitas consultas na mesma conversa: para de consultar e chama a equipe', async () => {
+    const { db, run, find } = withBoleto();
+    // Consultas anteriores nas últimas 24 h (antes da mensagem do cliente, que segue sendo a última).
+    for (let i = 0; i < 5; i++) db.t.messages.push({ id: `b${i}`, conversation_id: 'c1', direction: 'outbound', message_type: 'text', body: 'boleto', created_at: '2026-11-11T09:00:00.000Z', payload: { boleto: { lookup: true } } });
+    expect(await run()).toEqual({ status: 'handoff' });
+    expect(find).not.toHaveBeenCalled();
+    expect(db.t.conversations[0].ai_mode).toBe('handoff');
+  });
+
+  it('marcador sem integração não chega ao cliente: a equipe assume', async () => {
+    const { db, run, send } = withBoleto({ available: false });
+    expect(await run()).toEqual({ status: 'handoff' });
+    expect((send.mock.calls[0] as any)[1].text).toBe('*Bia:*\nJá chamo alguém da equipe!');
+    expect(db.t.conversations[0].ai_mode).toBe('handoff');
   });
 });

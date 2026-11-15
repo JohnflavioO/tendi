@@ -20,7 +20,7 @@ export const ROLE_INFO: Record<Role, { label: string; description: string }> = {
   agent: { label: 'Atendente', description: 'Atende no Inbox e cuida de contatos e oportunidades.' },
 };
 
-export type Area = 'inbox' | 'agenda' | 'crm' | 'contatos' | 'chatbots' | 'relatorios' | 'configuracoes' | 'equipe' | 'assinatura' | 'ia';
+export type Area = 'inbox' | 'agenda' | 'crm' | 'contatos' | 'chatbots' | 'integracoes' | 'relatorios' | 'configuracoes' | 'equipe' | 'assinatura' | 'ia';
 
 const AREA_MIN_ROLE: Record<Area, Role> = {
   inbox: 'agent',
@@ -29,6 +29,7 @@ const AREA_MIN_ROLE: Record<Area, Role> = {
   contatos: 'agent',
   relatorios: 'manager',
   chatbots: 'manager',
+  integracoes: 'admin',
   configuracoes: 'manager',
   equipe: 'manager',
   assinatura: 'admin',
@@ -46,7 +47,7 @@ export function canAccess(role: Role | null | undefined, area: Area): boolean {
  * da conta. Inbox, CRM, contatos e relatórios ficam fora, por confidencialidade dos atendimentos
  * (o banco também bloqueia esses dados para ele).
  */
-export const SUPER_ADMIN_AREAS: readonly Area[] = ['chatbots', 'configuracoes', 'equipe', 'assinatura', 'ia'];
+export const SUPER_ADMIN_AREAS: readonly Area[] = ['chatbots', 'integracoes', 'configuracoes', 'equipe', 'assinatura', 'ia'];
 
 /** Acesso a uma área: pelo papel na empresa ou, para o Super Admin, só nas áreas de configuração. */
 export function canAccessArea(role: Role | null | undefined, superAdmin: boolean, area: Area): boolean {

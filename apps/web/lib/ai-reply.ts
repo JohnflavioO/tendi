@@ -10,6 +10,11 @@ import { friendlyMetaSendError } from './meta-client';
 import { isTrialExpired } from './trial';
 import { aiSigner, normalizeSignature, signText } from './signature';
 import { monthStartIso, normalizeLimits, normalizePricing, resolveMonthlyLimit, estimateCostUsd } from './ai-limits';
+import {
+  INVALID_DOCUMENT_MESSAGE, LOOKUP_FAILED_MESSAGE, LOOKUP_LIMIT_MESSAGE, MAX_BOLETO_LOOKUPS_PER_DAY, MAX_BOLETOS_PER_MESSAGE,
+  extractBoletoRequest, formatBoletoMessage, maskDocument, normalizeDocument, notFoundMessage, sortBoletos,
+} from './boleto';
+import type { BoletoService } from './boleto-server';
 
 /**
  * Resposta automática do agente de IA no WhatsApp, no Webchat e no Instagram (o Messenger fica
@@ -46,6 +51,8 @@ export type AiReplyDeps = {
   /** Só é usado nas conversas do Instagram. */
   sendInstagram?: InstagramSendFn;
   resolveKey: (provider: AiProvider) => Promise<string | null>;
+  /** 2ª via de boleto (plano Pro com integração de cobrança). Sem isto, a IA não oferece boleto. */
+  boleto?: BoletoService;
   sleep?: (ms: number) => Promise<void>;
   now?: () => Date;
 };
@@ -125,6 +132,36 @@ export function toChatTurns(rows: Array<{ direction: string; message_type: strin
 async function logUsage(db: Db, row: Json) {
   const { error } = await db.from('ai_usage_events').insert(row);
   if (error) console.warn('[IA] uso não registrado', { message: error.message });
+}
+
+/**
+ * Consulta da 2ª via pedida pela IA. Devolve o texto para o cliente; `meta` vai no payload da
+ * mensagem (com o documento mascarado), e serve para contar as consultas da conversa.
+ */
+async function resolveBoleto(
+  db: Db,
+  service: BoletoService,
+  input: { organizationId: string; conversationId: string; document: string; since: string },
+): Promise<{ text: string; handoff: boolean; meta: Json }> {
+  const document = normalizeDocument(input.document);
+  if (!document) return { text: INVALID_DOCUMENT_MESSAGE, handoff: false, meta: { lookup: false, invalid: true } };
+  const recent = await db
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('conversation_id', input.conversationId)
+    .contains('payload', { boleto: { lookup: true } })
+    .gte('created_at', input.since);
+  if ((recent.count ?? 0) >= MAX_BOLETO_LOOKUPS_PER_DAY) return { text: LOOKUP_LIMIT_MESSAGE, handoff: true, meta: { lookup: false, limited: true } };
+  const masked = maskDocument(document);
+  try {
+    const boletos = await service.find(input.organizationId, document);
+    if (!boletos.length) return { text: notFoundMessage(document), handoff: false, meta: { lookup: true, found: 0, document: masked } };
+    const sent = sortBoletos(boletos).slice(0, MAX_BOLETOS_PER_MESSAGE).map(boleto => boleto.id);
+    return { text: formatBoletoMessage(boletos), handoff: false, meta: { lookup: true, found: boletos.length, document: masked, ids: sent } };
+  } catch (error) {
+    console.warn('[IA][Boleto] consulta falhou', { conversationId: input.conversationId, message: error instanceof Error ? error.message : String(error) });
+    return { text: LOOKUP_FAILED_MESSAGE, handoff: true, meta: { lookup: true, error: true, document: masked } };
+  }
 }
 
 export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDeps): Promise<AiReplyResult> {
@@ -260,6 +297,8 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     }
   }
   const profile = (profileResult.data ?? {}) as Json;
+  // 2ª via de boleto: só com plano Pro e integração de cobrança ligada. Falha aqui não impede a resposta.
+  const boletoEnabled = deps.boleto ? await deps.boleto.available(organizationId).catch(() => false) : false;
   const tone = (AI_TONES.some(item => item.value === agent.tone) ? agent.tone : 'cordial') as AiTone;
   const system = buildSystemPrompt({
     agentName: agent.name,
@@ -276,6 +315,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     knowledge: (knowledgeResult.data ?? []) as KnowledgeItem[],
     hours: normalizeBusinessHours(profile.business_hours),
     timezone: text(profile.timezone) || 'America/Fortaleza',
+    boleto: boletoEnabled,
     customerName: (() => { const c = Array.isArray(conversation.contacts) ? conversation.contacts[0] : conversation.contacts; return customerFirstName(c?.full_name, c?.phone_e164); })(),
     now: now(),
   });
@@ -294,9 +334,26 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     cost_usd: estimateCostUsd(pricing, model, generated.inputTokens, generated.outputTokens),
   };
   const handoffParsed = generated.refused ? { text: '', handoff: true } : splitHandoff(generated.text);
+  // 2ª via: a IA devolve [[SEGUNDA_VIA: documento]] e o servidor monta a mensagem com o boleto.
+  const boletoAsk = extractBoletoRequest(handoffParsed.text);
+  let replyText = boletoAsk.text;
+  let boletoHandoff = false;
+  let boletoMeta: Json | null = null;
+  if (boletoAsk.requested) {
+    if (boletoEnabled && deps.boleto) {
+      const outcome = await resolveBoleto(db, deps.boleto, { organizationId, conversationId, document: boletoAsk.document, since });
+      replyText = outcome.text;
+      boletoHandoff = outcome.handoff;
+      boletoMeta = outcome.meta;
+    } else {
+      // Marcador sem integração (não deveria acontecer): a equipe assume.
+      replyText = '';
+      boletoHandoff = true;
+    }
+  }
   // Opções rápidas ([[OPCOES: ...]]) viram lista numerada no fim da mensagem.
-  const quick = extractQuickOptions(handoffParsed.text);
-  const parsed = { handoff: handoffParsed.handoff, text: withQuickOptions(quick.text, quick.options) };
+  const quick = extractQuickOptions(replyText);
+  const parsed = { handoff: handoffParsed.handoff || boletoHandoff, text: withQuickOptions(quick.text, quick.options) };
   const handoffMessage = text(profile.handoff_message).trim() || 'Vou chamar um atendente da nossa equipe para continuar com você. Só um instante!';
   const reply = parsed.text || (parsed.handoff ? handoffMessage : '');
   if (!reply) return fail('O modelo devolveu uma resposta vazia.', tokens);
@@ -340,7 +397,7 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     signer = signature.enabled ? aiSigner(agent.name, signature.aiSuffix) : '';
   }
 
-  const basePayload = { source: 'ai', sender: { type: 'ai', name: agent.name }, ...(signer ? { signature: signer } : {}), ai: { provider, model, handoff: parsed.handoff, ...(quick.options.length ? { options: quick.options } : {}) } };
+  const basePayload = { source: 'ai', sender: { type: 'ai', name: agent.name }, ...(signer ? { signature: signer } : {}), ai: { provider, model, handoff: parsed.handoff, ...(quick.options.length ? { options: quick.options } : {}) }, ...(boletoMeta ? { boleto: boletoMeta } : {}) };
   const inserted = await db
     .from('messages')
     .insert({

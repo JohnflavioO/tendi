@@ -8,6 +8,7 @@ import { handleReminderReply } from '@/lib/agenda-reminders-server';
 import { runAiAutoReply, type AiTrigger } from '@/lib/ai-reply';
 import { generateReply } from '@/lib/ai-llm';
 import { resolveProviderKey } from '@/lib/ai-keys';
+import { createBoletoService } from '@/lib/boleto-server';
 
 export const dynamic = 'force-dynamic';
 // A resposta da IA roda depois do 200 (waitUntil): espera curta + chamada ao modelo + envio.
@@ -22,6 +23,7 @@ async function replyWithAi(db: Db, trigger: AiTrigger) {
     const result = await runAiAutoReply(db as any, trigger, {
       generate: generateReply,
       resolveKey: provider => resolveProviderKey(db as any, provider),
+      boleto: createBoletoService(db as any),
       send: (path, body, options) => dapiRequest<unknown>(path, {
         method: 'POST',
         body: JSON.stringify(body),

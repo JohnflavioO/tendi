@@ -18,7 +18,7 @@ import { isOrganizationBlocked, isTrialExemptPath } from '@/lib/trial';
 import { areaForPath, canAccessArea, type Area } from '@/lib/team';
 import {
   Inbox, CalendarDays, KanbanSquare, Users, Plug, ChartNoAxesCombined, Settings,
-  MoreHorizontal, UserRound, RefreshCw, CircleHelp, LogOut, Building2, UsersRound, Bot, Compass,
+  MoreHorizontal, UserRound, RefreshCw, CircleHelp, LogOut, Building2, UsersRound, Bot, Compass, Blocks,
 } from 'lucide-react';
 
 export const WORKSPACE_NAV: Array<{ label: string; href: string; icon: typeof Inbox; area: Area }> = [
@@ -28,6 +28,7 @@ export const WORKSPACE_NAV: Array<{ label: string; href: string; icon: typeof In
   { label: 'Contatos', href: '/contatos', icon: Users, area: 'contatos' },
   { label: 'Conexões', href: '/chatbots', icon: Plug, area: 'chatbots' },
   { label: 'Agente de IA', href: '/ia', icon: Bot, area: 'ia' },
+  { label: 'Integrações', href: '/integracoes', icon: Blocks, area: 'integracoes' },
   { label: 'Relatórios', href: '/relatorios', icon: ChartNoAxesCombined, area: 'relatorios' },
   { label: 'Equipe', href: '/equipe', icon: UsersRound, area: 'equipe' },
   { label: 'Configurações', href: '/configuracoes', icon: Settings, area: 'configuracoes' },

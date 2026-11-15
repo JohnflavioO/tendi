@@ -1,3 +1,5 @@
+import { boletoPromptSection } from './boleto';
+
 /**
  * Agentes de IA de atendimento: tipos, horário comercial e montagem do prompt.
  * Funções puras (sem banco e sem rede), fáceis de testar.
@@ -180,6 +182,8 @@ export type PromptInput = {
   timezone: string;
   /** Primeiro nome do cliente (formulário do chat do site ou nome do WhatsApp). */
   customerName?: string | null;
+  /** Empresa do plano Pro com a integração de cobrança ligada: a IA envia 2ª via de boleto. */
+  boleto?: boolean;
   now?: Date;
 };
 
@@ -264,6 +268,7 @@ export function buildSystemPrompt(input: PromptInput): string {
     `- Quando a sua pergunta tiver 2 ou 3 respostas óbvias, termine com uma linha [[${OPTIONS_MARKER}: opção 1 | opção 2 | opção 3]]. Cada opção com até ${MAX_OPTION_CHARS} caracteres. O cliente vê as opções numeradas.`,
     '- Use opções rápidas no máximo a cada duas ou três mensagens, nunca em perguntas abertas (nome, empresa, dúvidas livres).',
     '- Se o cliente responder só com um número, ele escolheu a opção com esse número da sua mensagem anterior.',
+    ...(input.boleto ? boletoPromptSection() : []),
     '',
     '## Cuidados',
     '- Use SOMENTE as informações deste prompt e da conversa. Se não souber algo (preço, prazo, estoque, disponibilidade), diga que vai confirmar com a equipe. Nunca invente.',
@@ -273,7 +278,9 @@ export function buildSystemPrompt(input: PromptInput): string {
     '',
     '## Transferência para atendente humano',
     `Atendimento humano: ${describeBusinessHours(input.hours)} (fuso ${zone}). Agora é ${clock}: ${inHours ? 'DENTRO do horário de atendimento humano, há atendentes disponíveis.' : 'FORA do horário de atendimento humano.'}`,
-    'Transfira quando o cliente pedir para falar com uma pessoa, demonstrar irritação, tratar de reclamação ou cobrança, ou quando o assunto fugir do que você consegue resolver.',
+    input.boleto
+      ? 'Transfira quando o cliente pedir para falar com uma pessoa, demonstrar irritação, tratar de reclamação ou cobrança (a 2ª via de boleto você mesmo envia), ou quando o assunto fugir do que você consegue resolver.'
+      : 'Transfira quando o cliente pedir para falar com uma pessoa, demonstrar irritação, tratar de reclamação ou cobrança, ou quando o assunto fugir do que você consegue resolver.',
     inHours
       ? 'Ao transferir, avise em uma frase curta que um atendente vai continuar o atendimento.'
       : 'Ao transferir, NÃO prometa atendimento imediato: explique que a equipe atende no horário acima e que o cliente será respondido assim que possível. Continue ajudando no que puder.',
