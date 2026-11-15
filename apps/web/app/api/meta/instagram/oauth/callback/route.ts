@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { metaAccessTokenParams } from '@/lib/meta';
-import { InstagramAccountNotFoundError, getInstagramAccount, getMetaAppId, getMetaAppSecret, metaGet } from '@/lib/meta-client';
+import { InstagramAccountNotFoundError, diagnoseMetaPages, getInstagramAccount, getMetaAppId, getMetaAppSecret, metaGet } from '@/lib/meta-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,10 +55,10 @@ export async function GET(request: Request) {
   if (!admin) return clearState(NextResponse.redirect(backToChannels(request, organizationId, { igError: 'servidor_sem_credenciais' })));
 
   // Cada etapa devolve um código próprio, com o motivo curto da Meta, para a tela dizer onde parou.
-  const fail = (code: string, error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error);
+  const fail = (code: string, error: unknown, extra = '') => {
+    const message = `${error instanceof Error ? error.message : String(error)}${extra ? ` | ${extra}` : ''}`;
     console.error('[Instagram OAuth] falha ao concluir a conexão', { code, message });
-    return clearState(NextResponse.redirect(backToChannels(request, organizationId, { igError: code, igDetail: message.slice(0, 160) })));
+    return clearState(NextResponse.redirect(backToChannels(request, organizationId, { igError: code, igDetail: message.slice(0, 500) })));
   };
 
   let appId: string, appSecret: string, userToken: string;
@@ -77,7 +77,9 @@ export async function GET(request: Request) {
   try {
     account = await getInstagramAccount(userToken, `${appId}|${appSecret}`);
   } catch (error) {
-    return fail(error instanceof InstagramAccountNotFoundError ? 'sem_conta_instagram' : 'falha_ao_ler_conta', error);
+    // Mostra o que a Meta liberou no login (permissões e ids), para saber o que faltou marcar.
+    const extra = await diagnoseMetaPages(userToken, `${appId}|${appSecret}`).catch(() => '');
+    return fail(error instanceof InstagramAccountNotFoundError ? 'sem_conta_instagram' : 'falha_ao_ler_conta', error, extra);
   }
 
   try {
