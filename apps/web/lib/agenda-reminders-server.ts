@@ -5,7 +5,7 @@ import {
   reminderTiming, reminderVars, renderReminder,
 } from './agenda-reminders';
 import { DAPI_PROVIDER, ensureContact, ensureConversation } from './dapi-webhook';
-import { isTrialExpired } from './trial';
+import { isOrganizationBlocked } from './trial';
 
 /**
  * Lembretes da agenda no servidor: envio agendado e tratamento da resposta do cliente.
@@ -90,16 +90,16 @@ export async function runAgendaReminders(db: Db, deps: { send: SendFn; now?: () 
   const result: ReminderRunResult = { organizations: 0, checked: 0, sent: 0, failed: 0, skipped: 0 };
 
   const orgRows = await db.from('organizations')
-    .select('id,name,status,trial_ends_at,timezone,agenda_settings')
+    .select('id,name,status,trial_ends_at,complimentary_since,complimentary_until,timezone,agenda_settings')
     .eq('agenda_settings->reminders->>enabled', 'true');
   if (orgRows.error) throw new Error(`organizations: ${orgRows.error.message}`);
 
-  for (const org of (orgRows.data ?? []) as Array<{ id: string; name: string; status: string; trial_ends_at: string | null; timezone: string | null; agenda_settings: unknown }>) {
+  for (const org of (orgRows.data ?? []) as Array<{ id: string; name: string; status: string; trial_ends_at: string | null; complimentary_since?: string | null; complimentary_until?: string | null; timezone: string | null; agenda_settings: unknown }>) {
     if (result.sent + result.failed >= MAX_PER_RUN) break;
     const settings = normalizeReminderSettings(org.agenda_settings);
     if (!settings.enabled) continue;
     // Empresa sem acesso (teste vencido ou suspensa) não envia mensagens automáticas.
-    if (BLOCKED_ORG_STATUS.includes(org.status) || isTrialExpired(org, now())) continue;
+    if (BLOCKED_ORG_STATUS.includes(org.status) || isOrganizationBlocked(org, now())) continue;
     result.organizations += 1;
 
     const timeZone = org.timezone || DEFAULT_TIME_ZONE;

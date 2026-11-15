@@ -3,6 +3,10 @@ import { requireSuperAdmin } from '@/lib/admin-auth';
 import { dapiRequest } from '@/lib/dapi';
 import { MEDIA_BUCKET } from '@/lib/inbox-attachments';
 import { confirmsDeletion, isInternalOrganization, statusAfterReactivation } from '@/lib/company-control';
+import {
+  COMPLIMENTARY_COLUMNS, grantComplimentaryPatch, hasComplimentary, isChargingSubscription, isComplimentaryActive,
+  parseComplimentaryInput, revokeComplimentaryPatch, type PlanChangeAction,
+} from '@/lib/complimentary';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -15,15 +19,48 @@ const fail = (status: number, error: string) => NextResponse.json({ error }, { s
 
 async function loadOrganization(admin: Admin, organizationId: string) {
   if (!UUID_RE.test(organizationId)) return null;
-  const { data } = await admin.from('organizations').select('id,name,slug,status,plan_code,trial_ends_at').eq('id', organizationId).maybeSingle();
-  return data as { id: string; name: string; slug: string; status: string; plan_code: string | null; trial_ends_at: string | null } | null;
+  const { data } = await admin.from('organizations').select(`id,name,slug,status,plan_code,trial_ends_at,${COMPLIMENTARY_COLUMNS}`).eq('id', organizationId).maybeSingle();
+  return data as {
+    id: string; name: string; slug: string; status: string; plan_code: string | null; trial_ends_at: string | null;
+    complimentary_since: string | null; complimentary_until: string | null; complimentary_reason: string | null; complimentary_by: string | null;
+  } | null;
+}
+
+async function loadSubscriptionStatus(admin: Admin, organizationId: string): Promise<string | null> {
+  const { data } = await admin.from('billing_subscriptions').select('status').eq('organization_id', organizationId).maybeSingle();
+  return (data as { status?: string } | null)?.status ?? null;
+}
+
+async function planExists(admin: Admin, planCode: string): Promise<boolean> {
+  if (!planCode) return false;
+  const { data } = await admin.from('subscription_plans').select('code').eq('code', planCode).maybeSingle();
+  return Boolean(data);
+}
+
+/** Registra no histórico quem mudou o plano ou a cortesia, e quando. Uma falha aqui não desfaz a mudança. */
+async function logPlanChange(admin: Admin, entry: {
+  organizationId: string; action: PlanChangeAction; fromPlan: string | null; toPlan: string | null;
+  until?: string | null; reason?: string | null; actorUserId: string;
+}) {
+  const { error } = await admin.from('organization_plan_changes').insert({
+    organization_id: entry.organizationId,
+    action: entry.action,
+    from_plan_code: entry.fromPlan,
+    to_plan_code: entry.toPlan,
+    complimentary_until: entry.until ?? null,
+    reason: entry.reason ?? null,
+    actor_user_id: entry.actorUserId,
+  });
+  if (error) console.error('[Admin] histórico de plano não gravado', { organizationId: entry.organizationId, action: entry.action, message: error.message });
 }
 
 /**
  * PATCH /api/admin/organizations/<id>
  *   { action: 'suspend' }      bloqueia o acesso da empresa (os dados ficam guardados)
  *   { action: 'reactivate' }   libera de novo
- *   { action: 'set_plan', planCode }
+ *   { action: 'set_plan', planCode }                          troca o plano sem cobrança (fica no histórico)
+ *   { action: 'grant_complimentary', planCode, until?, reason } conta cortesia: liberada sem pagamento
+ *   { action: 'revoke_complimentary' }                         volta ao fluxo normal de assinatura
  * Só o Super Admin. Nenhuma dessas ações lê conversas ou contatos da empresa.
  */
 export async function PATCH(request: Request, { params }: Context) {
@@ -46,19 +83,51 @@ export async function PATCH(request: Request, { params }: Context) {
 
   if (action === 'reactivate') {
     const { data: subscription } = await auth.admin.from('billing_subscriptions').select('status').eq('organization_id', organization.id).eq('status', 'active').limit(1).maybeSingle();
-    const status = statusAfterReactivation({ trialEndsAt: organization.trial_ends_at, hasActiveSubscription: Boolean(subscription) });
+    // Cortesia valendo conta como "em dia": a empresa volta ativa.
+    const status = statusAfterReactivation({ trialEndsAt: organization.trial_ends_at, hasActiveSubscription: Boolean(subscription) || isComplimentaryActive(organization) });
     const { error } = await auth.admin.from('organizations').update({ status }).eq('id', organization.id);
     if (error) return fail(500, `Não foi possível reativar: ${error.message}`);
     return NextResponse.json({ status });
   }
 
   if (action === 'set_plan') {
-    const planCode = typeof body?.planCode === 'string' ? body.planCode : '';
-    const { data: plan } = await auth.admin.from('subscription_plans').select('code').eq('code', planCode).maybeSingle();
-    if (!plan) return fail(400, 'Plano inválido.');
+    const planCode = typeof body?.planCode === 'string' ? body.planCode.trim() : '';
+    if (!(await planExists(auth.admin, planCode))) return fail(400, 'Plano inválido.');
+    if (planCode === organization.plan_code) return NextResponse.json({ planCode, unchanged: true });
     const { error } = await auth.admin.from('organizations').update({ plan_code: planCode }).eq('id', organization.id);
     if (error) return fail(500, `Não foi possível trocar o plano: ${error.message}`);
-    return NextResponse.json({ planCode });
+    await logPlanChange(auth.admin, { organizationId: organization.id, action: 'plan_changed', fromPlan: organization.plan_code, toPlan: planCode, actorUserId: auth.userId });
+    // Quem paga pela Pagar.me segue cobrado no plano da assinatura: a próxima cobrança traz o plano de volta.
+    const charging = isChargingSubscription(await loadSubscriptionStatus(auth.admin, organization.id));
+    return NextResponse.json({ planCode, subscriptionWillOverride: charging && !isComplimentaryActive(organization) });
+  }
+
+  if (action === 'grant_complimentary') {
+    const parsed = parseComplimentaryInput(body);
+    if (!parsed.ok) return fail(400, parsed.error);
+    if (!(await planExists(auth.admin, parsed.value.planCode))) return fail(400, 'Plano inválido.');
+    if (isChargingSubscription(await loadSubscriptionStatus(auth.admin, organization.id))) {
+      return fail(409, 'Esta empresa tem uma assinatura cobrando na Pagar.me. Cancele a assinatura antes de liberar a cortesia, para ela não ser cobrada.');
+    }
+    const wasActive = isComplimentaryActive(organization);
+    const patch = grantComplimentaryPatch(parsed.value, organization, auth.userId);
+    const { error } = await auth.admin.from('organizations').update(patch).eq('id', organization.id);
+    if (error) return fail(500, `Não foi possível liberar a cortesia: ${error.message}`);
+    await logPlanChange(auth.admin, {
+      organizationId: organization.id, action: wasActive ? 'complimentary_updated' : 'complimentary_granted',
+      fromPlan: organization.plan_code, toPlan: parsed.value.planCode, until: parsed.value.until, reason: parsed.value.reason, actorUserId: auth.userId,
+    });
+    return NextResponse.json({ complimentary: { since: patch.complimentary_since, until: patch.complimentary_until, planCode: patch.plan_code } });
+  }
+
+  if (action === 'revoke_complimentary') {
+    if (!hasComplimentary(organization)) return fail(409, 'Esta empresa não é uma conta cortesia.');
+    const subscriptionStatus = await loadSubscriptionStatus(auth.admin, organization.id);
+    const patch = revokeComplimentaryPatch({ trialEndsAt: organization.trial_ends_at, hasActiveSubscription: isChargingSubscription(subscriptionStatus) });
+    const { error } = await auth.admin.from('organizations').update(patch).eq('id', organization.id);
+    if (error) return fail(500, `Não foi possível revogar a cortesia: ${error.message}`);
+    await logPlanChange(auth.admin, { organizationId: organization.id, action: 'complimentary_revoked', fromPlan: organization.plan_code, toPlan: organization.plan_code, actorUserId: auth.userId });
+    return NextResponse.json({ status: patch.status, trialEndsAt: patch.trial_ends_at });
   }
 
   return fail(400, 'Ação inválida.');

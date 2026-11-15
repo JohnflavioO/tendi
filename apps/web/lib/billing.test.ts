@@ -111,6 +111,22 @@ describe('processPagarmeEvent', () => {
     expect((await processPagarmeEvent(db as any, api as any, null)).status).toBe(400);
   });
 
+  it('conta cortesia: cancelamento não tira o acesso liberado pelo Super Admin', async () => {
+    const { db, send, api } = setup(subscription({ status: 'canceled', canceled_at: '2026-12-20T10:00:00Z' }));
+    Object.assign(db.t.organizations[0]!, { status: 'active', plan_code: 'tendi_pro', complimentary_since: '2026-11-01T00:00:00Z', complimentary_until: null });
+    const result = await send('hook_1', 'subscription.canceled');
+    expect(result.body).toMatchObject({ reason: 'complimentary_kept' });
+    expect(api).toHaveBeenCalled();
+    expect(db.t.organizations[0]).toMatchObject({ status: 'active', plan_code: 'tendi_pro', complimentary_since: '2026-11-01T00:00:00Z' });
+  });
+
+  it('conta cortesia: quando a empresa passa a pagar, a cortesia termina', async () => {
+    const { db, send } = setup();
+    Object.assign(db.t.organizations[0]!, { status: 'active', complimentary_since: '2026-11-01T00:00:00Z', complimentary_until: '2026-11-02T00:00:00Z', complimentary_reason: 'Parceiro', complimentary_by: 'u1' });
+    await send('hook_1', 'subscription.created');
+    expect(db.t.organizations[0]).toMatchObject({ status: 'active', plan_code: 'tendi_start', complimentary_since: null, complimentary_until: null, complimentary_reason: null, complimentary_by: null });
+  });
+
   it('assinatura sem empresa vinculada não mexe em nada', async () => {
     const { db, send } = setup(subscription({ customer: { id: 'cus_x', code: 'outro-sistema' } }));
     expect((await send('hook_1', 'subscription.created')).body).toMatchObject({ reason: 'subscription_without_organization' });

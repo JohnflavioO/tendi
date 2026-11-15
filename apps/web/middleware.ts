@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isPublicMarketingPath } from './lib/marketing-routes';
-import { isTrialExemptPath, shouldBlockAccess } from './lib/trial';
+import { ACCESS_COLUMNS, isTrialExemptPath, shouldBlockAccess } from './lib/trial';
 
 export async function middleware(request: NextRequest) {
   // Pré-carga de telas pelo menu (next/link): o navegador busca a tela antes do clique. Ela não traz
@@ -67,7 +67,7 @@ export async function middleware(request: NextRequest) {
   if (data.user && !isTrialExemptPath(pathname)) {
     const { data: organizations, error } = await supabase
       .from('organizations')
-      .select('status,trial_ends_at');
+      .select(ACCESS_COLUMNS);
     if (!error && shouldBlockAccess(organizations ?? [])) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(

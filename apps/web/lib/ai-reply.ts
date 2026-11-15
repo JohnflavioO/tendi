@@ -7,7 +7,7 @@ import type { ChatTurn, GenerateFn } from './ai-llm';
 import { friendlyAiError } from './ai-llm';
 import { friendlySendError, pickProviderMessageId, type SendFn } from './inbox-send';
 import { friendlyMetaSendError } from './meta-client';
-import { isTrialExpired } from './trial';
+import { isOrganizationBlocked } from './trial';
 import { aiSigner, normalizeSignature, signText } from './signature';
 import { monthStartIso, normalizeLimits, normalizePricing, resolveMonthlyLimit, estimateCostUsd } from './ai-limits';
 import {
@@ -197,13 +197,13 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   // 3) Agente liberado, plano com IA e empresa em dia.
   const [agentResult, orgResult] = await Promise.all([
     db.from('ai_agents').select('name,is_enabled,niche,tone,system_instructions,provider,model,monthly_reply_limit').eq('organization_id', organizationId).maybeSingle(),
-    db.from('organizations').select('name,status,plan_code,trial_ends_at').eq('id', organizationId).maybeSingle(),
+    db.from('organizations').select('name,status,plan_code,trial_ends_at,complimentary_since,complimentary_until').eq('id', organizationId).maybeSingle(),
   ]);
   const agent = agentResult.data as { name: string; is_enabled: boolean; niche: string; tone: string; system_instructions: string; provider: string | null; model: string | null; monthly_reply_limit?: number | null } | null;
-  const org = orgResult.data as { name: string; status: string; plan_code: string | null; trial_ends_at: string | null } | null;
+  const org = orgResult.data as { name: string; status: string; plan_code: string | null; trial_ends_at: string | null; complimentary_since?: string | null; complimentary_until?: string | null } | null;
   if (!agent?.is_enabled) return { status: 'skipped', reason: 'agent_disabled' };
   if (!org) return { status: 'skipped', reason: 'organization_not_found' };
-  if (isTrialExpired(org, now()) || ['suspended', 'canceled', 'cancelled', 'inactive'].includes(org.status)) {
+  if (isOrganizationBlocked(org, now()) || ['canceled', 'cancelled', 'inactive'].includes(org.status)) {
     return { status: 'skipped', reason: 'organization_inactive' };
   }
   let planLimit: number | null = null;

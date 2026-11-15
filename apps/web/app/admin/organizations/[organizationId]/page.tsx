@@ -8,9 +8,14 @@ import { createClient } from '@/lib/supabase/client';
 import { AdminShell } from '@/components/admin/admin-shell';
 import { ROLE_INFO, isRole } from '@/lib/team';
 import { ORGANIZATION_STATUS_LABEL, confirmsDeletion, isInternalOrganization } from '@/lib/company-control';
+import { PlanControls } from '@/components/admin/plan-controls';
+import { COMPLIMENTARY_COLUMNS, complimentaryLabel, isComplimentaryActive } from '@/lib/complimentary';
 import { SUPPORT_GRANT_COLUMNS, SUPPORT_STATE_LABEL, cleanSupportCode, formatSupportCode, hoursLabel, supportGrantState, type SupportGrant } from '@/lib/support-access';
 
-type Organization = { id: string; name: string; slug: string; status: string; plan_code: string | null; created_at: string; trial_ends_at: string | null };
+type Organization = {
+  id: string; name: string; slug: string; status: string; plan_code: string | null; created_at: string; trial_ends_at: string | null;
+  complimentary_since: string | null; complimentary_until: string | null; complimentary_reason: string | null; complimentary_by: string | null;
+};
 type Plan = { code: string; name: string };
 type Member = { user_id: string; role: string; status: string; name: string; email: string };
 type Grant = SupportGrant & { redeemed_by: string | null };
@@ -44,7 +49,6 @@ export default function OrganizationAdminPage() {
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [code, setCode] = useState('');
-  const [planCode, setPlanCode] = useState('');
   const [confirmName, setConfirmName] = useState('');
   const [now, setNow] = useState(() => new Date());
 
@@ -56,7 +60,7 @@ export default function OrganizationAdminPage() {
     setUserId(auth.user.id);
 
     const [orgRes, planRes, memberRes, channelRes, agentRes, grantRes] = await Promise.all([
-      supabase.from('organizations').select('id,name,slug,status,plan_code,created_at,trial_ends_at').eq('id', organizationId).maybeSingle(),
+      supabase.from('organizations').select(`id,name,slug,status,plan_code,created_at,trial_ends_at,${COMPLIMENTARY_COLUMNS}`).eq('id', organizationId).maybeSingle(),
       supabase.from('subscription_plans').select('code,name').order('display_order'),
       supabase.from('organization_memberships').select('user_id,role,status').eq('organization_id', organizationId),
       supabase.from('channel_connections').select('status').eq('organization_id', organizationId).eq('channel', 'whatsapp').maybeSingle(),
@@ -66,7 +70,6 @@ export default function OrganizationAdminPage() {
     if (!orgRes.data) { setOrganization(null); setLoading(false); return; }
     const org = orgRes.data as Organization;
     setOrganization(org);
-    setPlanCode(org.plan_code ?? '');
     setPlans((planRes.data ?? []) as Plan[]);
     setWhatsapp((channelRes.data as { status?: string } | null)?.status ?? null);
     setAiEnabled(Boolean((agentRes.data as { is_enabled?: boolean } | null)?.is_enabled));
@@ -141,6 +144,7 @@ export default function OrganizationAdminPage() {
             <h1 className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-tendi-navy">{organization.name}</h1>
             <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
               {status && <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${status.tone}`}>{status.label}</span>}
+              {isComplimentaryActive(organization) && <span className="td-badge td-badge-magenta">{complimentaryLabel(organization)}</span>}
               <span>Plano {plans.find(plan => plan.code === organization.plan_code)?.name ?? '—'}</span>
               <span>· cliente desde {day(organization.created_at)}</span>
               {organization.status === 'trial' && organization.trial_ends_at && <span>· teste até {day(organization.trial_ends_at)}</span>}
@@ -196,20 +200,13 @@ export default function OrganizationAdminPage() {
           </section>
         )}
 
+        <PlanControls organization={organization} plans={plans} onChanged={async notice => { setMessage(notice); await load(); }} />
+
         <div className="grid gap-5 lg:grid-cols-2">
           <section className={card}>
-            <h2 className="flex items-center gap-2 td-title text-base"><ShieldCheck size={17} className="text-tendi-teal" />Conta</h2>
-            <div className="mt-4 flex flex-wrap items-end gap-3">
-              <label className="block min-w-[200px] flex-1"><span className="td-label">Plano</span>
-                <select value={planCode} onChange={event => setPlanCode(event.target.value)} disabled={busy === 'plan'} className={field}>
-                  {!planCode && <option value="">Sem plano</option>}
-                  {plans.map(plan => <option key={plan.code} value={plan.code}>{plan.name}</option>)}
-                </select>
-              </label>
-              <button type="button" disabled={!planCode || planCode === (organization.plan_code ?? '') || busy === 'plan'} onClick={async () => { if (await call('plan', 'PATCH', { action: 'set_plan', planCode }, 'Plano atualizado.')) await load(); }} className={secondary}>{busy === 'plan' && <Loader2 size={14} className="animate-spin" />}Salvar plano</button>
-            </div>
-            {!internal && (
-              <div className="mt-5 border-t border-tendi-line/70 pt-4">
+            <h2 className="flex items-center gap-2 td-title text-base"><ShieldCheck size={17} className="text-tendi-teal" />Acesso da empresa</h2>
+            {internal ? <p className="mt-3 text-sm text-slate-600">O workspace interno da plataforma não pode ser bloqueado.</p> : (
+              <div className="mt-3">
                 {organization.status === 'suspended' ? <>
                   <p className="text-sm text-slate-600">A empresa está <strong>bloqueada</strong>: ninguém da equipe dela entra no TendiDesk. Os dados continuam guardados.</p>
                   <button type="button" disabled={busy === 'status'} onClick={async () => { if (await call('status', 'PATCH', { action: 'reactivate' }, 'Empresa reativada.')) await load(); }} className={`${primary} mt-3`}>{busy === 'status' && <Loader2 size={14} className="animate-spin" />}Reativar empresa</button>
