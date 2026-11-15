@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   complimentaryDaysLeft, complimentaryLabel, grantComplimentaryPatch, isChargingSubscription, isComplimentaryActive,
-  isComplimentaryExpired, parseComplimentaryInput, revokeComplimentaryPatch, statusAfterComplimentaryRevoked,
+  isComplimentaryExpired, parseComplimentaryInput, planBadge, revokeComplimentaryPatch, statusAfterComplimentaryRevoked,
 } from './complimentary';
 import { monthlyRevenue, organizationSituation, ATTENTION_SITUATIONS } from './company-control';
 import { planStatus } from './plan-status';
@@ -116,5 +116,16 @@ describe('conta cortesia no Console', () => {
     expect(organizationSituation({ status: 'trial', trial_ends_at: '2026-11-10T00:00:00Z' }, null, now)).toMatchObject({ key: 'expired', label: 'Teste vencido' });
     expect(organizationSituation({ status: 'suspended', trial_ends_at: null, complimentary_since: since }, null, now).key).toBe('suspended');
     expect(organizationSituation(org, null, now).key).toBe('no_subscription');
+  });
+});
+
+describe('selo do plano ao lado da logo', () => {
+  it('mostra Pro ou Start, com teste e cortesia', () => {
+    expect(planBadge({ plan_code: 'tendi_pro', status: 'active' }, now)).toEqual({ label: 'Pro', tone: 'pro' });
+    expect(planBadge({ plan_code: 'tendi_start', status: 'active' }, now)).toEqual({ label: 'Start', tone: 'start' });
+    expect(planBadge({ plan_code: 'tendi_pro', status: 'trial' }, now)?.label).toBe('Pro · teste');
+    expect(planBadge({ plan_code: 'tendi_pro', status: 'active', complimentary_since: since }, now)?.label).toBe('Pro · cortesia');
+    expect(planBadge({ plan_code: 'plano_antigo', status: 'active' }, now)).toBeNull();
+    expect(planBadge(null, now)).toBeNull();
   });
 });

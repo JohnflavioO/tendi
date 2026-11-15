@@ -107,14 +107,21 @@ export default function AdminPage() {
 
   const customers = useMemo(() => orgs.filter(org => org.slug !== 'tendi'), [orgs]);
   const planOf = useCallback((code: string | null) => plans.find(plan => plan.code === code), [plans]);
-  const rows = useMemo(() => customers.map(org => {
+  const toRow = useCallback((org: Organization) => {
     const sub = subs.find(item => item.organization_id === org.id);
     const plan = planOf(sub?.plan_code ?? org.plan_code);
     const situation: Situation = organizationSituation(org, sub);
     const monthly = monthlyRevenue(situation, sub, plan);
     const used = usage.find(item => item.organization_id === org.id);
     return { org, sub, plan, situation, monthly, aiReplies: used?.replies ?? 0, aiCost: (used?.cost_usd ?? 0) * usdBrl, members: members[org.id] ?? 0 };
-  }), [customers, subs, planOf, usage, members, usdBrl]);
+  }, [subs, planOf, usage, members, usdBrl]);
+  const rows = useMemo(() => customers.map(toRow), [customers, toRow]);
+  // O workspace da própria plataforma aparece no topo da tabela (para trocar o plano dele), mas não entra nas contas.
+  const internalRows = useMemo(() => orgs.filter(org => org.slug === 'tendi').map(org => ({
+    ...toRow(org),
+    monthly: 0,
+    situation: { key: 'no_subscription', label: 'Workspace interno', tone: 'bg-tendi-mist text-tendi-indigo ring-[#D9DAF0]' } as Situation,
+  })), [orgs, toRow]);
 
   const mrr = rows.reduce((sum, row) => sum + row.monthly, 0);
   const paying = rows.filter(row => row.situation.key === 'paying' || row.situation.key === 'past_due').length;
@@ -124,7 +131,7 @@ export default function AdminPage() {
   const aiCost = rows.reduce((sum, row) => sum + row.aiCost, 0);
   const conversion = paying + trials + rows.filter(row => row.situation.key === 'expired').length;
 
-  const filtered = rows.filter(row => {
+  const filtered = [...(filter === 'all' ? internalRows : []), ...rows].filter(row => {
     const text = query.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     const matches = !text || row.org.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().includes(text);
     const byFilter = filter === 'all'

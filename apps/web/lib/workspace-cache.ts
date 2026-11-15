@@ -7,7 +7,7 @@ import type { Role } from './team';
  * Não guarda nada sensível: ids, nomes e o papel (a segurança dos dados continua no banco, via RLS).
  */
 
-export type WorkspaceOrg = { id: string; name: string; status?: string | null; trial_ends_at?: string | null; complimentary_since?: string | null; complimentary_until?: string | null };
+export type WorkspaceOrg = { id: string; name: string; status?: string | null; plan_code?: string | null; trial_ends_at?: string | null; complimentary_since?: string | null; complimentary_until?: string | null };
 export type WorkspaceSnapshot = {
   userId: string;
   organization: WorkspaceOrg | null;

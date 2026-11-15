@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronsUpDown, X, type LucideIcon } from 'lucide-react';
 import { SidebarFooter } from '@/components/sidebar-footer';
 import type { Area, Role } from '@/lib/team';
+import type { PlanBadge } from '@/lib/complimentary';
 
 export type SidebarItem = { label: string; href: string; icon: LucideIcon; area: Area; active: boolean; badge?: number };
 
@@ -13,10 +14,12 @@ const initials = (name?: string | null) => (name || 'T').split(/\s+/).filter(Boo
  * Menu lateral do workspace (usado pelo WorkspaceShell e pelo Inbox, que tem layout próprio).
  * Fundo escuro com a marca, seletor de empresa, navegação com `data-tour` para o guia de primeiros passos e rodapé da conta.
  */
-export function WorkspaceSidebar({ homeHref, organizationId, organizationName, organizations, onSwitch, items, role, superAdmin, onSignOut, onNavigate, onClose }: {
+export function WorkspaceSidebar({ homeHref, organizationId, organizationName, planBadge, organizations, onSwitch, items, role, superAdmin, onSignOut, onNavigate, onClose }: {
   homeHref: string;
   organizationId?: string | null;
   organizationName?: string | null;
+  /** Plano da empresa, ao lado da logo (ex.: "Pro", "Start · teste"). */
+  planBadge?: PlanBadge | null;
   /** Empresas em que a pessoa trabalha; com mais de uma, o cartão vira um seletor. */
   organizations?: Array<{ id: string; name: string }>;
   onSwitch?: (id: string) => void;
@@ -40,7 +43,7 @@ export function WorkspaceSidebar({ homeHref, organizationId, organizationName, o
 
   return <aside className="td-sidebar relative flex h-full w-[256px] shrink-0 flex-col overflow-y-auto overscroll-contain px-3 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-[calc(env(safe-area-inset-top)+20px)] text-white lg:pt-5">
     <div className="mb-6 flex items-center justify-between px-3">
-      <Link href={homeHref} className="flex items-center rounded-lg"><img src="/brand/tendidesk-logo-branca.png" alt="TendiDesk" width="1291" height="640" className="h-10 w-auto object-contain" /></Link>
+      <Link href={homeHref} className="flex min-w-0 items-center gap-2.5 rounded-lg"><img src="/brand/tendidesk-logo-branca.png" alt="TendiDesk" width="1291" height="640" className="h-10 w-auto shrink-0 object-contain" />{planBadge && <span title="Plano da empresa" className={planBadge.tone === 'pro' ? 'whitespace-nowrap rounded-md bg-tendi-magenta/20 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[.14em] text-[#F7A8E2] ring-1 ring-inset ring-tendi-magenta/30' : 'whitespace-nowrap rounded-md bg-white/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[.14em] text-[#B9BBE0] ring-1 ring-inset ring-white/15'}>{planBadge.label}</span>}</Link>
       {onClose && <button type="button" onClick={onClose} aria-label="Fechar menu" className="rounded-lg p-2 text-[#B9BBE0] hover:bg-white/10 hover:text-white"><X size={18} /></button>}
     </div>
 
