@@ -1,7 +1,7 @@
 /**
  * Ícone do "i" do TendiDesk animado, para usar nas telas de carregamento de página
  * (workspace, inbox, etc.). Reaproveita o traçado vetorial do logo oficial
- * (o "i" da marca TendiDesk, o mesmo do ícone da aba em app/icon.svg): o acento balança e o ponto pulsa.
+ * (o "i" da marca TendiDesk, o mesmo do ícone da aba em app/icon.png): o acento balança e o ponto pulsa.
  */
 export function BrandLoader({ label, size = 40 }: { label?: string; size?: number }) {
   return (

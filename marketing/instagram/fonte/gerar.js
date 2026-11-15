@@ -10,6 +10,7 @@ const HTML_DIR = path.join(ROOT, 'html');
 const OUT = {
   grade: path.join(ROOT, '..', 'posts'),
   carrossel: path.join(ROOT, '..', 'carrossel'),
+  webchat: path.join(ROOT, '..', 'webchat'),
 };
 const LOGO = 'logo.png';
 const LOGO_WHITE = 'logo-branca.png';
@@ -213,6 +214,124 @@ const carousel = [
     <div class="footer"><img src="${LOGO_WHITE}" alt="TendiDesk"></div>` },
 ];
 
+// ---------- Webchat: post único + carrossel de vantagens ----------
+const ICON_CHAT_SVG = '<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.9-.9L3 20.5l1.6-4.7A8.4 8.4 0 0 1 3.5 11.5 8.5 8.5 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01" stroke-width="2.6"/></svg>';
+const chatHeader = (status = 'Online agora') => `<div class="h"><span class="av">B</span><div><b>Bia · Loja Bella</b><span>${status}</span></div></div>`;
+const chatFoot = '<div class="foot"><div class="box">Escreva sua mensagem…<span class="send">→</span></div><p class="pw">Atendimento por <b>TendiDesk</b></p></div>';
+const chatAi = (style = '') => `<div class="wc" style="${style}">${chatHeader()}
+  <div class="body">
+    <div class="m me">Vocês entregam no mesmo dia?</div>
+    <p class="who">Bia</p>
+    <div class="m them">Entregamos sim, para pedidos até 14h. Quer ver as peças da coleção nova?</div>
+    <div class="opts"><span class="opt">Ver coleção</span><span class="opt">Falar de prazos</span></div>
+  </div>
+  <div class="acts"><span class="act hum">Falar com atendente</span><span class="act">Trocas</span></div>
+  ${chatFoot}</div>`;
+const chatQueue = (style = '') => `<div class="wc" style="${style}">${chatHeader('Aguardando atendente')}
+  <div class="body">
+    <div class="m me">Quero negociar um pedido grande</div>
+    <p class="who">Bia</p>
+    <div class="m them">Perfeito! Vou chamar alguém da equipe para continuar com você.</div>
+  </div>
+  <div class="queue"><i></i><div><b>Você é o próximo a ser atendido</b>Um atendente vai continuar com você em instantes.</div></div>
+  ${chatFoot}</div>`;
+const browserFrame = (inner, height = 520, pop = false) => `<div class="browser${pop ? ' pop' : ''}"><div class="top"><i></i><i></i><i></i><span class="url">www.suaempresa.com.br</span></div>
+  <div class="page" style="height:${height}px">
+    <div class="skel" style="width:46%;height:26px"></div><div class="skel" style="width:70%"></div><div class="skel" style="width:58%"></div>
+    <div class="skel" style="width:36%;height:120px;margin-top:28px;border-radius:18px"></div>
+    ${inner}
+  </div></div>`;
+
+const CHECK_SVG = '<svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#CB0A9F"/><path d="m7 12.5 3.2 3L17 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const siteScreen = `<div class="site-nav"><span class="logo"></span><span class="links"><i></i><i></i><i></i></span></div>
+  <div class="site-hero"><div class="t1"></div><div class="t2"></div><div class="p"></div><div class="p"></div><div class="btn"></div></div>
+  <div class="site-cards"><i></i><i></i><i></i></div>`;
+
+const webchat = [
+  { file: '00-destaque', cls: 'hero', body: `
+    <p class="kicker">Webchat TendiDesk</p>
+    <h1 style="margin-top:18px;font-size:84px">Seu site atendendo<br><span class="hl">24 horas.</span></h1>
+    <div style="position:relative;height:560px;margin-top:34px">
+      <div class="laptop" style="position:absolute;right:-30px;top:0">
+        <div class="lid"><div class="scr">${siteScreen}</div></div>
+        <div class="base"></div>
+      </div>
+      ${chatAi('position:absolute;right:-40px;top:-26px;zoom:.86')}
+      <div class="phone-hero" style="left:-14px;top:50px"><div class="scr"><span class="notch"></span>
+        ${chatQueue('width:398px;zoom:.7;border-radius:0;box-shadow:none;padding-top:30px;background:#F6F7FB;height:672px;display:flex;flex-direction:column')}
+      </div></div>
+    </div>
+    <div class="feat" style="margin-top:40px">
+      <div>${CHECK_SVG}IA responde na hora</div>
+      <div>${CHECK_SVG}Fila com a posição</div>
+      <div>${CHECK_SVG}Mesmo Inbox do WhatsApp</div>
+      <div>${CHECK_SVG}Instala com uma linha</div>
+    </div>
+    <div class="footer" style="margin-top:auto"><img src="${LOGO_WHITE}" alt="TendiDesk"><span class="pill magenta-bg" style="font-size:28px">Teste grátis por 7 dias</span></div>` },
+
+  { file: '01-post-seu-site-atende', cls: 'light', body: `${curves('arc', '#D9DAF0')}
+    <p class="kicker">Webchat TendiDesk</p>
+    <h1 style="margin-top:24px;font-size:96px">Seu site<br>também <span class="hl">atende.</span></h1>
+    <p class="lead" style="margin-top:24px">O visitante tira a dúvida ali mesmo, sem sair da página. E a conversa cai no mesmo Inbox do WhatsApp.</p>
+    <div style="margin-top:44px;margin-right:-30px">${browserFrame(chatAi('position:absolute;right:-24px;top:-40px;zoom:1.12'), 430, true)}</div>
+    ${footer(false)}` },
+
+  { file: '02-capa', cls: 'deep', body: `${curves('lines', '#7C7EC0')}
+    <p class="kicker">Webchat</p>
+    <h1 style="margin-top:28px;font-size:104px">Transforme<br>visitas em<br><span class="hl">conversas.</span></h1>
+    <p class="lead">5 motivos para colocar o chat do TendiDesk no site da sua empresa.</p>
+    <div class="spacer"></div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:40px"><div class="launch-mock">${ICON_CHAT_SVG}</div></div>
+    <div class="footer"><img src="${LOGO_WHITE}" alt="TendiDesk"><span class="swipe">Arraste para o lado →</span></div>` },
+
+  { file: '03-sem-sair-do-site', cls: 'light', body: `${curves('arc', '#D9DAF0')}
+    <div style="display:flex;justify-content:space-between;align-items:flex-start"><span class="big-num sm">1</span>${dots(5, 0)}</div>
+    <h1 style="margin-top:20px;font-size:84px">Atende sem<br><span class="hl">sair do site.</span></h1>
+    <p class="lead">Quem chega pelo Google ou por um anúncio pergunta na hora, sem salvar número nem trocar de aplicativo.</p>
+    <div style="margin-top:44px">${browserFrame('<div class="teaser" style="right:30px;bottom:124px"><span class="av">B</span><div><b>Bia · Loja Bella</b><p>Oi! Posso ajudar a encontrar o que você procura?</p></div></div><div style="position:absolute;right:30px;bottom:30px" class="launch-mock">' + ICON_CHAT_SVG + '</div>', 420)}</div>
+    ${footer(false)}` },
+
+  { file: '04-ia-24h', cls: 'light', body: `${curves('arc', '#D9DAF0')}
+    <div style="display:flex;justify-content:space-between;align-items:flex-start"><span class="big-num sm">2</span>${dots(5, 1)}</div>
+    <h1 style="margin-top:20px;font-size:84px">Resposta na hora,<br><span class="hl">24 horas.</span></h1>
+    <p class="lead">O Agente de IA responde com as informações do seu negócio e oferece opções em botões. Ou deixe só com a equipe.</p>
+    <div style="display:flex;justify-content:center;margin-top:30px">${chatAi('zoom:1.14')}</div>
+    ${footer(false)}` },
+
+  { file: '05-fila', cls: 'light', body: `${curves('arc', '#D9DAF0')}
+    <div style="display:flex;justify-content:space-between;align-items:flex-start"><span class="big-num sm">3</span>${dots(5, 2)}</div>
+    <h1 style="margin-top:20px;font-size:84px">Uma pessoa<br><span class="hl">quando precisa.</span></h1>
+    <p class="lead">Botão “Falar com atendente” e fila com a posição. Fora do horário, o visitante sabe quando a equipe volta.</p>
+    <div style="display:flex;justify-content:center;margin-top:30px">${chatQueue('zoom:1.16')}</div>
+    ${footer(false)}` },
+
+  { file: '06-mesmo-inbox', cls: 'light', body: `${curves('arc', '#D9DAF0')}
+    <div style="display:flex;justify-content:space-between;align-items:flex-start"><span class="big-num sm">4</span>${dots(5, 3)}</div>
+    <h1 style="margin-top:20px;font-size:84px">Tudo no<br><span class="hl">mesmo Inbox.</span></h1>
+    <p class="lead">Site e WhatsApp lado a lado, com setores, responsáveis e o CRM de vendas. Sua equipe não precisa de outra ferramenta.</p>
+    <div class="card inbox" style="margin-top:44px">
+      <div class="row active">${avatar('VS', '#7C7EC0')}<div class="who"><b>Visitante do site</b><span>Vocês entregam no mesmo dia?</span></div><span class="tag s">Site</span></div>
+      <div class="row">${avatar('MC', '#2F316B')}<div class="who"><b>Mariana Costa</b><span>Quero agendar uma avaliação</span></div><span class="tag c">WhatsApp</span></div>
+      <div class="row">${avatar('VS', '#CB0A9F')}<div class="who"><b>Visitante do site</b><span>Quero negociar um pedido grande</span></div><span class="tag f">Na fila</span></div>
+    </div>
+    ${footer(false)}` },
+
+  { file: '07-instala-facil', cls: 'light', body: `${curves('arc', '#D9DAF0')}
+    <div style="display:flex;justify-content:space-between;align-items:flex-start"><span class="big-num sm">5</span>${dots(5, 4)}</div>
+    <h1 style="margin-top:20px;font-size:84px">Instala com<br><span class="hl">uma linha.</span></h1>
+    <p class="lead">Copie o código no TendiDesk e cole no site. Escolha o nome, a cor e os botões do chat.</p>
+    <div class="code" style="margin-top:50px"><small>Cole no site, antes de &lt;/body&gt;</small><span class="k">&lt;script</span> src="https://tendidesk.com.br/webchat.js"<br>&nbsp;&nbsp;data-tendi-key="sua-chave" async<span class="k">&gt;&lt;/script&gt;</span></div>
+    ${footer(false)}` },
+
+  { file: '08-cta', cls: 'deep', body: `${curves('bubble', '#3E4190', '#CB0A9F')}
+    <div class="spacer"></div>
+    <h1 style="font-size:108px">Seu site<br>pronto para<br><span class="hl">conversar.</span></h1>
+    <p class="lead" style="font-size:38px">Teste o TendiDesk grátis por 7 dias, sem cartão de crédito.</p>
+    <div style="margin-top:52px"><span class="pill magenta-bg" style="font-size:34px;padding:24px 40px">Link na bio · tendidesk.com.br</span></div>
+    <div class="spacer"></div>
+    <div class="footer"><img src="${LOGO_WHITE}" alt="TendiDesk"></div>` },
+];
+
 // ---------- gerar ----------
 const browser = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(p => fs.existsSync(p));
 if (!browser) throw new Error('Instale o Microsoft Edge ou o Google Chrome.');
@@ -224,7 +343,7 @@ for (const logo of [[LOGO, 'tendidesk-logo.png'], [LOGO_WHITE, 'tendidesk-logo-b
 fs.copyFileSync(path.join(ROOT, 'estilo.css'), path.join(HTML_DIR, 'estilo.css'));
 
 const only = process.argv[2];
-for (const [group, list] of [['grade', posts], ['carrossel', carousel]]) {
+for (const [group, list] of [['grade', posts], ['carrossel', carousel], ['webchat', webchat]]) {
   for (const art of list) {
     const name = `${group}-${art.file}`;
     if (only && !name.includes(only)) continue;

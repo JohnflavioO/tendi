@@ -121,6 +121,7 @@
     '.tz.show{display:flex}.tz p{font-size:13px;color:#3A3D63}.tz b{display:block;font-size:13px;color:#1E2046;margin-bottom:2px}' +
     '.tzx{position:absolute;top:8px;right:8px;width:24px;height:24px;border:0;border-radius:8px;background:transparent;color:#9AA0BD;cursor:pointer;display:grid;place-items:center}.tzx:hover{background:#F1F2F8;color:#4A4E75}' +
     '.av{flex-shrink:0;width:38px;height:38px;border-radius:13px;display:grid;place-items:center;font-weight:800;font-size:14px;color:var(--on);background:linear-gradient(145deg,var(--c),var(--c2));position:relative}' +
+    '.av img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}.av.pic{background:#fff}.h .av.pic{background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35)}' +
     '.av i{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:#22C55E;border:2px solid #fff}' +
     '.p{position:absolute;right:0;bottom:78px;width:380px;height:min(620px,calc(100vh - 120px));display:none;flex-direction:column;overflow:hidden;border-radius:24px;background:#F6F7FB;box-shadow:0 30px 70px -20px rgba(16,18,52,.5),0 0 0 1px rgba(16,18,52,.06);transform-origin:bottom right;animation:pop .28s cubic-bezier(.2,.9,.3,1.15)}' +
     '.w.open .p{display:flex}' +
@@ -441,7 +442,21 @@
     $('.tzn').textContent = name;
     var shortGreeting = String(config.greetingMessage || 'Olá! Como podemos ajudar?');
     $('.tzm').textContent = shortGreeting.length > 90 ? shortGreeting.slice(0, 88).trim() + '…' : shortGreeting;
-    Array.prototype.forEach.call(shadow.querySelectorAll('.ini'), function (el) { el.textContent = initials(name); });
+    Array.prototype.forEach.call(shadow.querySelectorAll('.ini'), function (el) {
+      if (config.avatarUrl && config.avatarUrl.indexOf('https://') === 0) {
+        // Logo ou avatar da empresa no lugar das iniciais.
+        var img = document.createElement('img');
+        img.src = config.avatarUrl;
+        img.alt = '';
+        img.onerror = function () { el.textContent = initials(name); el.parentNode.className = el.parentNode.className.replace(' pic', ''); };
+        el.textContent = '';
+        el.appendChild(img);
+        el.style.cssText = 'display:block;width:100%;height:100%;border-radius:inherit';
+        el.parentNode.className += ' pic';
+      } else {
+        el.textContent = initials(name);
+      }
+    });
     document.body.appendChild(host);
     wrap.style.display = '';
     render();

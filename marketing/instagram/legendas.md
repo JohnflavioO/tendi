@@ -145,3 +145,44 @@ Comece em tendidesk.com.br (link na bio).
 - Instagram e Messenger aparecem só depois que a conexão com a Meta estiver aprovada e funcionando. Até lá, as artes falam só de WhatsApp.
 - Se os preços ou limites dos planos mudarem, ajuste `posts/08-planos` (texto em `fonte/gerar.js`) e rode o gerador de novo.
 - As conversas e os nomes nas telas são de exemplo. Não use prints com dados de clientes reais.
+
+---
+
+# Webchat (chat do site)
+
+Pasta `webchat/`: um post único e um carrossel de 7 páginas. Publique o carrossel (02 a 08) junto, na ordem.
+Todas as conversas e nomes das telas são de exemplo ("Bia · Loja Bella").
+
+## Post único · 01-post-seu-site-atende
+
+Seu site também atende.
+
+Quem chega pelo Google ou por um anúncio quer tirar a dúvida na hora. Com o chat do TendiDesk, o visitante conversa ali mesmo, sem sair da página, e a conversa cai no mesmo Inbox do seu WhatsApp.
+
+Teste grátis por 7 dias. Link na bio.
+
+#tendidesk #chatparasite #atendimentoaocliente #vendasonline #pequenasempresas
+
+## Carrossel · 02 a 08
+
+Transforme visitas em conversas. Arraste para ver os 5 motivos para colocar o chat do TendiDesk no seu site.
+
+1. Atende sem sair do site: o visitante pergunta na hora, sem salvar número.
+2. Resposta na hora, 24 horas, com o Agente de IA. Ou só com a sua equipe, você escolhe.
+3. Uma pessoa quando precisa: botão "Falar com atendente" e fila com a posição.
+4. Tudo no mesmo Inbox do WhatsApp, com setores e CRM.
+5. Instala colando uma linha de código no site.
+
+Teste grátis por 7 dias, sem cartão. Link na bio.
+
+#tendidesk #chatparasite #atendimentoaocliente #whatsappbusiness #crm #empreendedorismo
+
+## Post destaque · webchat/00-destaque
+
+Seu site atendendo 24 horas.
+
+Com o chat do TendiDesk, quem visita seu site conversa na hora: o Agente de IA responde, mostra opções em botões e chama a equipe quando precisa, com fila e posição para o cliente. Tudo cai no mesmo Inbox do seu WhatsApp. Para instalar, é só colar uma linha de código.
+
+Teste grátis por 7 dias, sem cartão. Link na bio.
+
+#tendidesk #chatparasite #atendimentoaocliente #inteligenciaartificial #whatsappbusiness #pequenasempresas
