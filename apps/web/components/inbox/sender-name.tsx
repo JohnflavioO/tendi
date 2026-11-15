@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import { Check, Loader2, PenLine, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cleanName } from '@/lib/signature';
+import { channelLabel } from '@/lib/channels';
 
 /**
  * "Você assina como Ana": o nome do perfil é o que aparece em negrito para o cliente no WhatsApp.
  * Cada pessoa ajusta o próprio nome aqui (a regra do banco só deixa alterar o próprio perfil).
  */
-export function SenderName() {
+export function SenderName({ channel = 'whatsapp' }: { channel?: string }) {
   const [userId, setUserId] = useState('');
   const [name, setName] = useState('');
   const [draft, setDraft] = useState('');
@@ -49,5 +50,5 @@ export function SenderName() {
         <button type="button" onClick={() => { setEditing(false); setError(''); }} aria-label="Cancelar" className="rounded-md p-1 text-slate-400 hover:bg-slate-100"><X size={13} /></button>
         {error && <span className="text-[11px] text-rose-600">{error}</span>}
       </form>
-    : <p className="mt-2 flex items-center gap-1 px-1 text-[11px] text-slate-500">Saem pelo WhatsApp com a assinatura <b className="font-semibold text-slate-700">{cleanName(name).split(' ')[0] || 'Atendente'}</b><button type="button" onClick={() => { setDraft(name); setEditing(true); }} className="ml-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold text-tendi-teal hover:bg-tendi-tealsoft"><PenLine size={11} />editar nome</button></p>;
+    : <p className="mt-2 flex items-center gap-1 px-1 text-[11px] text-slate-500">Saem pelo {channelLabel(channel) || 'WhatsApp'} com a assinatura <b className="font-semibold text-slate-700">{cleanName(name).split(' ')[0] || 'Atendente'}</b><button type="button" onClick={() => { setDraft(name); setEditing(true); }} className="ml-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold text-tendi-teal hover:bg-tendi-tealsoft"><PenLine size={11} />editar nome</button></p>;
 }

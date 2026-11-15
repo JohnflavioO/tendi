@@ -73,6 +73,7 @@ export default function InboxPage() {
   const [organizations, setOrganizations] = useState<Org[]>([]);
   const [organizationId, setOrganizationId] = useState('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [connectedChannels, setConnectedChannels] = useState<string[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedId, setSelectedId] = useState('');
   // Celular/tablet: o menu lateral abre como gaveta pelo botão da barra superior.
@@ -162,6 +163,9 @@ export default function InboxPage() {
     if (conversationError) throw conversationError;
     const rows = (data ?? []) as unknown as Conversation[];
     setConversations(rows);
+    // Canais conectados (para o filtro mostrar, por exemplo, o Instagram antes da primeira conversa).
+    void supabase.from('channel_connections').select('channel').eq('organization_id', organizationId).eq('status', 'connected')
+      .then(({ data: channels }: { data: Array<{ channel: string }> | null }) => setConnectedChannels([...new Set((channels ?? []).map(row => row.channel))]));
     // Link vindo do CRM/Contatos: /inbox?conversation=<id> ou /inbox?contact=<id> (só na primeira abertura).
     const params = new URLSearchParams(window.location.search);
     const wantedConversation = params.get('conversation');
@@ -301,7 +305,7 @@ export default function InboxPage() {
     <OnboardingTour organizationId={organizationId} role={role} superAdmin={superAdmin}/>
 
     <section className={selectedId ? "hidden w-full shrink-0 flex-col border-r border-tendi-line/80 bg-white md:flex md:w-[350px]" : "flex w-full shrink-0 flex-col border-r border-tendi-line/80 bg-white md:w-[350px]"}>
-      <ConversationList conversations={conversations} userId={userId} selectedId={selectedId} onSelect={setSelectedId} onRefresh={()=>void loadInbox()} preview={id=>previewText(latestMessage(id),'Nova conversa')} memberNames={memberNames}/>
+      <ConversationList conversations={conversations} userId={userId} selectedId={selectedId} onSelect={setSelectedId} onRefresh={()=>void loadInbox()} preview={id=>previewText(latestMessage(id),'Nova conversa')} memberNames={memberNames} connectedChannels={connectedChannels}/>
     </section>
 
     <section className={selectedId ? "flex min-w-0 flex-1 flex-col bg-tendi-haze" : "hidden min-w-0 flex-1 flex-col bg-tendi-haze md:flex"}>

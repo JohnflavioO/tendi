@@ -117,6 +117,6 @@ export function Composer({ conversation, onSent, onError }: {
         <button disabled={sending || (!draft.trim() && !pending)} className="td-btn td-btn-teal  disabled:cursor-not-allowed disabled:opacity-40">{sending ? <Loader2 className="animate-spin" size={15} /> : <Send size={15} />}Enviar</button>
       </div>
     </div>
-    <SenderName />
+    <SenderName channel={conversation.channel} />
   </form>;
 }

@@ -34,8 +34,10 @@ const STATUS = [
 ];
 
 /** Lista de conversas do Inbox (coluna do meio). */
-export function ConversationList({ conversations, userId, selectedId, onSelect, onRefresh, preview, memberNames }: {
+export function ConversationList({ conversations, userId, selectedId, onSelect, onRefresh, preview, memberNames, connectedChannels = [] }: {
   conversations: ListConversation[];
+  /** Canais conectados na empresa: aparecem no filtro mesmo antes da primeira conversa. */
+  connectedChannels?: string[];
   userId: string;
   selectedId: string;
   onSelect: (id: string) => void;
@@ -79,8 +81,8 @@ export function ConversationList({ conversations, userId, selectedId, onSelect, 
   });
   const unreadTotal = conversations.filter(item => item.unread_count > 0).length;
   const filtersOn = unreadOnly || Boolean(status);
-  // Só mostra a escolha de canal quando há conversas de mais de um canal.
-  const channelsInUse = CHANNEL_ORDER.filter(key => conversations.some(item => item.channel === key));
+  // Canais com conversa ou conectados; o filtro aparece quando há mais de um.
+  const channelsInUse = CHANNEL_ORDER.filter(key => connectedChannels.includes(key) || conversations.some(item => item.channel === key));
   const channelCount = (key: ChannelKey) => conversations.filter(item => item.channel === key).length;
 
   return <>
