@@ -74,6 +74,55 @@ function ConversationIllustration() {
   );
 }
 
+/**
+ * Vitrine da 2ª via de boleto (plano Pro): a conversa acontece (pedido do cliente, "digitando…"
+ * e a confirmação) e o boleto chega como resultado — tudo com uma entrada encadeada em CSS
+ * (.animate-fade-up com atraso crescente + os pontinhos de "digitando" em app/globals.css).
+ * Toca uma vez ao carregar a seção, sem JS nem scroll listener, pra não pesar a landing.
+ */
+function BoletoAutomationPreview() {
+  const providers = ['Asaas', 'Pagar.me', 'Vindi'];
+  return (
+    <div className="relative mx-auto w-full max-w-[480px]">
+      <div className="pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] bg-gradient-to-br from-[#004751]/[.08] via-transparent to-[#2F316B]/[.06] blur-2xl" />
+      <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(32,39,91,.12)] sm:p-7">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">Cobrança automática</p><h3 className="mt-1 text-lg font-bold text-[#25275B]">2ª via de boleto</h3></div>
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#004751]/[.08] text-[#004751]"><ReceiptText size={18} /></span>
+        </div>
+
+        <div className="mt-5 space-y-2">
+          <p className="animate-fade-up ml-auto w-fit max-w-[82%] rounded-2xl rounded-br-sm bg-[#F5F6FB] px-3.5 py-2.5 text-xs leading-5 text-slate-600">Oi, preciso da 2ª via do meu boleto</p>
+          <div className="td-typing-wrap flex w-fit items-center gap-1.5 rounded-2xl rounded-bl-sm bg-[#004751] px-3.5 py-3 text-white" style={{ animationDelay: '.55s' }}>
+            <span className="td-typing-dot" /><span className="td-typing-dot" /><span className="td-typing-dot" />
+          </div>
+          <p className="animate-fade-up max-w-[85%] rounded-2xl rounded-bl-sm bg-[#004751] px-3.5 py-2.5 text-xs leading-5 text-white" style={{ animationDelay: '1.35s' }}>Encontrei! Segue a linha digitável e o PDF do seu boleto.</p>
+        </div>
+
+        <div className="animate-fade-up mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-[#FAFBFD]" style={{ animationDelay: '1.7s' }}>
+          <div className="h-1 w-full bg-gradient-to-r from-[#004751] to-[#2F316B]" />
+          <div className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div><p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Valor</p><p className="mt-1 text-2xl font-extrabold text-[#25275B]">R$ 189,00</p></div>
+              <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">Vence em 20/11</span>
+            </div>
+            <div className="mt-4 border-t border-slate-200 pt-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Linha digitável</p>
+              <p className="mt-1 truncate font-mono text-[11px] text-slate-600">23793.38128 60000.000003 00000.000400 1 84340000018900</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+          <span className="text-[10px] font-semibold text-slate-400">Conecta com</span>
+          {providers.map(provider => <span key={provider} className="rounded-full bg-[#F7F8FC] px-2.5 py-1 text-[10px] font-semibold text-[#2F316B]">{provider}</span>)}
+        </div>
+      </div>
+      <p className="mt-3 text-center text-[10px] text-slate-400">Exemplo visual ilustrativo, sem dados de clientes.</p>
+    </div>
+  );
+}
+
 // O prazo do teste vem do banco; revalida a página para refletir mudanças feitas no console admin.
 export const revalidate = 300;
 
@@ -159,6 +208,25 @@ export default async function MarketingHome() {
           <div className="grid items-center gap-12 md:grid-cols-2">
             <div className="order-2 rounded-[2rem] bg-[#F7F8FC] p-4 sm:p-7 md:order-1"><PipelinePreview /></div>
             <div className="order-1 md:order-2"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Gestão comercial</p><h2 className="mt-4 text-3xl font-bold leading-tight text-[#25275B] md:text-4xl">O relacionamento continua depois da primeira resposta.</h2><p className="mt-5 text-base leading-7 text-slate-600">Acompanhe oportunidades por etapa, organize prioridades e ajude o time a saber qual é o próximo passo de cada negociação.</p><div className="mt-6 flex items-start gap-3 rounded-xl border border-[#004751]/15 bg-[#F2F8F7] p-4"><Workflow size={20} className="mt-0.5 shrink-0 text-[#004751]" /><p className="text-sm leading-6 text-slate-600">Atendimento e CRM conectados para dar continuidade ao relacionamento com seus contatos.</p></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-20 md:py-24">
+        <div className="mx-auto max-w-[1200px] px-5 md:px-6">
+          <div className="grid items-center gap-12 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Exclusivo do TendiDesk Pro</p>
+              <h2 className="mt-4 text-3xl font-bold leading-tight text-[#25275B] md:text-4xl">Menos pedido de boleto para a equipe. Mais pagamento em dia.</h2>
+              <p className="mt-5 text-base leading-7 text-slate-600">Quando o cliente pede a 2ª via pelo WhatsApp, Instagram ou chat do site, a Duda já pede o CPF ou CNPJ e envia a linha digitável e o PDF na hora — sem abrir chamado para a equipe.</p>
+              <ul className="mt-6 space-y-3 text-sm text-slate-600">
+                <li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Conecta com Asaas, Pagar.me (Stone) ou Vindi</li>
+                <li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Chave de API guardada com criptografia, ninguém da equipe vê depois de salva</li>
+                <li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Funciona em qualquer canal com IA ligada</li>
+              </ul>
+              <Link href="/register?plano=tendi_pro" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#004751]">Conhecer o plano Pro<ArrowRight size={16} /></Link>
+            </div>
+            <div className="rounded-[2rem] bg-[#F7F8FC] p-4 sm:p-7"><BoletoAutomationPreview /></div>
           </div>
         </div>
       </section>
