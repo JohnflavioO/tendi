@@ -2,6 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { isBoletoProviderId, keyHint, maskDocument, normalizeDocument, sortBoletos, type BoletoProvider, type BoletoProviderId } from './boleto';
 import { organizationHasBoletoPlan } from './boleto-server';
 import { AsaasError, friendlyAsaasError, looksLikeAsaasKey } from './boleto-asaas';
+import { PagarmeError, friendlyPagarmeError, looksLikePagarmeKey } from './boleto-pagarme';
+import { VindiError, friendlyVindiError } from './boleto-vindi';
 
 /**
  * Regras da tela Integrações > 2ª via de boleto (usadas pelas rotas /api/integrations/boleto).
@@ -18,6 +20,13 @@ const COLUMNS = 'id,provider,status,environment,account_label,key_hint,is_enable
 
 const fail = (status: number, error: string): Outcome => ({ status, body: { error } });
 
+/** Cada provedor tem sua própria classe de erro e mensagem amigável; aqui despachamos pra certa. */
+function friendlyProviderError(error: unknown): string {
+  if (error instanceof PagarmeError) return friendlyPagarmeError(error);
+  if (error instanceof VindiError) return friendlyVindiError(error);
+  return friendlyAsaasError(error);
+}
+
 export async function readIntegration(db: Db, organizationId: string): Promise<Outcome> {
   const planAllowed = await organizationHasBoletoPlan(db, organizationId);
   const { data, error } = await db.from('billing_integrations').select(COLUMNS).eq('organization_id', organizationId)
@@ -32,12 +41,13 @@ export async function connectIntegration(db: Db, organizationId: string, input: 
   if (!isBoletoProviderId(input.provider)) return fail(400, 'Escolha o sistema de cobrança.');
   const apiKey = typeof input.apiKey === 'string' ? input.apiKey.trim() : '';
   if (input.provider === 'asaas' && !looksLikeAsaasKey(apiKey)) return fail(400, 'Essa não parece uma chave do Asaas. Ela começa com $aact_ e é bem longa.');
+  if (input.provider === 'pagarme' && !looksLikePagarmeKey(apiKey)) return fail(400, 'Essa não parece uma chave do Pagar.me. Ela começa com sk_ e é bem longa.');
 
   let account;
   try {
     account = await providers(input.provider).verify(apiKey);
   } catch (error) {
-    return fail(400, friendlyAsaasError(error));
+    return fail(400, friendlyProviderError(error));
   }
 
   const now = new Date().toISOString();
@@ -105,9 +115,10 @@ export async function testLookup(db: Db, organizationId: string, documentInput: 
       },
     };
   } catch (error) {
-    const message = friendlyAsaasError(error);
+    const message = friendlyProviderError(error);
     // Chave recusada para de vez a 2ª via pela Duda; falha passageira (lentidão, limite) só fica anotada.
-    const keyRejected = error instanceof AsaasError && (error.status === 401 || error.status === 403);
+    const status = error instanceof AsaasError || error instanceof PagarmeError || error instanceof VindiError ? error.status : null;
+    const keyRejected = status === 401 || status === 403;
     await db.from('billing_integrations').update({ ...(keyRejected ? { status: 'error' } : {}), last_error: message.slice(0, 300) }).eq('id', integration.id);
     return fail(502, message);
   }

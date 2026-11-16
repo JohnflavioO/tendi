@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { BoletoProvider, BoletoProviderId, OpenBoleto } from './boleto';
 import { createAsaasProvider } from './boleto-asaas';
+import { createPagarmeProvider } from './boleto-pagarme';
+import { createVindiProvider } from './boleto-vindi';
 
 /**
  * Lado do servidor da 2ª via: confere o plano, lê a integração e tira a chave do Vault.
@@ -12,6 +14,8 @@ type Db = SupabaseClient<any, any, any>;
 export function getBoletoProvider(id: BoletoProviderId, fetchFn?: typeof fetch): BoletoProvider {
   switch (id) {
     case 'asaas': return createAsaasProvider(fetchFn);
+    case 'pagarme': return createPagarmeProvider(fetchFn);
+    case 'vindi': return createVindiProvider(fetchFn);
   }
 }
 
