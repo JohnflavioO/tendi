@@ -28,7 +28,7 @@ export function planFeatures(plan: PublicPlan): string[] {
     'CRM com funil de vendas',
     'Papéis e permissões: dono, administrador, supervisor e atendente',
     ...(plan.maxTeams ? [`Até ${int(plan.maxTeams)} setores`] : []),
-    ...(plan.boleto ? ['Recursos de segunda via de boleto'] : []),
+    ...(plan.boleto ? ['2ª via de boleto automática pela IA (Asaas, Pagar.me ou Vindi)'] : []),
   ];
 }
 

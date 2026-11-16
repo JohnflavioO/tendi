@@ -24,7 +24,7 @@ export const features = [
   { id: 'crm', eyebrow: 'COMERCIAL', title: 'CRM com funil de vendas', description: 'Quem chama pela primeira vez já vira oportunidade no funil. Acompanhe cada negociação até o fechamento.', detail: 'Etapas, valores e conversa a um clique.' },
   { id: 'ai', eyebrow: 'INTELIGÊNCIA ARTIFICIAL', title: 'Agente de IA que responde no WhatsApp', description: 'A IA aprende sobre o seu negócio, responde no seu tom, respeita o horário de atendimento e chama um atendente quando precisa.', detail: 'Incluído nos dois planos, com respostas mensais por plano.' },
   { id: 'teams', eyebrow: 'EQUIPE', title: 'Equipe com papéis e permissões', description: 'Convide pessoas por e-mail e defina quem é dono, administrador, supervisor ou atendente. Cada um vê só o que precisa.', detail: 'Setores para organizar a operação.' },
-  { id: 'billing', eyebrow: 'AUTOMAÇÃO', title: 'Segunda via de boleto', description: 'No TendiDesk Pro, prepare a operação para atender pedidos de segunda via de boleto.', detail: 'Integrações financeiras definidas por provedor.' },
+  { id: 'billing', eyebrow: 'AUTOMAÇÃO', title: '2ª via de boleto pela IA', description: 'No TendiDesk Pro, o cliente pede o boleto pelo chat e a Duda envia a linha digitável e o PDF na hora, sem ninguém da equipe parar o que está fazendo.', detail: 'Conecta com Asaas, Pagar.me ou Vindi.' },
   { id: 'integrations', eyebrow: 'CONECTIVIDADE', title: 'Integrações conforme sua operação', description: 'Planeje conexões com ferramentas e serviços usados pela sua empresa.', detail: 'Integrações adicionais têm configuração e valores próprios.' },
 ] as const;
 
@@ -54,6 +54,6 @@ export const getFaqs = (trialLabel: string, plans: PublicPlan[] = []) => {
     { question: 'Existe limite de uso da IA?', answer: `Sim. Cada plano inclui uma quantidade de respostas da IA por mês${replies ? ` (${replies})` : ''}. O limite renova todo mês e, se acabar, as conversas continuam normalmente com a sua equipe.` },
     { question: 'Posso pagar por ano?', answer: annualPercent > 0 ? `Sim. O plano anual sai com ${annualPercent}% de desconto em relação a 12 mensalidades, cobrado uma vez por ano no cartão.` : 'No momento a cobrança é mensal, no cartão de crédito.' },
     { question: 'Como troco de plano ou cancelo?', answer: 'Fale com o nosso suporte em suporte@tendidesk.com.br e ajustamos a sua assinatura.' },
-    { question: 'A segunda via de boleto já está integrada a qualquer banco?', answer: 'Não. As integrações financeiras são definidas por provedor e disponibilidade técnica. Não anunciamos conexão bancária que ainda não foi homologada.' },
+    { question: 'A 2ª via de boleto funciona com qual sistema de cobrança?', answer: 'Hoje conecta com Asaas, Pagar.me (Stone) e Vindi — é só colar a chave de API em Integrações. Se você usa outro sistema, fale com o nosso suporte para avaliarmos a conexão.' },
   ];
 };

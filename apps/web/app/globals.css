@@ -118,6 +118,15 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2F316B; }
   .tendi-load-arc { animation-name: tendi-load-dot; }
 }
 
+/* Vitrine da 2ª via de boleto na landing: os "três pontinhos" de digitação e o sumiço deles
+   quando a resposta chega. Toca uma vez, só CSS (sem JS nem scroll listener). */
+@keyframes tendi-typing-dot { 0%, 60%, 100% { transform: translateY(0); opacity: .35; } 30% { transform: translateY(-3px); opacity: 1; } }
+@keyframes tendi-typing-wrap { 0%, 65% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-2px); } }
+.td-typing-dot { display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: currentColor; animation: tendi-typing-dot 1s ease-in-out infinite; }
+.td-typing-dot:nth-child(2) { animation-delay: .15s; }
+.td-typing-dot:nth-child(3) { animation-delay: .3s; }
+.td-typing-wrap { animation: tendi-typing-wrap .9s ease-in both; }
+
 /* Guia de primeiros passos: fundo escuro com recorte no item destacado e pulso suave. */
 .tendi-tour-spot { box-shadow: 0 0 0 9999px rgba(15, 17, 50, .55), 0 0 0 3px #CB0A9F; animation: tendi-tour-pulse 1.8s ease-out infinite; }
 @keyframes tendi-tour-pulse {
