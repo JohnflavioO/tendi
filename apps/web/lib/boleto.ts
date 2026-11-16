@@ -12,7 +12,7 @@ export const MAX_BOLETOS_PER_MESSAGE = 3;
 /** Consultas por conversa em 24 h: evita que alguém teste vários CPFs pelo chat. */
 export const MAX_BOLETO_LOOKUPS_PER_DAY = 5;
 
-export type BoletoProviderId = 'asaas';
+export type BoletoProviderId = 'asaas' | 'pagarme' | 'vindi';
 
 /** Boleto em aberto, já no formato do TendiDesk (independe do provedor). */
 export type OpenBoleto = {
@@ -46,6 +46,18 @@ export const BOLETO_PROVIDERS: ReadonlyArray<{ id: BoletoProviderId; label: stri
     label: 'Asaas',
     keyHelp: 'No Asaas, abra Integrações > Chaves de API e gere uma chave. Ela começa com $aact_.',
     keyUrl: 'https://www.asaas.com/customerApiKeys/index',
+  },
+  {
+    id: 'pagarme',
+    label: 'Pagar.me (Stone)',
+    keyHelp: 'No Pagar.me, abra Configurações > Chaves de API e copie a chave secreta. Ela começa com sk_.',
+    keyUrl: 'https://dashboard.pagar.me/',
+  },
+  {
+    id: 'vindi',
+    label: 'Vindi',
+    keyHelp: 'Na Vindi, abra Configurações da conta > Chaves de API e copie a chave de API.',
+    keyUrl: 'https://app.vindi.com.br/admin/api_keys',
   },
 ];
 

@@ -180,7 +180,7 @@ export default function IntegrationsPage() {
             </div>
             <label className="block">
               <span className="td-label">Chave de API do {providerInfo.label}</span>
-              <input type="password" autoComplete="off" spellCheck={false} value={apiKey} onChange={event => setApiKey(event.target.value)} placeholder="$aact_..." className="td-input mt-1 font-mono" />
+              <input type="password" autoComplete="off" spellCheck={false} value={apiKey} onChange={event => setApiKey(event.target.value)} placeholder={providerInfo.id === 'pagarme' ? 'sk_...' : providerInfo.id === 'asaas' ? '$aact_...' : 'Cole a chave aqui'} className="td-input mt-1 font-mono" />
               <span className="mt-1.5 block text-xs leading-5 text-slate-500">{providerInfo.keyHelp} <a href={providerInfo.keyUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-tendi-teal underline">Abrir o {providerInfo.label}<ExternalLink size={11} /></a></span>
             </label>
             <p className="flex items-start gap-2 text-xs leading-5 text-slate-500"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-tendi-teal" />A chave é usada só para consultar boletos em aberto e fica guardada com criptografia. Ninguém da sua equipe consegue vê-la depois de salva.</p>
