@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   Activity, ArrowRight, Bot, Building2, ChevronRight, CreditCard, ExternalLink, LayoutDashboard, LogOut,
-  Menu, MessageSquare, Plus, Search, X, Zap,
+  Menu, MessageSquare, Plug, Plus, Search, X, Zap,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -32,6 +32,8 @@ const ALL_ITEMS = NAV.flatMap(group => group.items);
 
 /** Abre o diálogo "Nova empresa" da visão geral de qualquer tela do Console. */
 export const NEW_COMPANY_HREF = '/admin?nova=1';
+/** Painel admin do On Connect (provedor WhatsApp): atalho só pra quem está no Console. */
+export const ON_CONNECT_ADMIN_URL = 'https://onconnect.tendidesk.com.br/admin';
 
 export function AdminShell({ title, description, actions, children, width = 'max-w-6xl' }: {
   title: string;
@@ -100,6 +102,7 @@ export function AdminShell({ title, description, actions, children, width = 'max
     <div className="space-y-2 border-t border-white/[.08] p-3">
       {internalOrg && <Link href={`/inbox?organization=${internalOrg}`} className="group flex items-center gap-3 rounded-xl bg-white/[.06] p-2.5 ring-1 ring-inset ring-white/10 transition hover:bg-white/[.10]"><span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-tendi-magenta to-tendi-lilac text-white"><Building2 size={15} /></span><span className="min-w-0"><span className="block text-xs font-semibold text-white">Workspace TendiDesk</span><span className="block text-[10.5px] text-[#8E91C4]">Ambiente interno de testes</span></span><ArrowRight size={14} className="ml-auto text-[#8E91C4] transition group-hover:translate-x-0.5 group-hover:text-white" /></Link>}
       <a href="/" target="_blank" rel="noopener" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] font-medium text-[#B9BBE0] transition hover:bg-white/[.06] hover:text-white"><ExternalLink size={15} /> Ver site do TendiDesk</a>
+      <a href={ON_CONNECT_ADMIN_URL} target="_blank" rel="noopener" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] font-medium text-[#B9BBE0] transition hover:bg-white/[.06] hover:text-white"><Plug size={15} /> On Connect (admin)</a>
       <div className="flex items-center gap-2.5 rounded-xl bg-white/[.04] px-2.5 py-2 ring-1 ring-inset ring-white/[.06]">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-tendi-lilac to-tendi-magenta text-[11px] font-bold text-white">{(user?.name || 'S').slice(0, 1).toUpperCase()}</span>
         <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-white">{user?.name || 'Super Admin'}</span><span className="block truncate text-[10.5px] text-[#8E91C4]">{user?.email || 'Super Admin'}</span></span>
@@ -157,6 +160,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
     { id: 'new', label: 'Nova empresa', hint: 'Cadastrar um cliente', href: NEW_COMPANY_HREF, icon: Plus, keywords: 'criar cadastrar cliente empresa nova' },
     ...ALL_ITEMS.map(item => ({ id: item.href, label: item.label, hint: item.hint ?? '', href: item.href, icon: item.icon, keywords: item.label.toLowerCase() })),
     { id: 'site', label: 'Ver site do TendiDesk', hint: 'Abrir a página pública', href: '/', icon: ExternalLink, keywords: 'site landing página' },
+    { id: 'on-connect', label: 'On Connect (admin)', hint: 'Painel do provedor WhatsApp', href: ON_CONNECT_ADMIN_URL, icon: Plug, keywords: 'on connect whatsapp provedor dapi conectividade' },
     ...companies.flatMap(org => [
       { id: `ws-${org.id}`, label: org.name, hint: 'Ficha da empresa', href: `/admin/organizations/${org.id}`, icon: Building2, keywords: `${org.name.toLowerCase()} empresa cliente ficha bloquear suporte` },
       { id: `setup-${org.id}`, label: `${org.name}: administrador`, hint: 'Convidar o responsável', href: `/admin/organizations/${org.id}/setup`, icon: Bot, keywords: `${org.name.toLowerCase()} gerenciar configurar admin` },
@@ -168,7 +172,11 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
 
   useEffect(() => { setIndex(0); }, [query]);
 
-  const go = (command?: Command) => { if (command) window.location.assign(command.href); };
+  const go = (command?: Command) => {
+    if (!command) return;
+    if (/^https?:\/\//.test(command.href)) window.open(command.href, '_blank', 'noopener');
+    else window.location.assign(command.href);
+  };
 
   return <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/25 p-4 pt-[12vh] backdrop-blur-[2px]" onMouseDown={onClose}>
     <div role="dialog" aria-modal="true" aria-label="Buscar no Console" onMouseDown={event => event.stopPropagation()} className="animate-pop w-full max-w-xl overflow-hidden rounded-card border border-tendi-line bg-white shadow-pop">
