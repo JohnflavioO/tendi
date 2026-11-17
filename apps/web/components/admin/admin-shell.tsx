@@ -25,7 +25,7 @@ const NAV: Array<{ group: string; items: NavItem[] }> = [
   { group: 'Produto', items: [
     { label: 'Agentes de IA', href: '/admin/ia', icon: Bot, hint: 'Chave, modelo e treinamento por empresa' },
     { label: 'Consumo da IA', href: '/admin/ia/consumo', icon: Activity, hint: 'Limites, custo e margem' },
-    { label: 'Conectividade WhatsApp', href: '/admin/whatsapp', icon: MessageSquare, hint: 'Sessões da D-API' },
+    { label: 'Conectividade WhatsApp', href: '/admin/whatsapp', icon: MessageSquare, hint: 'Sessões do WhatsApp' },
   ] },
 ];
 const ALL_ITEMS = NAV.flatMap(group => group.items);
