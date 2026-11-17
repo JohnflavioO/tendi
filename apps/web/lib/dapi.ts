@@ -17,6 +17,21 @@ export function getDapiBaseUrl(): string {
   }
 }
 
+/** Safe display metadata for the authenticated admin console. Never includes credentials. */
+export type WhatsappProviderSummary = { name: string; website: string | null; keyConfigured: boolean };
+
+export function getWhatsappProviderSummary(): WhatsappProviderSummary {
+  const host = new URL(getDapiBaseUrl()).hostname;
+  const keyConfigured = Boolean(process.env.DAPI_API_KEY?.trim());
+  if (host === 'onconnect.tendidesk.com.br') {
+    return { name: 'On Connect', website: 'https://onconnect.tendidesk.com.br/admin', keyConfigured };
+  }
+  if (host === 'api.d-api.cloud') {
+    return { name: 'D-API Cloud', website: 'https://d-api.cloud/', keyConfigured };
+  }
+  return { name: 'Provedor WhatsApp', website: null, keyConfigured };
+}
+
 export const DAPI_EVENTS = [
   'messages.received',
   'messages.sent',
@@ -133,7 +148,7 @@ export async function dapiRequest<T>(
   if (!response.ok || body.success === false || hasApiError) {
     const message = hasApiError
       ? (body.error as string).trim()
-      : `A D-API não conseguiu concluir a operação (HTTP ${response.status}).`;
+      : `O provedor WhatsApp não conseguiu concluir a operação (HTTP ${response.status}).`;
     const reportedStatus = typeof body.statusCode === 'number' &&
       Number.isInteger(body.statusCode) && body.statusCode >= 400 && body.statusCode <= 599
       ? body.statusCode

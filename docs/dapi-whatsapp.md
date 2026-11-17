@@ -49,6 +49,15 @@ A Fase 1 provisiona a sessão e configura o callback. Ela não implementa a leit
 
 ## Usar On Connect pela API compatível
 
+As telas do workspace usam textos neutros de WhatsApp. O console Super Admin
+consulta o provedor configurado no servidor e indica **On Connect** quando a
+base é `onconnect.tendidesk.com.br`, **D-API Cloud** no provedor padrão, ou um
+rótulo genérico para outra base compatível. O estado da credencial significa
+somente que a chave está preenchida; não é um teste de autenticação ou saúde.
+Essa consulta exige acesso de Super Admin e retorna apenas nome, link conhecido
+do provedor e presença da chave. Variáveis `DAPI_*`, rotas e identificadores
+internos de compatibilidade permanecem iguais; nenhum segredo vai ao navegador.
+
 O receptor atual já trata `messages.received`, `connection.status`,
 `message.delivered` e `message.read`. O identificador salvo em
 `channel_connections.provider_account_id` deve ser o mesmo `sessionId` enviado

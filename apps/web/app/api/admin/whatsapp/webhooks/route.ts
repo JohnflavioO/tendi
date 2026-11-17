@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/admin-auth';
-import { DapiError, dapiWebhookBaseUrl, repointDapiSessionWebhook } from '@/lib/dapi';
+import { DapiError, dapiWebhookBaseUrl, getWhatsappProviderSummary, repointDapiSessionWebhook } from '@/lib/dapi';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -20,7 +20,7 @@ export async function GET() {
   const auth = await requireSuperAdmin();
   if (!auth.ok) return auth.response;
   const list = await sessions(auth.admin);
-  return NextResponse.json({ baseUrl: dapiWebhookBaseUrl(), sessions: list.length, connected: list.filter(item => item.status === 'connected').length });
+  return NextResponse.json({ baseUrl: dapiWebhookBaseUrl(), sessions: list.length, connected: list.filter(item => item.status === 'connected').length, provider: getWhatsappProviderSummary() });
 }
 
 /**
@@ -40,7 +40,7 @@ export async function POST() {
       await repointDapiSessionWebhook(connection.provider_account_id);
       results.push({ organization, ok: true });
     } catch (error) {
-      const message = error instanceof DapiError && error.status === 404 ? 'Sessão não existe mais na D-API (reconecte pelo QR Code).' : error instanceof Error ? error.message.slice(0, 160) : 'Falha';
+      const message = error instanceof DapiError && error.status === 404 ? 'Sessão não encontrada no provedor (reconecte pelo QR Code).' : error instanceof Error ? error.message.slice(0, 160) : 'Falha';
       results.push({ organization, ok: false, error: message });
     }
   }

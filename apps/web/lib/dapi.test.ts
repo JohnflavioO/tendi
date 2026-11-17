@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildCreateSessionPayload, buildDapiWebhookUrl, dapiRequest, getDapiBaseUrl } from './dapi';
+import { buildCreateSessionPayload, buildDapiWebhookUrl, dapiRequest, getDapiBaseUrl, getWhatsappProviderSummary } from './dapi';
 
 const ON_CONNECT = 'https://onconnect.tendidesk.com.br/compat/dapi/api/v1';
 
@@ -9,6 +9,27 @@ afterEach(() => {
 });
 
 describe('provider selection', () => {
+  it('identifies On Connect without returning secrets to the admin console', () => {
+    vi.stubEnv('DAPI_BASE_URL', ON_CONNECT);
+    vi.stubEnv('DAPI_API_KEY', 'private-api-value');
+    vi.stubEnv('DAPI_WEBHOOK_SECRET', 'private-webhook-value');
+    const summary = getWhatsappProviderSummary();
+    expect(summary).toEqual({ name: 'On Connect', website: 'https://onconnect.tendidesk.com.br/admin', keyConfigured: true });
+    expect(JSON.stringify(summary)).not.toContain('private-');
+  });
+
+  it('identifies the fallback provider and reports a missing credential accurately', () => {
+    vi.stubEnv('DAPI_BASE_URL', undefined);
+    vi.stubEnv('DAPI_API_KEY', '  ');
+    expect(getWhatsappProviderSummary()).toEqual({ name: 'D-API Cloud', website: 'https://d-api.cloud/', keyConfigured: false });
+  });
+
+  it('does not mistake another host for On Connect or link to an arbitrary provider', () => {
+    vi.stubEnv('DAPI_BASE_URL', 'https://onconnect.tendidesk.com.br.example.org/api');
+    vi.stubEnv('DAPI_API_KEY', 'test-value');
+    expect(getWhatsappProviderSummary()).toEqual({ name: 'Provedor WhatsApp', website: null, keyConfigured: true });
+  });
+
   it('keeps D-API as the default when no override is set', () => {
     vi.stubEnv('DAPI_BASE_URL', undefined);
     expect(getDapiBaseUrl()).toBe('https://api.d-api.cloud/api/v1');

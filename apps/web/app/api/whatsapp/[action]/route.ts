@@ -275,7 +275,7 @@ export async function POST(request: Request, { params }: Context) {
 
       if (updateError) {
         return NextResponse.json(
-          { error: 'A sessão foi criada na D-API, mas não foi possível atualizar o workspace.' },
+          { error: 'A sessão foi criada no provedor, mas não foi possível atualizar o workspace.' },
           { status: 500 },
         );
       }
@@ -285,8 +285,8 @@ export async function POST(request: Request, { params }: Context) {
         sessionId,
         status: 'pending',
         message: sessionAction === 'created'
-          ? 'Sessão criada na D-API. Aguardando QR Code.'
-          : 'Sessão existente reiniciada na D-API. Aguardando QR Code.',
+          ? 'Sessão criada. Aguardando QR Code do WhatsApp.'
+          : 'Sessão existente reiniciada. Aguardando QR Code do WhatsApp.',
         sessionAction,
       });
     }
@@ -326,7 +326,7 @@ export async function POST(request: Request, { params }: Context) {
       traceId: error instanceof DapiError ? error.traceId : undefined,
       details: error instanceof DapiError ? safeDapiDetails(error.details) : undefined,
     });
-    const message = error instanceof Error ? error.message : 'Falha ao comunicar com a D-API.';
+    const message = error instanceof Error ? error.message : 'Não foi possível comunicar com o provedor WhatsApp.';
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }
@@ -421,7 +421,7 @@ export async function GET(request: Request, { params }: Context) {
                   .eq('organization_id', organizationId);
                 if (persistError) {
                   return NextResponse.json(
-                    { error: 'A D-API informou o status, mas o TendiDesk não conseguiu salvá-lo.' },
+                    { error: 'O provedor informou o status, mas o TendiDesk não conseguiu salvá-lo.' },
                     { status: 500 },
                   );
                 }
@@ -467,7 +467,7 @@ export async function GET(request: Request, { params }: Context) {
           .eq('organization_id', organizationId);
         if (timestampError) {
           return NextResponse.json(
-            { error: 'A sessão foi recriada na D-API, mas não foi possível atualizar o controle local.' },
+            { error: 'A sessão foi recriada no provedor, mas não foi possível atualizar o controle local.' },
             { status: 500 },
           );
         }
@@ -492,7 +492,7 @@ export async function GET(request: Request, { params }: Context) {
               });
               return NextResponse.json({
                 status: 'error',
-                error: 'Sessão não encontrada na D-API mesmo após recriar',
+                error: 'Sessão não encontrada no provedor após a nova tentativa',
                 diagnostic: { code: retryError.code, traceId: retryError.traceId },
               });
             }
@@ -531,7 +531,7 @@ export async function GET(request: Request, { params }: Context) {
 
         if (persistError) {
           return NextResponse.json(
-            { error: 'A D-API retornou o status, mas não foi possível salvá-lo no TendiDesk.' },
+            { error: 'O provedor retornou o status, mas não foi possível salvá-lo no TendiDesk.' },
             { status: 500 },
           );
         }
@@ -565,7 +565,7 @@ export async function GET(request: Request, { params }: Context) {
           responseKeys: Object.keys(session),
         });
         return NextResponse.json(
-          { error: 'A D-API respondeu, mas não retornou o campo de status da sessão.' },
+          { error: 'O provedor respondeu sem informar o status da sessão.' },
           { status: 502 },
         );
       }
@@ -592,7 +592,7 @@ export async function GET(request: Request, { params }: Context) {
           message: persistError.message,
         });
         return NextResponse.json(
-          { error: 'A D-API informou o status, mas o TendiDesk não conseguiu salvá-lo.' },
+          { error: 'O provedor informou o status, mas o TendiDesk não conseguiu salvá-lo.' },
           { status: 500 },
         );
       }
@@ -609,7 +609,7 @@ export async function GET(request: Request, { params }: Context) {
       code: error instanceof DapiError ? error.code : undefined,
       traceId: error instanceof DapiError ? error.traceId : undefined,
     });
-    const message = error instanceof Error ? error.message : 'Falha ao consultar a D-API.';
+    const message = error instanceof Error ? error.message : 'Não foi possível consultar o provedor WhatsApp.';
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }
