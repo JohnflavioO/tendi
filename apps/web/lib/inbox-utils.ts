@@ -115,11 +115,24 @@ export function inboxTabOf(conversation: { assigned_to: string | null; status: s
 
 export type ConversationTag = { label: string; className: string };
 
-/** Etiquetas da conversa: fluxo (IA atendendo / aguardando atendente) e etiquetas do contato. */
-export function conversationTags(input: { aiMode?: string | null; contactTags?: string[] | null }): ConversationTag[] {
+/** A partir de quantos minutos esperando um atendente a etiqueta vira urgente (vermelha). */
+export const HANDOFF_URGENT_MINUTES = 10;
+
+/**
+ * Etiquetas da conversa: fluxo (IA atendendo / aguardando atendente) e etiquetas do contato.
+ * `handoffWaitMinutes` (opcional) mostra há quanto tempo está esperando e, depois de
+ * HANDOFF_URGENT_MINUTES, deixa a etiqueta vermelha em vez de laranja — pra não passar despercebida
+ * na lista do Inbox.
+ */
+export function conversationTags(input: { aiMode?: string | null; contactTags?: string[] | null; handoffWaitMinutes?: number | null }): ConversationTag[] {
   const tags: ConversationTag[] = [];
   if (input.aiMode === 'on') tags.push({ label: 'Fluxo IA', className: 'bg-[#1D1F4E] text-white' });
-  if (input.aiMode === 'handoff') tags.push({ label: 'Aguardando atendente', className: 'bg-orange-500 text-white' });
+  if (input.aiMode === 'handoff') {
+    const minutes = input.handoffWaitMinutes;
+    const urgent = typeof minutes === 'number' && minutes >= HANDOFF_URGENT_MINUTES;
+    const label = typeof minutes === 'number' && minutes >= 1 ? `Aguardando atendente · ${minutes} min` : 'Aguardando atendente';
+    tags.push({ label, className: urgent ? 'bg-rose-600 text-white' : 'bg-orange-500 text-white' });
+  }
   for (const tag of input.contactTags ?? []) if (tag.trim()) tags.push({ label: tag.trim(), className: tagTone(tag) });
   return tags;
 }
