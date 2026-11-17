@@ -1,4 +1,21 @@
-const DAPI_BASE_URL = 'https://api.d-api.cloud/api/v1';
+const DEFAULT_DAPI_BASE_URL = 'https://api.d-api.cloud/api/v1';
+
+/** Server-only. Defaults to D-API; compatible providers can be selected per deploy. */
+export function getDapiBaseUrl(): string {
+  const configured = process.env.DAPI_BASE_URL;
+  if (configured === undefined) return DEFAULT_DAPI_BASE_URL;
+
+  try {
+    const url = new URL(configured.trim());
+    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) {
+      throw new Error('invalid base URL');
+    }
+    return url.toString().replace(/\/+$/, '');
+  } catch {
+    // Never echo configuration values: a mistakenly pasted URL may contain credentials.
+    throw new Error('DAPI_BASE_URL deve ser uma URL HTTPS sem credenciais, query ou fragmento.');
+  }
+}
 
 export const DAPI_EVENTS = [
   'messages.received',
@@ -93,7 +110,7 @@ export async function dapiRequest<T>(
   init: RequestInit = {},
   options: { onResponse?: (status: number, payload: unknown) => void } = {},
 ): Promise<T> {
-  const response = await fetch(`${DAPI_BASE_URL}${path}`, {
+  const response = await fetch(`${getDapiBaseUrl()}${path}`, {
     ...init,
     cache: 'no-store',
     signal: init.signal ?? AbortSignal.timeout(20_000),
