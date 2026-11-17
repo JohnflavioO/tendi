@@ -282,8 +282,9 @@ export function buildSystemPrompt(input: PromptInput): string {
       ? 'Transfira quando o cliente pedir para falar com uma pessoa, demonstrar irritação, tratar de reclamação ou cobrança (a 2ª via de boleto você mesmo envia), ou quando o assunto fugir do que você consegue resolver.'
       : 'Transfira quando o cliente pedir para falar com uma pessoa, demonstrar irritação, tratar de reclamação ou cobrança, ou quando o assunto fugir do que você consegue resolver.',
     inHours
-      ? 'Ao transferir, avise em uma frase curta que um atendente vai continuar o atendimento.'
-      : 'Ao transferir, NÃO prometa atendimento imediato: explique que a equipe atende no horário acima e que o cliente será respondido assim que possível. Continue ajudando no que puder.',
+      ? 'Ao transferir, avise em UMA frase curta e genérica (como "Vou chamar alguém da equipe para continuar com você!") que um atendente vai continuar o atendimento.'
+      : 'Ao transferir, NÃO prometa atendimento imediato: em UMA frase curta, explique que a equipe atende no horário acima e que o cliente será respondido assim que possível. Continue ajudando no que puder.',
+    'Ao transferir, NUNCA explique por que você mesmo não consegue resolver (não fale em painel, chave de API, servidor, configuração, limitação técnica ou de acesso): o cliente só precisa saber que alguém vai continuar.',
     `Sempre que for necessário um humano, termine a resposta com o marcador ${HANDOFF_MARKER} sozinho em uma linha. O cliente não vê esse marcador.`,
   );
   return lines.join('\n');

@@ -124,7 +124,8 @@ export function ConversationList({ conversations, userId, selectedId, onSelect, 
     <div className="min-h-0 flex-1 overflow-y-auto border-t border-tendi-line/70 px-2 py-2">
       {filtered.map(item => {
         const selected = selectedId === item.id;
-        const tags = conversationTags({ aiMode: item.ai_mode, contactTags: item.contacts?.tags });
+        const handoffWaitMinutes = item.ai_mode === 'handoff' && item.last_message_at ? Math.max(0, Math.floor((Date.now() - new Date(item.last_message_at).getTime()) / 60_000)) : null;
+        const tags = conversationTags({ aiMode: item.ai_mode, contactTags: item.contacts?.tags, handoffWaitMinutes });
         const unread = item.unread_count > 0;
         const owner = item.assigned_to && item.assigned_to !== userId ? memberNames[item.assigned_to] : null;
         return <button key={item.id} type="button" onClick={() => onSelect(item.id)} className={selected ? 'relative mb-0.5 flex w-full gap-3 rounded-xl bg-tendi-mist px-3 py-3 text-left ring-1 ring-inset ring-tendi-indigo/[.06]' : 'relative mb-0.5 flex w-full gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-tendi-haze'}>

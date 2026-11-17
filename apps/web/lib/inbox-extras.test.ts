@@ -34,6 +34,15 @@ describe('abas e etiquetas', () => {
     expect(conversationTags({ aiMode: 'handoff', contactTags: [] }).map(tag => tag.label)).toEqual(['Aguardando atendente']);
     expect(conversationTags({ aiMode: 'off', contactTags: null })).toEqual([]);
   });
+
+  it('aguardando atendente mostra o tempo de espera e fica vermelha depois de 10 min', () => {
+    const fresh = conversationTags({ aiMode: 'handoff', handoffWaitMinutes: 3 })[0]!;
+    expect(fresh).toEqual({ label: 'Aguardando atendente · 3 min', className: 'bg-orange-500 text-white' });
+    const stale = conversationTags({ aiMode: 'handoff', handoffWaitMinutes: 14 })[0]!;
+    expect(stale).toEqual({ label: 'Aguardando atendente · 14 min', className: 'bg-rose-600 text-white' });
+    const justNow = conversationTags({ aiMode: 'handoff', handoffWaitMinutes: 0 })[0]!;
+    expect(justNow.label).toBe('Aguardando atendente');
+  });
 });
 
 describe('foto de perfil', () => {
