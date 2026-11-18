@@ -14,10 +14,15 @@ import {
 import {
   isOfficial,
   readConnectionType,
+  sessionIdFor,
   settingsForType,
   stableSessionId,
   type WhatsappSessionType,
 } from '@/lib/whatsapp-session';
+import { isSignupBody } from '@/lib/meta-embedded-signup';
+
+// O cadastro na Meta (troca do código, registro do número) pode levar quase um minuto.
+export const maxDuration = 60;
 
 type Context = { params: { action: string } };
 type Connection = {
@@ -104,6 +109,26 @@ async function workspaceContext(request: Request) {
  * Guarda o tipo de número que o provedor informou (oficial da Meta ou QR
  * Code), sem mexer no restante das configurações. Só grava quando muda.
  */
+/** Só o dono ou um administrador do workspace (ou o Super Admin) trocam o número do WhatsApp. */
+async function canManageWhatsapp(supabase: any, organizationId: string): Promise<boolean> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth?.user) return false;
+  const { data: membership } = await supabase
+    .from('organization_memberships')
+    .select('role')
+    .eq('organization_id', organizationId)
+    .eq('user_id', auth.user.id)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (membership && ['owner', 'admin'].includes((membership as { role?: string }).role ?? '')) return true;
+  const { data: platformAdmin } = await supabase
+    .from('platform_admins')
+    .select('user_id')
+    .eq('user_id', auth.user.id)
+    .maybeSingle();
+  return Boolean(platformAdmin);
+}
+
 async function syncSessionType(
   supabase: any,
   organizationId: string,
@@ -313,6 +338,45 @@ export async function POST(request: Request, { params }: Context) {
           : 'Sessão existente reiniciada. Aguardando QR Code do WhatsApp.',
         sessionAction,
       });
+    }
+
+    if (params.action === 'meta-signup') {
+      // Fim do cadastro incorporado da Meta: o número oficial vira o WhatsApp do workspace.
+      if (!(await canManageWhatsapp(supabase, organizationId))) {
+        return NextResponse.json({ error: 'Só o dono ou um administrador do workspace pode conectar o WhatsApp oficial.' }, { status: 403 });
+      }
+      const body = await request.json().catch(() => null);
+      if (!isSignupBody(body)) {
+        return NextResponse.json({ error: 'Dados do cadastro da Meta inválidos. Tente conectar de novo.' }, { status: 400 });
+      }
+      getDapiApiKey();
+      const sessionId = sessionIdFor(organizationId, connection?.provider_account_id);
+      const persisted = await persistSessionId(supabase, organizationId, connection, sessionId);
+      if ('response' in persisted) return persisted.response;
+
+      // O código vale 5 minutos e é de uso único: vai direto ao On Connect, sem log.
+      await dapiRequest(`/sessions/${encodeURIComponent(sessionId)}/meta-signup`, {
+        method: 'POST',
+        body: JSON.stringify({ code: body.code, wabaId: body.wabaId, phoneNumberId: body.phoneNumberId, replace: true }),
+        signal: AbortSignal.timeout(55_000),
+      });
+      // A sessão nova precisa mandar os eventos para este deploy.
+      await repointDapiSessionWebhook(sessionId).catch(() => undefined);
+
+      const { error: updateError } = await supabase
+        .from('channel_connections')
+        .update({
+          status: 'connected',
+          display_name: 'WhatsApp oficial',
+          settings: settingsForType(connection?.settings, 'official'),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', persisted.connectionId)
+        .eq('organization_id', organizationId);
+      if (updateError) {
+        return NextResponse.json({ error: 'O número foi conectado, mas o TendiDesk não conseguiu atualizar o workspace.' }, { status: 500 });
+      }
+      return NextResponse.json({ status: 'connected', official: true });
     }
 
     if (params.action === 'disconnect') {

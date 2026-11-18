@@ -151,3 +151,22 @@ número é ligado pela equipe TendiDesk; o cliente não lê QR.
 Na API oficial, texto livre só vai até 24 h depois da última mensagem do cliente;
 fora disso a Meta recusa e o envio volta com erro (`meta_131047`). Modelos
 aprovados (templates) ficam para a próxima fase.
+
+## Conectar WhatsApp oficial (cadastro incorporado da Meta)
+
+Na tela de canais, o dono ou um administrador do workspace clica em **Conectar WhatsApp
+oficial**. Abre a janela da Meta: o cliente entra com o Facebook, escolhe ou cria a empresa e
+o número, e confirma o código que chega no celular. Ao concluir, o TendiDesk chama o On Connect
+(`POST /sessions/<sessionId>/meta-signup`), que liga o número oficial à sessão do workspace.
+Se o workspace usava QR Code, o TendiDesk pede confirmação: esse número é desconectado.
+
+Variáveis públicas do deploy (não são segredos; sem elas o botão não aparece):
+
+| Variável | Valor |
+| --- | --- |
+| `NEXT_PUBLIC_META_APP_ID` | ID do app da Meta (On-Connect) |
+| `NEXT_PUBLIC_META_SIGNUP_CONFIG_ID` | ID da configuração "WhatsApp Embedded Signup" do Login do Facebook para Empresas |
+
+O domínio do TendiDesk precisa estar em **Allowed domains** no app da Meta. Enquanto a empresa
+não for aprovada como Provedor de Tecnologia, só administradores e testadores do app da Meta
+conseguem concluir o cadastro (suficiente para testar e gravar o vídeo da análise).
