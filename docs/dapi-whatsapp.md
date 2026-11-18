@@ -131,3 +131,23 @@ Para voltar à D-API, restaure a base/chave anteriores no mesmo ambiente e faça
 redeploy. Confira a sessão antiga e atualize seu callback para o domínio e o
 segredo vigentes; não restaure um segredo que foi exposto. Preserve as
 credenciais anteriores em um gerenciador seguro, sem removê-las durante o teste.
+
+## Número oficial (API da Meta) pelo On Connect
+
+Um workspace pode usar um número da API oficial da Meta no lugar do QR Code. O
+número é ligado pela equipe TendiDesk; o cliente não lê QR.
+
+1. Console › empresa › **Conexões › Número oficial (API da Meta)**: **Reservar
+   sessão** quando o workspace ainda não tem WhatsApp (cria a conexão com o código
+   estável `tendi-<organizationId>`), e **Copiar código**.
+2. No painel do On Connect, **Conexões › Nova conexão Meta › Workspace do Tendi**,
+   com esse código, o `phone_number_id` e o WABA. Se o workspace usa QR Code, marcar
+   **Substituir a conexão atual**.
+3. O On Connect informa `connectionType: "official"` nas consultas de sessão e de QR.
+   O TendiDesk grava `settings.session_type = 'official'` (e `connection_mode =
+   'meta'`), sem perder as outras configurações, e a tela de canais mostra o selo
+   **API oficial da Meta**, sem QR Code nem botão de conectar/desconectar.
+
+Na API oficial, texto livre só vai até 24 h depois da última mensagem do cliente;
+fora disso a Meta recusa e o envio volta com erro (`meta_131047`). Modelos
+aprovados (templates) ficam para a próxima fase.

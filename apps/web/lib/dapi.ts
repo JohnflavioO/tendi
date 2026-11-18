@@ -1,3 +1,8 @@
+import { unwrapDapiResource } from './dapi-resource';
+
+/** D-API endpoints may return the resource directly or inside a data/session envelope. */
+export { unwrapDapiResource };
+
 const DEFAULT_DAPI_BASE_URL = 'https://api.d-api.cloud/api/v1';
 
 /** Server-only. Defaults to D-API; compatible providers can be selected per deploy. */
@@ -173,16 +178,6 @@ export function normalizeDapiStatus(
 }
 
 
-/** D-API endpoints may return the resource directly or inside a data/session envelope. */
-export function unwrapDapiResource(payload: unknown): Record<string, unknown> {
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return {};
-  const root = payload as Record<string, unknown>;
-  const candidate = root.data ?? root.session ?? root.result;
-  if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
-    return candidate as Record<string, unknown>;
-  }
-  return root;
-}
 
 export function extractDapiConnectionStatus(payload: unknown): string | undefined {
   const root = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
