@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/admin-auth';
 import { dapiRequest } from '@/lib/dapi';
+import { sessionIdFor, settingsForType } from '@/lib/whatsapp-session';
 import { MEDIA_BUCKET } from '@/lib/inbox-attachments';
 import { confirmsDeletion, isInternalOrganization, statusAfterReactivation } from '@/lib/company-control';
 import {
@@ -61,6 +62,7 @@ async function logPlanChange(admin: Admin, entry: {
  *   { action: 'set_plan', planCode }                          troca o plano sem cobrança (fica no histórico)
  *   { action: 'grant_complimentary', planCode, until?, reason } conta cortesia: liberada sem pagamento
  *   { action: 'revoke_complimentary' }                         volta ao fluxo normal de assinatura
+ *   { action: 'prepare_official_whatsapp' }                    reserva a sessão do WhatsApp oficial (API da Meta)
  * Só o Super Admin. Nenhuma dessas ações lê conversas ou contatos da empresa.
  */
 export async function PATCH(request: Request, { params }: Context) {
@@ -128,6 +130,34 @@ export async function PATCH(request: Request, { params }: Context) {
     if (error) return fail(500, `Não foi possível revogar a cortesia: ${error.message}`);
     await logPlanChange(auth.admin, { organizationId: organization.id, action: 'complimentary_revoked', fromPlan: organization.plan_code, toPlan: organization.plan_code, actorUserId: auth.userId });
     return NextResponse.json({ status: patch.status, trialEndsAt: patch.trial_ends_at });
+  }
+
+  if (action === 'prepare_official_whatsapp') {
+    // Reserva a conexão do WhatsApp do workspace com o código de sessão estável, para o
+    // TendiDesk aceitar as mensagens dessa sessão assim que o número oficial for ligado no
+    // On Connect. Uma conexão por QR Code que já existe fica como está: o On Connect a
+    // substitui, e o tipo (oficial) é atualizado quando o provedor informar.
+    const { data: existing, error: readError } = await auth.admin.from('channel_connections')
+      .select('id,provider_account_id').eq('organization_id', organization.id).eq('channel', 'whatsapp').maybeSingle();
+    if (readError) return fail(500, `Não foi possível consultar a conexão: ${readError.message}`);
+    const row = existing as { id: string; provider_account_id: string | null } | null;
+    const sessionId = sessionIdFor(organization.id, row?.provider_account_id);
+    if (!row) {
+      const { error } = await auth.admin.from('channel_connections').insert({
+        organization_id: organization.id,
+        channel: 'whatsapp',
+        display_name: 'WhatsApp oficial · aguardando ativação',
+        status: 'pending',
+        provider_account_id: sessionId,
+        settings: settingsForType(null, 'official'),
+      });
+      if (error) return fail(500, `Não foi possível reservar a conexão: ${error.message}`);
+    } else if (row.provider_account_id !== sessionId) {
+      const { error } = await auth.admin.from('channel_connections')
+        .update({ provider_account_id: sessionId, updated_at: new Date().toISOString() }).eq('id', row.id);
+      if (error) return fail(500, `Não foi possível salvar o código da sessão: ${error.message}`);
+    }
+    return NextResponse.json({ sessionId, created: !row });
   }
 
   return fail(400, 'Ação inválida.');

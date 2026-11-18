@@ -11,6 +11,13 @@ import {
   extractDapiConnectionStatus,
   DapiError,
 } from '@/lib/dapi';
+import {
+  isOfficial,
+  readConnectionType,
+  settingsForType,
+  stableSessionId,
+  type WhatsappSessionType,
+} from '@/lib/whatsapp-session';
 
 type Context = { params: { action: string } };
 type Connection = {
@@ -93,9 +100,28 @@ async function workspaceContext(request: Request) {
   };
 }
 
-function stableSessionId(organizationId: string): string {
-  const safeOrganizationId = organizationId.toLowerCase().replace(/[^a-z0-9-]/g, '');
-  return `tendi-${safeOrganizationId}`;
+/**
+ * Guarda o tipo de número que o provedor informou (oficial da Meta ou QR
+ * Code), sem mexer no restante das configurações. Só grava quando muda.
+ */
+async function syncSessionType(
+  supabase: any,
+  organizationId: string,
+  connection: Connection,
+  type: WhatsappSessionType | null,
+): Promise<boolean> {
+  if (!type) return isOfficial(connection.settings);
+  if ((type === 'official') === isOfficial(connection.settings)) return type === 'official';
+  const { error } = await supabase
+    .from('channel_connections')
+    .update({ settings: settingsForType(connection.settings, type), updated_at: new Date().toISOString() })
+    .eq('id', connection.id)
+    .eq('organization_id', organizationId);
+  if (error) {
+    console.error('[WhatsApp session type not saved]', { connectionId: connection.id, message: error.message });
+    return isOfficial(connection.settings);
+  }
+  return type === 'official';
 }
 
 async function createOrRecoverDapiSession(sessionId: string, webhookUrl: string): Promise<'created' | 'recovered'> {
@@ -263,9 +289,7 @@ export async function POST(request: Request, { params }: Context) {
           status: 'pending',
           display_name: 'WhatsApp · sessão criada, aguardando conexão',
           settings: {
-            provider: 'd-api',
-            session_type: 'unofficial',
-            connection_mode: 'qr',
+            ...settingsForType(connection?.settings, isOfficial(connection?.settings) ? 'official' : 'unofficial'),
             webhook_configured: true,
           },
           updated_at: new Date().toISOString(),
@@ -505,6 +529,19 @@ export async function GET(request: Request, { params }: Context) {
       const rawStatus = extractDapiConnectionStatus(qrResponse) ??
         (typeof qr.status === 'string' ? qr.status : 'connecting');
       const status = normalizeDapiStatus(rawStatus);
+      const official = await syncSessionType(supabase, organizationId, connection, readConnectionType(qrResponse));
+      if (official) {
+        const displayName =
+          typeof qr.phone === 'string' ? qr.phone :
+          typeof qr.displayName === 'string' ? qr.displayName :
+          connection.display_name;
+        await supabase
+          .from('channel_connections')
+          .update({ status, display_name: displayName, updated_at: new Date().toISOString() })
+          .eq('id', connection.id)
+          .eq('organization_id', organizationId);
+        return NextResponse.json({ status, official: true, displayName, qrCode: null, qrCodeImage: null, waiting: false });
+      }
             // The QR endpoint and connection.qrcode event may expose different field names.
       // Accept both documented variants without changing the D-API request contract.
       const pickString = (...keys: string[]): string | null => {
@@ -571,6 +608,7 @@ export async function GET(request: Request, { params }: Context) {
       }
 
       const status = normalizeDapiStatus(rawStatus);
+      const official = await syncSessionType(supabase, organizationId, connection, readConnectionType(sessionResponse));
       const displayName =
         typeof session.phone === 'string'
           ? session.phone
@@ -597,7 +635,7 @@ export async function GET(request: Request, { params }: Context) {
         );
       }
 
-      return NextResponse.json({ status, providerStatus: rawStatus, displayName });
+      return NextResponse.json({ status, providerStatus: rawStatus, displayName, official });
     }
 
     return NextResponse.json({ error: 'Ação não encontrada.' }, { status: 404 });

@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Ban, LifeBuoy, Loader2, MessageCircle, ShieldCheck, Bot, Trash2, UserPlus, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Ban, BadgeCheck, Copy, LifeBuoy, Loader2, MessageCircle, ShieldCheck, Bot, Trash2, UserPlus, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { AdminShell } from '@/components/admin/admin-shell';
 import { ROLE_INFO, isRole } from '@/lib/team';
 import { ORGANIZATION_STATUS_LABEL, confirmsDeletion, isInternalOrganization } from '@/lib/company-control';
 import { PlanControls } from '@/components/admin/plan-controls';
 import { COMPLIMENTARY_COLUMNS, complimentaryLabel, isComplimentaryActive } from '@/lib/complimentary';
+import { isOfficial, sessionIdFor } from '@/lib/whatsapp-session';
 import { SUPPORT_GRANT_COLUMNS, SUPPORT_STATE_LABEL, cleanSupportCode, formatSupportCode, hoursLabel, supportGrantState, type SupportGrant } from '@/lib/support-access';
 
 type Organization = {
@@ -19,6 +20,7 @@ type Organization = {
 type Plan = { code: string; name: string };
 type Member = { user_id: string; role: string; status: string; name: string; email: string };
 type Grant = SupportGrant & { redeemed_by: string | null };
+type WhatsappRow = { status: string; settings: Record<string, unknown> | null; provider_account_id: string | null };
 
 const day = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const dateTime = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -43,6 +45,8 @@ export default function OrganizationAdminPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [whatsapp, setWhatsapp] = useState<string | null>(null);
+  const [whatsappRow, setWhatsappRow] = useState<WhatsappRow | null>(null);
+  const [copied, setCopied] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +67,7 @@ export default function OrganizationAdminPage() {
       supabase.from('organizations').select(`id,name,slug,status,plan_code,created_at,trial_ends_at,${COMPLIMENTARY_COLUMNS}`).eq('id', organizationId).maybeSingle(),
       supabase.from('subscription_plans').select('code,name').order('display_order'),
       supabase.from('organization_memberships').select('user_id,role,status').eq('organization_id', organizationId),
-      supabase.from('channel_connections').select('status').eq('organization_id', organizationId).eq('channel', 'whatsapp').maybeSingle(),
+      supabase.from('channel_connections').select('status,settings,provider_account_id').eq('organization_id', organizationId).eq('channel', 'whatsapp').maybeSingle(),
       supabase.from('ai_agents').select('is_enabled').eq('organization_id', organizationId).maybeSingle(),
       supabase.from('support_access_grants').select(`${SUPPORT_GRANT_COLUMNS},redeemed_by`).eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(8),
     ]);
@@ -72,6 +76,7 @@ export default function OrganizationAdminPage() {
     setOrganization(org);
     setPlans((planRes.data ?? []) as Plan[]);
     setWhatsapp((channelRes.data as { status?: string } | null)?.status ?? null);
+    setWhatsappRow((channelRes.data as WhatsappRow | null) ?? null);
     setAiEnabled(Boolean((agentRes.data as { is_enabled?: boolean } | null)?.is_enabled));
     setGrants(grantRes.error ? [] : ((grantRes.data ?? []) as Grant[]));
 
@@ -128,6 +133,14 @@ export default function OrganizationAdminPage() {
     if (error) { setMessage({ ok: false, text: error.message }); return; }
     setMessage({ ok: true, text: 'Acesso de suporte encerrado.' });
     await load();
+  }
+
+  async function prepareOfficial() {
+    if (await call('official', 'PATCH', { action: 'prepare_official_whatsapp' }, 'Sessão reservada. Agora ligue o número oficial no painel do On Connect com o código abaixo.')) await load();
+  }
+
+  async function copySession(value: string) {
+    try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { setCopied(false); }
   }
 
   if (loading) return <AdminShell title="Empresa"><p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />Carregando…</p></AdminShell>;
@@ -221,12 +234,24 @@ export default function OrganizationAdminPage() {
           <section className={card}>
             <h2 className="flex items-center gap-2 td-title text-base"><MessageCircle size={17} className="text-tendi-teal" />Conexões</h2>
             <dl className="mt-4 space-y-3 text-sm">
-              <div className="flex items-center justify-between"><dt className="text-slate-500">WhatsApp</dt><dd className={whatsapp === 'connected' ? 'font-semibold text-emerald-700' : 'font-semibold text-slate-500'}>{whatsapp === 'connected' ? 'Conectado' : whatsapp === 'pending' ? 'Aguardando QR Code' : whatsapp ? 'Desconectado' : 'Não configurado'}</dd></div>
+              <div className="flex items-center justify-between"><dt className="text-slate-500">WhatsApp</dt><dd className={whatsapp === 'connected' ? 'font-semibold text-emerald-700' : 'font-semibold text-slate-500'}>{whatsapp === 'connected' ? 'Conectado' : whatsapp === 'pending' ? (isOfficial(whatsappRow?.settings) ? 'Aguardando ativação' : 'Aguardando QR Code') : whatsapp ? 'Desconectado' : 'Não configurado'}</dd></div>
+              {whatsappRow && <div className="flex items-center justify-between"><dt className="text-slate-500">Tipo de número</dt><dd className="font-semibold text-tendi-navy">{isOfficial(whatsappRow.settings) ? 'Oficial (API da Meta)' : 'QR Code'}</dd></div>}
               <div className="flex items-center justify-between"><dt className="flex items-center gap-1.5 text-slate-500"><Bot size={14} />Agente de IA</dt><dd className={aiEnabled ? 'font-semibold text-emerald-700' : 'font-semibold text-slate-500'}>{aiEnabled ? 'Liberado' : 'Não liberado'}</dd></div>
             </dl>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link href={`/chatbots?organization=${organization.id}`} className={secondary}>Conexão do WhatsApp</Link>
               <Link href="/admin/ia" className={secondary}>Agentes de IA</Link>
+            </div>
+
+            <div className="mt-5 border-t border-tendi-line/70 pt-4">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-tendi-navy"><BadgeCheck size={15} className="text-tendi-teal" />Número oficial (API da Meta)</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">Para este cliente usar um número da API oficial: reserve a sessão, copie o código e, no painel do On Connect, use <strong>Conexões › Nova conexão Meta › Workspace do Tendi</strong>. Se ele já usa QR Code, marque <strong>Substituir a conexão atual</strong>.</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <code className="rounded-lg bg-tendi-haze px-3 py-2 font-mono text-xs text-tendi-navy">{sessionIdFor(organization.id, whatsappRow?.provider_account_id)}</code>
+                <button type="button" onClick={() => void copySession(sessionIdFor(organization.id, whatsappRow?.provider_account_id))} className={secondary}><Copy size={14} />{copied ? 'Copiado' : 'Copiar código'}</button>
+                {!whatsappRow && <button type="button" disabled={busy === 'official'} onClick={() => void prepareOfficial()} className={primary}>{busy === 'official' && <Loader2 size={14} className="animate-spin" />}Reservar sessão</button>}
+              </div>
+              {!whatsappRow && <p className="mt-2 text-[11px] text-amber-700">Reserve a sessão antes de ligar o número no On Connect: sem ela, o TendiDesk não recebe as mensagens deste workspace.</p>}
             </div>
           </section>
         </div>
