@@ -17,7 +17,9 @@ declare
   v_transfer_id uuid;
 begin
   if v_actor is null then raise exception 'Authentication required' using errcode='28000'; end if;
-  if not private.has_org_role(p_organization_id, array['owner','admin','manager']::text[]) then
+  if not exists (select 1 from public.organization_memberships caller
+    where caller.organization_id=p_organization_id and caller.user_id=v_actor
+      and caller.status='active' and caller.role in ('owner','admin','manager')) then
     raise exception 'Only managers may authorize transfers' using errcode='42501';
   end if;
   if p_reason is null or length(trim(p_reason)) not between 10 and 500 then
