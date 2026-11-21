@@ -54,6 +54,7 @@ export async function PATCH(request:Request,{params}:Context){
  if(target==='paid_awaiting_setup'){
   // Um webhook subscription.created não comprova pagamento.
   const bill=await auth.admin.from('billing_subscriptions').select('status,plan_code,last_event_type,provider_subscription_id').eq('organization_id',params.organizationId).maybeSingle();
+  if(current.data.setup_payment_status!=='paid'&&current.data.setup_payment_status!=='waived')return fail(409,'Implantação avulsa ainda não paga. Confirme o pedido Pagar.me ou registre isenção justificada.');
   if(bill.error||bill.data?.status!=='active'||bill.data?.plan_code!=='tendi_business'||!['invoice.paid','charge.paid'].includes(bill.data?.last_event_type??'')||!bill.data?.provider_subscription_id){
    return fail(409,'Pagamento Business não confirmado pela Pagar.me. Vincule o plano Business e aguarde invoice.paid ou charge.paid.');
   }

@@ -20,7 +20,7 @@ type Organization = {
 type Plan = { code: string; name: string };
 type Member = { user_id: string; role: string; status: string; name: string; email: string };
 type Grant = SupportGrant & { redeemed_by: string | null };
-type BusinessOnboarding = { status:string; proposed_monthly_cents:number; setup_fee_cents:number; number_source:string; payment_verified_at:string|null };
+type BusinessOnboarding = { status:string; proposed_monthly_cents:number; setup_fee_cents:number; number_source:string; payment_verified_at:string|null;setup_payment_status?:string;setup_payment_url?:string|null;setup_payment_order_id?:string|null };
 type BusinessBilling = { status:string; plan_code:string|null; last_event_type:string|null; provider_subscription_id:string|null };
 const businessStages = [
  ['requested','Solicitado'],['proposal_approved','Proposta aprovada'],['awaiting_payment','Aguardando pagamento'],
@@ -59,6 +59,8 @@ export default function OrganizationAdminPage() {
   const [businessBilling,setBusinessBilling] = useState<BusinessBilling|null>(null);
   const [businessMonthly,setBusinessMonthly] = useState('489');
   const [businessSetup,setBusinessSetup] = useState('399');
+  const [setupOrderId,setSetupOrderId] = useState('');
+  const [setupWaiverReason,setSetupWaiverReason] = useState('');
   const [businessNumberSource,setBusinessNumberSource] = useState<'customer'|'tendidesk'>('customer');
   const [billingVerified, setBillingVerified] = useState(false);
   const [grants, setGrants] = useState<Grant[]>([]);
@@ -127,6 +129,20 @@ export default function OrganizationAdminPage() {
     if (!response?.ok) { setMessage({ ok: false, text: typeof payload.error === 'string' ? payload.error : 'Não foi possível concluir.' }); return false; }
     setMessage({ ok: true, text: success });
     return true;
+  }
+
+  async function setupPayment(action:'create'|'verify'|'waive'){
+    if(action==='waive'&&!window.confirm('Isentar a taxa de implantação? Esta ação será auditada.'))return;
+    setBusy('setup-payment');setMessage(null);
+    const response=await fetch(`/api/admin/organizations/${organizationId}/business-onboarding/setup-payment`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action,orderId:setupOrderId,reason:setupWaiverReason}),
+    }).catch(()=>null);
+    const result=response?await response.json().catch(()=>({})):{};
+    setBusy('');
+    if(!response?.ok){setMessage({ok:false,text:result.error??'Não foi possível consultar a cobrança.'});return;}
+    setMessage({ok:true,text:action==='create'?'Link avulso gerado. Envie ao cliente e aguarde pagamento.':action==='verify'?'Pagamento confirmado diretamente na Pagar.me.':'Isenção registrada.'});
+    await load();
   }
 
   async function changeBusiness(action:'create'|'advance',toStatus?:string){
@@ -262,6 +278,17 @@ export default function OrganizationAdminPage() {
               return <span key={key} className={`rounded-full px-3 py-1 text-xs ${i===index?'bg-teal-100 font-semibold text-teal-800':i<index?'bg-slate-100 text-slate-600':'border border-slate-200 text-slate-400'}`}>{label}</span>;
             })}</div>
             <p className="text-xs text-slate-600">Proposta: R$ {(businessOnboarding.proposed_monthly_cents/100).toFixed(2)} por mês + R$ {(businessOnboarding.setup_fee_cents/100).toFixed(2)} de implantação. Número: {businessOnboarding.number_source==='customer'?'do cliente':'fornecido pelo TendiDesk'}.</p>
+            <div className="rounded-xl border border-slate-200 p-3 space-y-2">
+              <p className="text-sm font-semibold">Implantação avulsa — {businessOnboarding.setup_payment_status==='paid'?'Paga':businessOnboarding.setup_payment_status==='waived'?'Isenta':businessOnboarding.setup_payment_status==='pending'?'Aguardando pagamento':'Não cobrada'}</p>
+              <p className="text-xs text-slate-600">Cobrança única separada da mensalidade. A etapa de implantação só avança com os dois pagamentos confirmados ou isenção justificada.</p>
+              {businessOnboarding.setup_payment_url&&<a href={businessOnboarding.setup_payment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-teal-800 underline">Abrir link de pagamento da implantação</a>}
+              {['proposal_approved','awaiting_payment'].includes(businessOnboarding.status)&&!['paid','waived'].includes(businessOnboarding.setup_payment_status??'')&&<div className="flex flex-wrap items-end gap-2">
+                {(!businessOnboarding.setup_payment_status||businessOnboarding.setup_payment_status==='not_created')&&<button type="button" className={secondary} disabled={busy==='setup-payment'} onClick={()=>void setupPayment('create')}>Gerar cobrança avulsa</button>}
+                {businessOnboarding.setup_payment_status==='pending'&&<><label className="text-xs">ID do pedido pago (or_...)<input className={field} value={setupOrderId} onChange={e=>setSetupOrderId(e.target.value)} placeholder="or_..."/></label><button type="button" className={secondary} disabled={busy==='setup-payment'} onClick={()=>void setupPayment('verify')}>Verificar pagamento</button></>}
+                <label className="text-xs">Motivo de isenção<input className={field} value={setupWaiverReason} onChange={e=>setSetupWaiverReason(e.target.value)} placeholder="Motivo registrado para auditoria"/></label>
+                <button type="button" className={secondary} disabled={busy==='setup-payment'||setupWaiverReason.trim().length<12} onClick={()=>void setupPayment('waive')}>Isentar implantação</button>
+              </div>}
+            </div>
             {businessOnboarding.status==='awaiting_payment'&&<p className="text-xs text-amber-800">Crie/vincule o plano Business no Pagar.me e aguarde o evento de pagamento confirmado. Não marque como pago apenas pela criação da assinatura.</p>}
             <p className="text-xs text-slate-600">Pagar.me: {businessBilling?.plan_code==='tendi_business'?`${businessBilling.status} · ${businessBilling.last_event_type??'sem evento'}`:'assinatura Business ainda não vinculada'}.</p>
             {businessOnboarding.status!=='active'&&<button type="button" className={secondary} disabled={busy==='business'} onClick={()=>{

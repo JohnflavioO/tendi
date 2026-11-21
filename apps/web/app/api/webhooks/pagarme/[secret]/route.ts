@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPlatformSecret, processPagarmeEvent } from '@/lib/billing';
 import { createPagarmeClient } from '@/lib/pagarme';
+import { setupEventOrderId, confirmSetupOrder } from '@/lib/business-setup-payment';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,27 @@ export async function POST(request: Request, { params }: Context) {
 
   const payload: unknown = await request.json().catch(() => null);
   try {
+    const eventType = payload && typeof payload==='object' ? String((payload as Record<string,unknown>).type??'') : '';
+    const orderId = setupEventOrderId(payload);
+    if(orderId && eventType==='order.paid'){
+      const api=createPagarmeClient(secretKey);
+      const order=await api<Record<string,unknown>>(`/orders/${encodeURIComponent(orderId)}`);
+      const code=typeof order.code==='string'?order.code:'';
+      if(code.startsWith('TENDI-SETUP-')){
+        const orgId=code.slice('TENDI-SETUP-'.length);
+        const row=await db.from('business_onboardings').select('*').eq('organization_id',orgId).eq('setup_payment_order_code',code).maybeSingle();
+        if(row.error)throw new Error('Erro consultando cobrança de implantação');
+        if(row.data?.setup_payment_status==='pending'){
+          const valid=await confirmSetupOrder(api,orderId,{organizationId:orgId,amountCents:row.data.setup_fee_cents,orderCode:code});
+          if(!valid)return NextResponse.json({ignored:'setup_order_unverified'},{status:200});
+          const saved=await db.from('business_onboardings').update({setup_payment_status:'paid',setup_payment_order_id:orderId,setup_paid_at:new Date().toISOString(),setup_verified_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('organization_id',orgId).eq('setup_payment_status','pending').select('organization_id').maybeSingle();
+          if(saved.error)throw new Error('Erro registrando pagamento de implantação');
+          if(saved.data)await db.from('business_onboarding_events').insert({organization_id:orgId,from_status:row.data.status,to_status:row.data.status,notes:'Implantação paga (webhook verificado): '+orderId});
+          return NextResponse.json({ok:true,setup: saved.data?'paid':'already_processed'});
+        }
+        return NextResponse.json({ignored:'setup_not_pending'});
+      }
+    }
     const outcome = await processPagarmeEvent(db, createPagarmeClient(secretKey), payload);
     const event = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {};
     console.info('[Pagar.me webhook]', { id: event.id, type: event.type, ...outcome.body });
