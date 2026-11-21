@@ -48,6 +48,8 @@ export default function OrganizationAdminPage() {
   const [whatsappRow, setWhatsappRow] = useState<WhatsappRow | null>(null);
   const [copied, setCopied] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [officialApproval, setOfficialApproval] = useState(false);
+  const [billingVerified, setBillingVerified] = useState(false);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
@@ -63,13 +65,14 @@ export default function OrganizationAdminPage() {
     if (!admin) { router.replace('/inbox'); return; }
     setUserId(auth.user.id);
 
-    const [orgRes, planRes, memberRes, channelRes, agentRes, grantRes] = await Promise.all([
+    const [orgRes, planRes, memberRes, channelRes, agentRes, grantRes, approvalRes] = await Promise.all([
       supabase.from('organizations').select(`id,name,slug,status,plan_code,created_at,trial_ends_at,${COMPLIMENTARY_COLUMNS}`).eq('id', organizationId).maybeSingle(),
       supabase.from('subscription_plans').select('code,name').order('display_order'),
       supabase.from('organization_memberships').select('user_id,role,status').eq('organization_id', organizationId),
       supabase.from('channel_connections').select('status,settings,provider_account_id').eq('organization_id', organizationId).eq('channel', 'whatsapp').maybeSingle(),
       supabase.from('ai_agents').select('is_enabled').eq('organization_id', organizationId).maybeSingle(),
       supabase.from('support_access_grants').select(`${SUPPORT_GRANT_COLUMNS},redeemed_by`).eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(8),
+      fetch(`/api/admin/organizations/${organizationId}/official-approval`).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
     if (!orgRes.data) { setOrganization(null); setLoading(false); return; }
     const org = orgRes.data as Organization;
@@ -78,6 +81,8 @@ export default function OrganizationAdminPage() {
     setWhatsapp((channelRes.data as { status?: string } | null)?.status ?? null);
     setWhatsappRow((channelRes.data as WhatsappRow | null) ?? null);
     setAiEnabled(Boolean((agentRes.data as { is_enabled?: boolean } | null)?.is_enabled));
+    setOfficialApproval(approvalRes?.approved === true);
+    setBillingVerified(approvalRes?.billingVerified === true);
     setGrants(grantRes.error ? [] : ((grantRes.data ?? []) as Grant[]));
 
     const rows = (memberRes.data ?? []) as Array<{ user_id: string; role: string; status: string }>;
@@ -200,7 +205,20 @@ export default function OrganizationAdminPage() {
             )}
 
             {grants.length > 0 && (
-              <div className="mt-5 border-t border-tendi-line/70 pt-4">
+              <div className="mt-5 rounded-xl border border-tendi-line bg-tendi-haze p-4">
+              <p className="text-sm font-semibold text-tendi-navy">API oficial da Meta — aprovação comercial</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">Disponível no Business. Confirme com o cliente a titularidade e o responsável financeiro pela conta Meta antes de liberar a autorização no TendiDesk. Não cria cobrança automática.</p>
+              <label className="mt-3 flex items-start gap-2 text-xs text-slate-700">
+                <input type="checkbox" checked={billingVerified} disabled={officialApproval} onChange={e => setBillingVerified(e.target.checked)} />
+                Confirmei que o cliente será o responsável financeiro na Meta e não utilizará crédito da plataforma
+              </label>
+              <button type="button" className={secondary} disabled={busy === 'approval' || (!officialApproval && (organization.plan_code !== 'tendi_business' || !billingVerified))} onClick={async () => {
+                if (!window.confirm(officialApproval ? 'Revogar a autorização de novas conexões oficiais?' : 'Aprovar a conexão oficial após verificar o faturamento Meta do cliente?')) return;
+                if (await call('approval','PATCH',{action:'set_official_whatsapp_approval',approved:!officialApproval,billingVerified:!officialApproval&&billingVerified},officialApproval?'Autorização revogada.':'WhatsApp oficial autorizado para conexão pelo cliente.')) await load();
+              }}>{officialApproval ? 'Revogar autorização' : 'Aprovar conexão oficial'}</button>
+              <p className="mt-2 text-xs text-slate-500">{officialApproval ? 'Autorizado: o cliente pode conectar diretamente no TendiDesk.' : 'Aguardando aprovação do suporte.'}</p>
+            </div>
+            <div className="mt-5 border-t border-tendi-line/70 pt-4">
                 <p className="td-eyebrow">Histórico</p>
                 <ul className="mt-2 divide-y divide-tendi-line/70">
                   {grants.map(grant => {
