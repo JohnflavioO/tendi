@@ -8,6 +8,7 @@ import { requestedOrganizationId, resolveCurrentOrganization, withOrganization }
 import { WorkspaceShell } from '@/components/workspace-shell';
 import { AiUsageNotice } from '@/components/ai-usage-notice';
 import { AccountCard } from '@/components/settings/account-card';
+import { ImageUpload } from '@/components/settings/image-upload';
 import { SignatureSettingsCard } from '@/components/settings/signature-settings';
 import { SupportAccessCard } from '@/components/settings/support-access';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
@@ -15,7 +16,7 @@ import { canAccess, ROLE_INFO } from '@/lib/team';
 import { planStatus, type PlanStatus } from '@/lib/plan-status';
 
 type Team = { id: string; name: string; description: string | null; color: string; is_active: boolean };
-type Org = { id: string; name: string; slug: string; plan_code: string | null; status: string; trial_ends_at: string | null; complimentary_since?: string | null; complimentary_until?: string | null };
+type Org = { id: string; logo_url?: string | null; name: string; slug: string; plan_code: string | null; status: string; trial_ends_at: string | null; complimentary_since?: string | null; complimentary_until?: string | null };
 
 const TONE: Record<PlanStatus['tone'], string> = {
   ok: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
@@ -41,7 +42,7 @@ export default function SettingsPage() {
   async function load() {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return;
-    const { organization: o } = await resolveCurrentOrganization<Org>(supabase, u.user.id, 'id,name,slug,plan_code,status,trial_ends_at,complimentary_since,complimentary_until', requestedOrganizationId());
+    const { organization: o } = await resolveCurrentOrganization<Org>(supabase, u.user.id, 'id,name,logo_url,slug,plan_code,status,trial_ends_at,complimentary_since,complimentary_until', requestedOrganizationId());
     if (!o) { setLoading(false); return; }
     setOrg(o); setName(o.name ?? '');
     const [plan, sub, t] = await Promise.all([
@@ -84,6 +85,7 @@ export default function SettingsPage() {
 
       <section className={card}>
         <div className="mb-5 flex items-center gap-3"><span className="td-icon"><Building2 size={20} /></span><div><h2 className="td-title">Dados da empresa</h2><p className="text-xs text-slate-400">Nome que aparece para a equipe e no TendiDesk</p></div></div>
+        {canEditCompany && org && <div className="mb-4"><p className="td-label mb-2">Logo da empresa</p><ImageUpload bucket="brand-assets" folder={org.id} value={org.logo_url} label="Alterar logo" onSaved={async url => { const { error } = await supabase.from('organizations').update({ logo_url: url }).eq('id', org.id); if (error) throw error; setOrg({ ...org, logo_url: url }); }} /></div>}
         <label className="mb-4 block"><span className="td-label">Nome da empresa</span>
           <input value={name} disabled={!canEditCompany} onChange={e => setName(e.target.value)} className="td-input" />
           {!canEditCompany && <span className="mt-1 block text-[11px] text-slate-400">Só o admin principal ou um administrador altera o nome.</span>}
