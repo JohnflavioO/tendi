@@ -58,7 +58,7 @@ export default function OrganizationAdminPage() {
   const [businessOnboarding,setBusinessOnboarding] = useState<BusinessOnboarding|null>(null);
   const [businessBilling,setBusinessBilling] = useState<BusinessBilling|null>(null);
   const [businessMonthly,setBusinessMonthly] = useState('489');
-  const [businessSetup,setBusinessSetup] = useState('499');
+  const [businessSetup,setBusinessSetup] = useState('399');
   const [businessNumberSource,setBusinessNumberSource] = useState<'customer'|'tendidesk'>('customer');
   const [billingVerified, setBillingVerified] = useState(false);
   const [grants, setGrants] = useState<Grant[]>([]);

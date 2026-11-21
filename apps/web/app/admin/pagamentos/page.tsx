@@ -26,16 +26,18 @@ export default function BillingAdminPage() {
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [planIds, setPlanIds] = useState<Record<string, string>>({});
   const [subs, setSubs] = useState<Sub[]>([]);
+  const [plansLoadError, setPlansLoadError] = useState(false);
   const [keyValue, setKeyValue] = useState('');
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const loadData = useCallback(async () => {
     const supabase = createClient() as any;
-    const [{ data: planRows }, { data: subRows }] = await Promise.all([
+    const [{ data: planRows, error: planError }, { data: subRows }] = await Promise.all([
       supabase.from('subscription_plans').select('code,name,monthly_price,pagarme_plan_id,annual_price,pagarme_annual_plan_id,is_active').order('display_order'),
       supabase.from('billing_subscriptions').select('organization_id,plan_code,status,next_billing_at,card_last_digits,organizations(name)').order('updated_at', { ascending: false }),
     ]);
+    setPlansLoadError(Boolean(planError));
     const list = (planRows ?? []) as Plan[];
     setPlans(list);
     setPrices(Object.fromEntries(list.map(plan => [plan.code, plan.monthly_price ? String(plan.monthly_price).replace('.', ',') : ''])));
@@ -115,6 +117,7 @@ export default function BillingAdminPage() {
   if (!authorized) return <main className="grid min-h-screen place-items-center bg-tendi-haze p-6"><div className="td-card p-8 text-center"><ShieldCheck className="mx-auto text-tendi-magenta" size={32} /><h1 className="mt-4 text-xl font-semibold tracking-tight text-tendi-navy">Acesso restrito</h1><a href="/inbox" className="mt-5 inline-block text-sm font-semibold text-tendi-teal">Voltar ao Inbox</a></div></main>;
 
   const connected = Boolean(status?.secretKey.configured);
+  const businessRegistered = plans.some(plan => plan.code === 'tendi_business');
 
   return <AdminShell title="Pagamentos e assinaturas">
 
@@ -139,13 +142,14 @@ export default function BillingAdminPage() {
 
       <section className={card}>
         <div className="mb-4 flex items-center gap-3"><span className="td-icon td-icon-magenta"><Receipt size={20} /></span><div><h2 className="td-title">3. Preço dos planos</h2><p className="text-xs text-slate-400">Já criou o plano na Stone/Pagar.me (Venda por assinatura)? Cole o ID dele (plan_...) e clique em Vincular: o TendiDesk confere o plano e usa o valor cadastrado lá. Ou digite o valor e clique em Publicar para o TendiDesk criar o plano. Mudar o preço cria um plano novo: quem já assina continua no valor antigo.</p></div></div>
-        <div className="space-y-3">{plans.map(plan => <div key={plan.code} className="flex flex-wrap items-center gap-3 td-subtle p-3">
+        <div className="space-y-3">{plansLoadError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700">Não foi possível consultar os planos no banco. Verifique as permissões e a conexão antes de vincular cobranças.</p>}{plans.map(plan => <div key={plan.code} className="flex flex-wrap items-center gap-3 td-subtle p-3">
           <div className="min-w-[140px] flex-1"><p className="text-sm font-semibold text-slate-700">{plan.name}</p><p className="text-[11px] text-slate-400">{plan.pagarme_plan_id ? `Mensal · ${plan.pagarme_plan_id}` : 'Mensal não vinculado'}{plan.pagarme_annual_plan_id ? ` · Anual · ${plan.pagarme_annual_plan_id} · ${Number(plan.annual_price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/ano${annualDiscountPercent(plan.monthly_price, plan.annual_price) ? ` (${annualDiscountPercent(plan.monthly_price, plan.annual_price)}% off)` : ''}` : ' · Anual não vinculado'}{!plan.is_active ? ' · plano inativo' : ''}</p></div>
-          <label className="flex items-center gap-2 text-xs text-slate-500">R$<input inputMode="decimal" value={prices[plan.code] ?? ''} onChange={e => setPrices(current => ({ ...current, [plan.code]: e.target.value }))} placeholder="197,00" className={`${input} w-28`} />/mês</label>
+          {plan.code === 'tendi_business' && <p className="w-full rounded-lg bg-teal-50 px-3 py-2 text-xs leading-5 text-teal-900">Contratação assistida: referência R$ 489/mês e implantação sugerida de R$ 399,00, cobrada uma única vez em separado. Tarifas Meta não incluídas. Vincular o plano da Stone não ativa a API oficial: exige pagamento confirmado e validação do suporte.</p>}
+          <label className="flex items-center gap-2 text-xs text-slate-500">R$<input inputMode="decimal" value={prices[plan.code] ?? ''} onChange={e => setPrices(current => ({ ...current, [plan.code]: e.target.value }))} placeholder={plan.code === 'tendi_business' ? '489,00' : '197,00'} className={`${input} w-28`} />/mês</label>
           <button type="button" onClick={() => void publish(plan)} disabled={!connected || !(prices[plan.code] ?? '').trim() || busy !== ''} className="inline-flex items-center gap-1.5 rounded-xl bg-tendi-teal px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-50">{busy === `plan-${plan.code}` && <Loader2 size={12} className="animate-spin" />}Publicar na Pagar.me</button>
           {linkField(plan, 'monthly')}
-          {linkField(plan, 'annual')}
-        </div>)}</div>
+          {plan.code !== 'tendi_business' && linkField(plan, 'annual')}
+        </div>)}{!businessRegistered && !plansLoadError && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-900"><p className="font-semibold">TendiDesk Business — aguardando cadastro no banco</p><p className="mt-1">A terceira caixa está preparada, mas o registro <code>tendi_business</code> não foi encontrado neste ambiente. Aplique a migration <code>20261121160000_business_meta_approval.sql</code> no Supabase correto do TendiDesk para habilitar o vínculo seguro com a Stone/Pagar.me. Não cadastre cobranças enquanto essa etapa estiver pendente.</p><p className="mt-2">Referência comercial: R$ 489,00/mês + implantação única de R$ 399,00, negociada separadamente. Nenhuma cobrança é criada nesta tela de aviso.</p></div>}</div>
       </section>
 
       <section className={card}>
