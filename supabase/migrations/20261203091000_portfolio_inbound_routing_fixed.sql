@@ -3,7 +3,7 @@
 -- On insertion of a new conversation by QR/Meta/webchat service integration:
 -- existing private contact -> same seller; unowned contact -> shared unassigned queue.
 create or replace function private.portfolio_route_inbound_conversation()
-returns trigger language plpgsql security invoker set search_path='' as $
+returns trigger language plpgsql security invoker set search_path='' as $portfolio$
 declare v_owner uuid; v_private boolean;
 begin
   -- Do not interfere with user-created conversations or audited portfolio transfers.
@@ -21,7 +21,7 @@ begin
   -- Never trust an incoming webhook-provided assignee for a private customer.
   new.assigned_to := v_owner;
   return new;
-end $$;
+end $portfolio$;
 drop trigger if exists portfolio_route_inbound_conversation on public.conversations;
 create trigger portfolio_route_inbound_conversation
 before insert on public.conversations

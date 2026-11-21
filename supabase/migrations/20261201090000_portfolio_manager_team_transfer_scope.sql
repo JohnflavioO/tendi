@@ -60,7 +60,7 @@ begin
       join public.teams t on t.id=supervisor.team_id
         and t.organization_id=p_organization_id and t.is_active
       where supervisor.organization_id=p_organization_id
-        and supervisor.user_id=v_actor
+        and supervisor.user_id=v_actor and supervisor.team_role='leader'
     ) then
       raise exception 'Transfer outside supervised teams' using errcode='42501';
     end if;
