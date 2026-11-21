@@ -14,7 +14,7 @@ export type Role = (typeof ROLES)[number];
 export const isRole = (value: unknown): value is Role => typeof value === 'string' && (ROLES as readonly string[]).includes(value);
 
 export const ROLE_INFO: Record<Role, { label: string; description: string }> = {
-  owner: { label: 'Dono', description: 'Acesso total, assinatura e administradores.' },
+  owner: { label: 'Admin', description: 'Acesso total, assinatura e administradores.' },
   admin: { label: 'Administrador', description: 'Gerencia a equipe, o WhatsApp e as configurações.' },
   manager: { label: 'Supervisor', description: 'Acompanha a equipe, organiza setores, funil e relatórios.' },
   agent: { label: 'Atendente', description: 'Atende no Inbox e cuida de contatos e oportunidades.' },
