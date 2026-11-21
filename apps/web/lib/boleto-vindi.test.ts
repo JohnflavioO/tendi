@@ -31,7 +31,7 @@ describe('Vindi (api v1)', () => {
       if (href.includes('/customers?query=')) return jsonResponse({ customers: [{ id: 42 }] });
       if (href.includes('/charges?query=') && href.includes('customer_id%3D42')) return jsonResponse({
         charges: [
-          { id: 99, status: 'pending', amount: '189.00', due_at: '2026-11-20', bill_id: 7, print_url: 'https://vindi.com/boletos/99', last_transaction: { gateway_response_fields: { typeable_barcode: '237933812...' } } },
+          { id: 99, status: 'pending', amount: '189.00', due_at: '2099-11-20', bill_id: 7, print_url: 'https://vindi.com/boletos/99', last_transaction: { gateway_response_fields: { typeable_barcode: '237933812...' } } },
           { id: 100, status: 'paid', amount: '50.00', due_at: '2026-10-01' },
         ],
       });
@@ -41,7 +41,7 @@ describe('Vindi (api v1)', () => {
     const provider = createVindiProvider(fetchFn);
     const boletos = await provider.findOpenBoletos('chave-123', '12345678909');
     expect(boletos).toEqual([{
-      id: '99', amount: 189, dueDate: '2026-11-20', overdue: false, description: 'Fatura 7',
+      id: '99', amount: 189, dueDate: '2099-11-20', overdue: false, description: 'Fatura 7',
       digitableLine: '237933812...', pdfUrl: 'https://vindi.com/boletos/99', invoiceUrl: null,
     }]);
   });
