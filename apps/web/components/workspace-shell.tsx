@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
 import { requestedOrganizationId, resolveCurrentOrganization, withOrganization } from '@/lib/current-organization';
 import { SupportBanner } from '@/components/support-banner';
+import { NotificationBell } from '@/components/notification-bell';
 import { BrandLoader } from '@/components/brand-loader';
 import { OnboardingTour } from '@/components/onboarding-tour';
 import { MobileTabBar } from '@/components/mobile-tab-bar';
@@ -165,6 +166,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
           </div>
           <div className="relative flex items-center gap-2">
             {actions}
+            <NotificationBell organizationId={organization.id} />
             <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu de opções" aria-expanded={menuOpen} className={`td-icon-btn ${menuOpen ? 'bg-tendi-mist text-tendi-indigo' : ''}`}><MoreHorizontal size={19} /></button>
             {menuOpen && <>
               <button aria-label="Fechar menu" className="fixed inset-0 z-20 cursor-default" onClick={() => setMenuOpen(false)} />
