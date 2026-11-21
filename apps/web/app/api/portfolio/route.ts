@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   let scopedUserIds: string[] | null = null;
   if (tenantMembership.role === 'manager') {
     const { data: myTeams, error: myTeamsError } = await admin.from('team_members')
-      .select('team_id').eq('organization_id', organizationId).eq('user_id', actor.userId);
+      .select('team_id').eq('organization_id', organizationId).eq('user_id', actor.userId).eq('team_role', 'leader');
     if (myTeamsError) return NextResponse.json({ error: 'Não foi possível validar os setores.' }, { status: 503 });
     const teamIds = (myTeams ?? []).map(row => row.team_id);
     if (!teamIds.length) scopedUserIds = [actor.userId];
