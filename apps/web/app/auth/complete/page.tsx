@@ -14,7 +14,7 @@ export default function CompleteInvitePage() {
         const accessToken = fragment.get('access_token');
         const refreshToken = fragment.get('refresh_token');
         const fragmentError = fragment.get('error_description') || fragment.get('error');
-        if (fragmentError) throw new Error('link');
+        if (fragmentError || !accessToken || !refreshToken) throw new Error('link');
         if (accessToken && refreshToken) {
           const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
           if (error) throw error;
