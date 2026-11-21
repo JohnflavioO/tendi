@@ -205,20 +205,7 @@ export default function OrganizationAdminPage() {
             )}
 
             {grants.length > 0 && (
-              <div className="mt-5 rounded-xl border border-tendi-line bg-tendi-haze p-4">
-              <p className="text-sm font-semibold text-tendi-navy">API oficial da Meta — aprovação comercial</p>
-              <p className="mt-1 text-xs leading-5 text-slate-600">Disponível no Business. Confirme com o cliente a titularidade e o responsável financeiro pela conta Meta antes de liberar a autorização no TendiDesk. Não cria cobrança automática.</p>
-              <label className="mt-3 flex items-start gap-2 text-xs text-slate-700">
-                <input type="checkbox" checked={billingVerified} disabled={officialApproval} onChange={e => setBillingVerified(e.target.checked)} />
-                Confirmei que o cliente será o responsável financeiro na Meta e não utilizará crédito da plataforma
-              </label>
-              <button type="button" className={secondary} disabled={busy === 'approval' || (!officialApproval && (organization.plan_code !== 'tendi_business' || !billingVerified))} onClick={async () => {
-                if (!window.confirm(officialApproval ? 'Revogar a autorização de novas conexões oficiais?' : 'Aprovar a conexão oficial após verificar o faturamento Meta do cliente?')) return;
-                if (await call('approval','PATCH',{action:'set_official_whatsapp_approval',approved:!officialApproval,billingVerified:!officialApproval&&billingVerified},officialApproval?'Autorização revogada.':'WhatsApp oficial autorizado para conexão pelo cliente.')) await load();
-              }}>{officialApproval ? 'Revogar autorização' : 'Aprovar conexão oficial'}</button>
-              <p className="mt-2 text-xs text-slate-500">{officialApproval ? 'Autorizado: o cliente pode conectar diretamente no TendiDesk.' : 'Aguardando aprovação do suporte.'}</p>
-            </div>
-            <div className="mt-5 border-t border-tendi-line/70 pt-4">
+              <div className="mt-5 border-t border-tendi-line/70 pt-4">
                 <p className="td-eyebrow">Histórico</p>
                 <ul className="mt-2 divide-y divide-tendi-line/70">
                   {grants.map(grant => {
@@ -261,6 +248,19 @@ export default function OrganizationAdminPage() {
               <Link href="/admin/ia" className={secondary}>Agentes de IA</Link>
             </div>
 
+            <div className="mt-5 rounded-xl border border-tendi-line bg-tendi-haze p-4">
+              <p className="text-sm font-semibold text-tendi-navy">API oficial da Meta — aprovação comercial</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">Disponível no Business. Confirme com o cliente a titularidade e o responsável financeiro pela conta Meta antes de liberar a autorização no TendiDesk. Não cria cobrança automática.</p>
+              <label className="mt-3 flex items-start gap-2 text-xs text-slate-700">
+                <input type="checkbox" checked={billingVerified} disabled={officialApproval} onChange={e => setBillingVerified(e.target.checked)} />
+                Confirmei que o cliente será o responsável financeiro na Meta e não utilizará crédito da plataforma
+              </label>
+              <button type="button" className={secondary} disabled={busy === 'approval' || (!officialApproval && (organization.plan_code !== 'tendi_business' || !billingVerified))} onClick={async () => {
+                if (!window.confirm(officialApproval ? 'Revogar a autorização de novas conexões oficiais?' : 'Aprovar a conexão oficial após verificar o faturamento Meta do cliente?')) return;
+                if (await call('approval','PATCH',{action:'set_official_whatsapp_approval',approved:!officialApproval,billingVerified:!officialApproval&&billingVerified},officialApproval?'Autorização revogada.':'WhatsApp oficial autorizado para conexão pelo cliente.')) await load();
+              }}>{officialApproval ? 'Revogar autorização' : 'Aprovar conexão oficial'}</button>
+              <p className="mt-2 text-xs text-slate-500">{officialApproval ? 'Autorizado: o cliente pode conectar diretamente no TendiDesk.' : 'Aguardando aprovação do suporte.'}</p>
+            </div>
             <div className="mt-5 border-t border-tendi-line/70 pt-4">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-tendi-navy"><BadgeCheck size={15} className="text-tendi-teal" />Número oficial (API da Meta)</p>
               <p className="mt-1 text-xs leading-5 text-slate-500">Para este cliente usar um número da API oficial: reserve a sessão, copie o código e, no painel do On Connect, use <strong>Conexões › Nova conexão Meta › Workspace do Tendi</strong>. Se ele já usa QR Code, marque <strong>Substituir a conexão atual</strong>.</p>
