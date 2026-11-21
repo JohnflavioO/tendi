@@ -52,3 +52,50 @@ self.addEventListener('fetch', event => {
     );
   }
 });
+
+
+/*
+ * Web Push (including iOS Home Screen web apps).
+ * The backend will send an authenticated push payload after device enrollment.
+ * Never cache notification payloads or display arbitrary external destinations.
+ */
+function notificationPath(value) {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return '/inbox';
+  try {
+    const url = new URL(value, self.location.origin);
+    return url.origin === self.location.origin ? url.pathname + url.search + url.hash : '/inbox';
+  } catch {
+    return '/inbox';
+  }
+}
+
+self.addEventListener('push', event => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch { payload = {}; }
+  if (!payload || typeof payload !== 'object') payload = {};
+  const title = typeof payload.title === 'string' ? payload.title.slice(0, 120) : 'TendiDesk';
+  const body = typeof payload.body === 'string' ? payload.body.slice(0, 240) : 'Você tem um novo lembrete.';
+  const path = notificationPath(payload.path);
+  event.waitUntil(self.registration.showNotification(title, {
+    body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: typeof payload.tag === 'string' ? payload.tag.slice(0, 100) : undefined,
+    data: { path },
+  }));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const path = notificationPath(event.notification.data && event.notification.data.path);
+  const target = new URL(path, self.location.origin).href;
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const existing = windows.find(client => new URL(client.url).origin === self.location.origin);
+    if (existing) {
+      await existing.navigate(target);
+      return existing.focus();
+    }
+    return self.clients.openWindow(target);
+  })());
+});
