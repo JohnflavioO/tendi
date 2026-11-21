@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, MailPlus, ShieldCheck, Trash2, KeyRound, UserRound, UsersRound } from 'lucide-react';
+import { Loader2, MailPlus, ShieldCheck, Trash2, KeyRound, Ban, CheckCircle2, UserRound, UsersRound } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { WorkspaceShell } from '@/components/workspace-shell';
 import { ROLE_INFO, ROLES, type Role } from '@/lib/team';
@@ -98,6 +98,24 @@ export default function TeamPage() {
       : { ok: false, text: json?.error ?? 'Não foi possível enviar o e-mail.' });
   }
 
+  async function toggleAccess(member: Member) {
+    const suspend = member.status === 'active';
+    if (!window.confirm(suspend
+      ? `Bloquear ${member.name}? O acesso à empresa será interrompido, mas o histórico será preservado.`
+      : `Reativar o acesso de ${member.name} à empresa?`)) return;
+    setBusy(member.userId); setMessage(null);
+    const response = await fetch(`/api/team/members/${member.userId}/status`, {
+      method: 'PATCH', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ organizationId, status: suspend ? 'suspended' : 'active' }),
+    }).catch(() => null);
+    const json = await response?.json().catch(() => null);
+    setBusy('');
+    setMessage(response?.ok
+      ? { ok: true, text: suspend ? `${member.name} foi bloqueado(a) nesta empresa.` : `${member.name} foi reativado(a).` }
+      : { ok: false, text: json?.error ?? 'Não foi possível alterar o acesso.' });
+    if (response?.ok) await load(organizationId);
+  }
+
   async function remove(member: Member) {
     const pending = member.status === 'invited';
     if (!window.confirm(pending ? `Cancelar o convite de ${member.email}?` : `Remover ${member.name} da equipe? As conversas atribuídas a essa pessoa voltam para a fila.`)) return;
@@ -128,10 +146,12 @@ export default function TeamPage() {
             <p className="truncate text-sm font-semibold text-slate-800">{member.name}{member.isSelf && <span className="ml-2 text-[11px] font-normal text-slate-400">(você)</span>}</p>
             <p className="truncate text-xs text-slate-400">{member.email}{member.teams.length ? ` · ${member.teams.map(team => team.name).join(', ')}` : ''}</p>
           </div>
+          {member.status === 'suspended' && <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">Bloqueado</span>}
           {member.status === 'invited' && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">Convite pendente</span>}{member.status === 'invited' && member.canManage && <button type="button" onClick={() => void resend(member)} disabled={busy !== ''} className="td-btn td-btn-secondary td-btn-sm !text-tendi-teal disabled:opacity-50">Reenviar convite</button>}
           {member.canManage && data
             ? <select aria-label={`Papel de ${member.name}`} value={member.role} disabled={busy !== ''} onChange={e => void changeRole(member, e.target.value as Role)} className="td-input h-8 w-auto rounded-lg text-xs font-semibold">{data.assignableRoles.map(role => <option key={role} value={role}>{ROLE_INFO[role].label}</option>)}</select>
             : <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${ROLE_TONE[member.role]}`}>{ROLE_INFO[member.role].label}</span>}
+          {member.canManage && ['active', 'suspended'].includes(member.status) && <button type="button" onClick={() => void toggleAccess(member)} disabled={busy !== ''} title={member.status === 'active' ? 'Bloquear acesso' : 'Reativar acesso'} aria-label={member.status === 'active' ? `Bloquear ${member.name}` : `Reativar ${member.name}`} className="rounded-lg p-2 text-tendi-indigo hover:bg-tendi-haze disabled:opacity-50">{member.status === 'active' ? <Ban size={15} /> : <CheckCircle2 size={15} />}</button>}
           {member.canManage && member.status === 'active' && <button type="button" onClick={() => void resetPassword(member)} disabled={busy !== ''} title="Enviar redefinição de senha" className="rounded-lg p-2 text-tendi-indigo hover:bg-tendi-haze disabled:opacity-50"><KeyRound size={15} /></button>}
           {member.canManage && <button type="button" onClick={() => void remove(member)} disabled={busy !== ''} title={member.status === 'invited' ? 'Cancelar convite' : 'Remover da equipe'} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50">{busy === member.userId ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}</button>}
         </li>)}</ul>
