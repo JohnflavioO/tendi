@@ -28,7 +28,7 @@ const num = (value: unknown): number | null => {
 export function toPublicPlans(rows: unknown): PublicPlan[] {
   if (!Array.isArray(rows)) return [];
   return rows
-    .filter((row): row is Record<string, unknown> => typeof row === 'object' && row !== null && typeof (row as any).code === 'string')
+    .filter((row): row is Record<string, unknown> => typeof row === 'object' && row !== null && ['tendi_start', 'tendi_pro'].includes(String((row as any).code)))
     .map(row => ({
       code: String(row.code),
       name: String(row.name ?? row.code),
