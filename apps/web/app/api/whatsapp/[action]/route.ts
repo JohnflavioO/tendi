@@ -379,6 +379,37 @@ export async function POST(request: Request, { params }: Context) {
       return NextResponse.json({ status: 'connected', official: true });
     }
 
+    if (params.action === 'switch-to-qr') {
+      if (!(await canManageWhatsapp(supabase, organizationId))) {
+        return NextResponse.json({ error: 'Só o dono ou administrador pode trocar a conexão WhatsApp.' }, { status: 403 });
+      }
+      if (!connection?.provider_account_id || !isOfficial(connection.settings)) {
+        return NextResponse.json({ error: 'Não existe uma sessão oficial para trocar.' }, { status: 409 });
+      }
+      // Never replace an active Meta connection; require an explicit disconnect first.
+      const providerResponse = await dapiRequest<Record<string, unknown>>(
+        `/sessions/${encodeURIComponent(connection.provider_account_id)}`,
+      );
+      const providerType = readConnectionType(providerResponse);
+      const providerStatus = extractDapiConnectionStatus(providerResponse);
+      if (providerType !== 'official' || !providerStatus || normalizeDapiStatus(providerStatus) === 'connected') {
+        return NextResponse.json({ error: 'Desconecte a API oficial antes de mudar para QR Code.' }, { status: 409 });
+      }
+      await dapiRequest(`/sessions/${encodeURIComponent(connection.provider_account_id)}/switch-to-qr`, { method: 'POST' });
+      const { error: updateError } = await supabase.from('channel_connections')
+        .update({
+          status: 'pending',
+          display_name: 'WhatsApp · aguardando leitura do QR Code',
+          settings: settingsForType(connection.settings, 'unofficial'),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', connection.id).eq('organization_id', organizationId);
+      if (updateError) {
+        return NextResponse.json({ error: 'Sessão QR criada, mas não foi possível atualizar o workspace. Atualize o status antes de continuar.' }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, status: 'pending', official: false });
+    }
+
     if (params.action === 'disconnect') {
       if (!connection?.provider_account_id) {
         return NextResponse.json(
