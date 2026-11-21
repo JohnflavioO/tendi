@@ -38,7 +38,7 @@ export function WorkspaceSidebar({ homeHref, organizationId, organizationName, p
     if (!organizationId) { setLogoUrl(null); return; }
     let active = true;
     void createClient().from('organizations').select('logo_url').eq('id', organizationId).maybeSingle()
-      .then(({ data }) => { if (active) setLogoUrl(data?.logo_url ?? null); });
+      .then(({ data }) => { if (active) setLogoUrl((data as { logo_url?: string | null } | null)?.logo_url ?? null); });
     return () => { active = false; };
   }, [organizationId]);
   const canSwitch = Boolean(onSwitch && organizations && organizations.length > 1);
