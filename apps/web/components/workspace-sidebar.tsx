@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { ChevronsUpDown, X, type LucideIcon } from 'lucide-react';
 import { SidebarFooter } from '@/components/sidebar-footer';
 import type { Area, Role } from '@/lib/team';
@@ -31,9 +33,17 @@ export function WorkspaceSidebar({ homeHref, organizationId, organizationName, p
   /** Celular: mostra o botão de fechar a gaveta. */
   onClose?: () => void;
 }) {
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!organizationId) { setLogoUrl(null); return; }
+    let active = true;
+    void createClient().from('organizations').select('logo_url').eq('id', organizationId).maybeSingle()
+      .then(({ data }) => { if (active) setLogoUrl((data as { logo_url?: string | null } | null)?.logo_url ?? null); });
+    return () => { active = false; };
+  }, [organizationId]);
   const canSwitch = Boolean(onSwitch && organizations && organizations.length > 1);
   const orgCard = <div className="flex items-center gap-3 rounded-xl bg-white/[.06] p-2.5 pr-3 ring-1 ring-inset ring-white/10 transition group-hover:bg-white/[.09]">
-    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-tendi-magenta to-tendi-lilac text-[12px] font-bold text-white shadow-[0_4px_12px_-4px_rgba(203,10,159,.6)]">{initials(organizationName)}</span>
+    {logoUrl ? <img src={logoUrl} alt="Logo da empresa" className="size-9 shrink-0 rounded-lg object-cover" /> : <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-tendi-magenta to-tendi-lilac text-[12px] font-bold text-white shadow-[0_4px_12px_-4px_rgba(203,10,159,.6)]">{initials(organizationName)}</span>}
     <span className="min-w-0 flex-1">
       <span className="block text-[10px] font-semibold uppercase tracking-[.14em] text-[#8E91C4]">Empresa</span>
       <span className="block truncate text-[13.5px] font-semibold text-white">{organizationName ?? 'Carregando...'}</span>

@@ -63,7 +63,7 @@ async function seatLimit(db: Db, organizationId: string): Promise<{ used: number
 }
 
 export type MemberRow = {
-  userId: string; name: string; email: string; role: Role; status: string;
+  userId: string; name: string; email: string; avatarUrl: string | null; role: Role; status: string;
   invitedAt: string | null; teams: Array<{ id: string; name: string }>; canManage: boolean; isSelf: boolean;
 };
 
@@ -74,8 +74,8 @@ export async function listMembers(db: Db, organizationId: string, actor: Actor) 
     seatLimit(db, organizationId),
   ]);
   const ids = ((memberships ?? []) as Array<{ user_id: string }>).map(row => row.user_id);
-  const { data: profiles } = ids.length ? await db.from('profiles').select('id,full_name,email').in('id', ids) : { data: [] };
-  const profileOf = new Map(((profiles ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>).map(p => [p.id, p]));
+  const { data: profiles } = ids.length ? await db.from('profiles').select('id,full_name,email,avatar_url').in('id', ids) : { data: [] };
+  const profileOf = new Map(((profiles ?? []) as Array<{ id: string; full_name: string | null; email: string | null; avatar_url: string | null }>).map(p => [p.id, p]));
   const members: MemberRow[] = ((memberships ?? []) as Array<{ user_id: string; role: Role; status: string; invited_at: string | null }>).map(row => {
     const profile = profileOf.get(row.user_id);
     const teams = ((teamLinks ?? []) as Array<{ user_id: string; teams: any }>)
@@ -87,6 +87,7 @@ export async function listMembers(db: Db, organizationId: string, actor: Actor) 
       userId: row.user_id,
       name: profile?.full_name || profile?.email?.split('@')[0] || 'Usuário',
       email: profile?.email ?? '',
+      avatarUrl: profile?.avatar_url ?? null,
       role: row.role,
       status: row.status,
       invitedAt: row.invited_at,

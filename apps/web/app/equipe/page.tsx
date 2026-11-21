@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { WorkspaceShell } from '@/components/workspace-shell';
 import { ROLE_INFO, ROLES, type Role } from '@/lib/team';
 
-type Member = { userId: string; name: string; email: string; role: Role; status: string; invitedAt: string | null; teams: Array<{ id: string; name: string }>; canManage: boolean; isSelf: boolean };
+type Member = { userId: string; name: string; email: string; avatarUrl: string | null; role: Role; status: string; invitedAt: string | null; teams: Array<{ id: string; name: string }>; canManage: boolean; isSelf: boolean };
 type TeamData = { members: Member[]; seats: { used: number; limit: number | null }; actorRole: Role; assignableRoles: Role[] };
 type Sector = { id: string; name: string };
 
@@ -123,7 +123,7 @@ export default function TeamPage() {
         </div>
         {message && <p role="status" className={message.ok ? 'mx-5 mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-xs text-emerald-700 ring-1 ring-inset ring-emerald-600/10' : 'mx-5 mt-4 rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-700 ring-1 ring-inset ring-rose-600/10'}>{message.text}</p>}
         <ul className="divide-y divide-tendi-line/70">{(data?.members ?? []).map(member => <li key={member.userId} className="flex flex-wrap items-center gap-3 px-5 py-4">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E9EAF8] to-[#F9E8F5] text-xs font-bold text-tendi-indigo">{member.name.split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase()}</span>
+          {member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} className="size-10 shrink-0 rounded-2xl object-cover" /> : <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E9EAF8] to-[#F9E8F5] text-xs font-bold text-tendi-indigo">{member.name.split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase()}</span>}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-slate-800">{member.name}{member.isSelf && <span className="ml-2 text-[11px] font-normal text-slate-400">(você)</span>}</p>
             <p className="truncate text-xs text-slate-400">{member.email}{member.teams.length ? ` · ${member.teams.map(team => team.name).join(', ')}` : ''}</p>
