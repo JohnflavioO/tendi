@@ -1,3 +1,4 @@
+import { isInternalOrganization } from '@/lib/company-control';
 import { NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/admin-auth';
 
@@ -31,8 +32,9 @@ export async function PATCH(request:Request,{params}:Context){
  const body=await request.json().catch(()=>null) as Record<string,unknown>|null;
  const action=body?.action;
  if(action!=='create'&&action!=='advance')return fail(400,'Ação inválida.');
- const org=await auth.admin.from('organizations').select('id,plan_code').eq('id',params.organizationId).maybeSingle();
+ const org=await auth.admin.from('organizations').select('id,plan_code,slug').eq('id',params.organizationId).maybeSingle();
  if(org.error||!org.data)return fail(404,'Empresa não encontrada.');
+ if(isInternalOrganization(org.data))return fail(403,'O workspace interno não utiliza contratação comercial Business. Configure a conexão diretamente no workspace.');
  const current=await auth.admin.from('business_onboardings').select('*').eq('organization_id',params.organizationId).maybeSingle();
  if(current.error)return fail(503,'Contratação indisponível.');
  if(action==='create'){
