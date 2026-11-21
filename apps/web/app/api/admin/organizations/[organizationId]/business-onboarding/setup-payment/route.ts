@@ -21,9 +21,10 @@ export async function POST(request:Request,{params}:Context){
  const amount=Number(row.setup_fee_cents);
  if(!Number.isSafeInteger(amount)||amount<0)return fail(409,'Valor de implantação inválido.');
  if(body?.action==='waive'){
+  if(row.setup_payment_status!=='not_created')return fail(409,'Já existe cobrança emitida. Cancele e concilie o link na Pagar.me antes de isentar.');
   const reason=body.reason?.trim();
   if(!reason||reason.length<12||reason.length>500)return fail(400,'Informe motivo de isenção (12 a 500 caracteres).');
-  const saved=await auth.admin.from('business_onboardings').update({setup_payment_status:'waived',setup_waived_by:auth.userId,setup_waived_reason:reason,updated_at:new Date().toISOString()}).eq('organization_id',id).in('setup_payment_status',['not_created','pending','refunded']).select('organization_id').maybeSingle();
+  const saved=await auth.admin.from('business_onboardings').update({setup_payment_status:'waived',setup_waived_by:auth.userId,setup_waived_reason:reason,updated_at:new Date().toISOString()}).eq('organization_id',id).eq('setup_payment_status','not_created').select('organization_id').maybeSingle();
   if(saved.error||!saved.data)return fail(409,'Não foi possível conceder isenção.');
   await auth.admin.from('business_onboarding_events').insert({organization_id:id,from_status:row.status,to_status:row.status,actor_user_id:auth.userId,notes:'Implantação isenta: '+reason});
   return NextResponse.json({status:'waived'});
