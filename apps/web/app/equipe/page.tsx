@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Loader2, MailPlus, ShieldCheck, Trash2, UserRound, UsersRound } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { WorkspaceShell } from '@/components/workspace-shell';
@@ -102,6 +103,7 @@ export default function TeamPage() {
   return <WorkspaceShell title="Equipe" description="Convide pessoas e defina o que cada uma pode fazer">
     {loading ? <div className="grid h-48 place-items-center"><Loader2 className="animate-spin text-tendi-indigo" /></div> : <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
       <section className="td-card overflow-hidden">
+        <div className="border-b border-tendi-line/70 px-5 py-3"><Link href={`/carteiras?organization=${encodeURIComponent(organizationId)}`} className="text-sm font-semibold text-tendi-indigo hover:underline">Gerenciar carteiras comerciais e transferências →</Link></div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-tendi-line/70 px-5 py-4">
           <div className="flex items-center gap-3"><span className="td-icon"><UsersRound size={18} /></span><div><h2 className="td-title">Pessoas</h2><p className="text-xs text-slate-400">{data ? `${data.seats.used}${data.seats.limit ? ` de ${data.seats.limit}` : ''} usuários do plano` : ''}</p></div></div>
           {data?.seats.limit ? <div className="h-2 w-40 overflow-hidden rounded-full bg-slate-100"><div className={full ? 'h-full bg-rose-500' : 'h-full bg-tendi-teal'} style={{ width: `${Math.min(100, (data.seats.used / data.seats.limit) * 100)}%` }} /></div> : null}
