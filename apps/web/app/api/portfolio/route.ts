@@ -8,6 +8,12 @@ export async function GET(request: Request) {
   const ctx = await teamContext(new URL(request.url).searchParams.get('organization'));
   if (!ctx.ok) return ctx.response;
   const { admin, organizationId, actor } = ctx;
+  // Platform administrators without an active tenant membership cannot inspect portfolios.
+  const { data: tenantMembership, error: tenantError } = await admin.from('organization_memberships')
+    .select('role').eq('organization_id', organizationId).eq('user_id', actor.userId).eq('status', 'active').maybeSingle();
+  if (tenantError || !tenantMembership || !['owner', 'admin', 'manager'].includes(tenantMembership.role)) {
+    return NextResponse.json({ error: 'Acesso restrito aos gestores desta empresa.' }, { status: 403 });
+  }
   // Only active, authorized managers are allowed. No cross-tenant access.
   const [{ data: settings, error: settingsError }, { data: members, error: membersError }, { data: contacts, error: contactsError }, { data: transfers, error: transfersError }] = await Promise.all([
     admin.from('sales_portfolio_settings').select('private_mode_enabled,authorized_transfers').eq('organization_id', organizationId).maybeSingle(),
