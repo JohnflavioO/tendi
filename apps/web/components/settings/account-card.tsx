@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Check, KeyRound, Loader2, Mail, PenLine, UserRound, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { ROLE_INFO, type Role } from '@/lib/team';
+import { ImageUpload } from './image-upload';
 
 /**
  * Configurações › Sua conta: quem está logado (nome, e-mail de acesso, papel na empresa) e troca de senha.
@@ -12,6 +13,7 @@ import { ROLE_INFO, type Role } from '@/lib/team';
 export function AccountCard({ role, superAdmin }: { role?: Role | null; superAdmin?: boolean }) {
   const [user, setUser] = useState<{ id: string; email: string; createdAt: string | null } | null>(null);
   const [name, setName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [editingName, setEditingName] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -26,7 +28,8 @@ export function AccountCard({ role, superAdmin }: { role?: Role | null; superAdm
       const { data } = await supabase.auth.getUser();
       if (!data.user) return;
       setUser({ id: data.user.id, email: String(data.user.email ?? ''), createdAt: data.user.created_at ?? null });
-      const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', data.user.id).maybeSingle();
+      const { data: profile } = await supabase.from('profiles').select('full_name,avatar_url').eq('id', data.user.id).maybeSingle();
+      setAvatarUrl(profile?.avatar_url ?? null);
       setName(String(profile?.full_name || data.user.user_metadata?.full_name || ''));
     })().catch(() => undefined);
   }, []);
@@ -62,7 +65,7 @@ export function AccountCard({ role, superAdmin }: { role?: Role | null; superAdm
 
   return <section className="td-card p-5 xl:col-span-2" data-tour="account">
     <div className="flex flex-wrap items-start gap-5">
-      <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2F316B] to-tendi-magenta text-lg font-bold text-white">{initials}</span>
+      <div className="shrink-0"><ImageUpload bucket="profile-avatars" folder={user?.id ?? ""} value={avatarUrl} label="Alterar foto" onSaved={async url => { const { error } = await (createClient() as any).from("profiles").update({ avatar_url: url }).eq("id", user!.id); if (error) throw error; setAvatarUrl(url); }} /></div>
       <div className="min-w-0 flex-1">
         <p className="td-eyebrow">Sua conta</p>
         {editingName
