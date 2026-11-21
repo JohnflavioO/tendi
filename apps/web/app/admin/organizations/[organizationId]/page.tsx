@@ -264,7 +264,11 @@ export default function OrganizationAdminPage() {
           </section>
         )}
 
-        <section className={card}>
+        {internal ? <section className={card}>
+          <h2 className="td-title text-base">Workspace interno — recursos liberados</h2>
+          <p className="mt-2 text-sm text-slate-600">A operação interna do TendiDesk não precisa contratar assinatura nem pagar taxa de implantação. Para conectar o WhatsApp por QR Code ou API oficial, abra o workspace e utilize Conexões. A API oficial continua sujeita à validação técnica e às tarifas da conta Meta utilizada.</p>
+          <Link href={`/conexoes?organization=${organization.id}`} className={`${secondary} mt-4 inline-flex`}>Gerenciar conexões do workspace</Link>
+        </section> : <section className={card}>
           <h2 className="td-title text-base">Implantação assistida — TendiDesk Business</h2>
           <p className="mt-2 text-xs leading-5 text-slate-600">A proposta e a cobrança são separadas. A mensalidade deve ser criada e vinculada no Pagar.me; a etapa paga exige confirmação de pagamento recebida por webhook. A ativação Meta exige aprovação financeira independente.</p>
           {!businessOnboarding ? <div className="mt-4 flex flex-wrap items-end gap-3">
@@ -297,7 +301,7 @@ export default function OrganizationAdminPage() {
               if(next&&window.confirm(`Avançar para "${next[1]}"? A cobrança não será criada por esta ação.`))void changeBusiness('advance',next[0]);
             }}>Avançar para próxima etapa</button>}
           </div>}
-        </section>
+        </section>}
 
         <PlanControls organization={organization} plans={plans} onChanged={async notice => { setMessage(notice); await load(); }} />
 
