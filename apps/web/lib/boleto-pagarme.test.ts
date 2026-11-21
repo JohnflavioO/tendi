@@ -36,7 +36,7 @@ describe('Pagar.me (graph api v5)', () => {
       if (href.includes('/customers?document=')) return jsonResponse({ data: [{ id: 'cus_1' }] });
       if (href.includes('/charges?customer_id=cus_1')) return jsonResponse({
         data: [
-          { id: 'ch_1', status: 'pending', amount: 18900, due_at: '2026-11-20T00:00:00Z', code: 'PED-1', last_transaction: { line: '237933812...', pdf: 'https://pagar.me/pdf/1', url: 'https://pagar.me/i/1' } },
+          { id: 'ch_1', status: 'pending', amount: 18900, due_at: '2099-11-20T00:00:00Z', code: 'PED-1', last_transaction: { line: '237933812...', pdf: 'https://pagar.me/pdf/1', url: 'https://pagar.me/i/1' } },
           { id: 'ch_2', status: 'paid', amount: 5000, due_at: '2026-10-01T00:00:00Z' },
         ],
       });
@@ -46,7 +46,7 @@ describe('Pagar.me (graph api v5)', () => {
     const provider = createPagarmeProvider(fetchFn);
     const boletos = await provider.findOpenBoletos('sk_123', '12345678909');
     expect(boletos).toEqual([{
-      id: 'ch_1', amount: 189, dueDate: '2026-11-20', overdue: false, description: 'PED-1',
+      id: 'ch_1', amount: 189, dueDate: '2099-11-20', overdue: false, description: 'PED-1',
       digitableLine: '237933812...', pdfUrl: 'https://pagar.me/pdf/1', invoiceUrl: 'https://pagar.me/i/1',
     }]);
   });
