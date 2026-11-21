@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import {
   buildCreateSessionPayload,
   buildDapiWebhookUrl,
@@ -344,6 +345,18 @@ export async function POST(request: Request, { params }: Context) {
       // Fim do cadastro incorporado da Meta: o número oficial vira o WhatsApp do workspace.
       if (!(await canManageWhatsapp(supabase, organizationId))) {
         return NextResponse.json({ error: 'Só o dono ou um administrador do workspace pode conectar o WhatsApp oficial.' }, { status: 403 });
+      }
+      // Fail closed: no client may initiate an official Meta connection without
+      // Business and an explicit Super Admin approval of Meta billing responsibility.
+      const admin = createAdminClient();
+      if (!admin) return NextResponse.json({ error: 'Validação comercial indisponível.' }, { status: 503 });
+      const [{ data: org, error: orgError }, { data: approval, error: approvalError }] = await Promise.all([
+        admin.from('organizations').select('plan_code').eq('id', organizationId).single(),
+        admin.from('whatsapp_official_approvals').select('approved,billing_verified').eq('organization_id', organizationId).maybeSingle(),
+      ]);
+      if (orgError || approvalError) return NextResponse.json({ error: 'Não foi possível verificar a autorização do WhatsApp oficial.' }, { status: 503 });
+      if (org?.plan_code !== 'tendi_business' || approval?.approved !== true || approval?.billing_verified !== true) {
+        return NextResponse.json({ error: 'A API oficial exige plano Business e aprovação do atendimento após validação da cobrança Meta.' }, { status: 403 });
       }
       const body = await request.json().catch(() => null);
       if (!isSignupBody(body)) {

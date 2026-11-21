@@ -132,6 +132,25 @@ export async function PATCH(request: Request, { params }: Context) {
     return NextResponse.json({ status: patch.status, trialEndsAt: patch.trial_ends_at });
   }
 
+  if (action === 'set_official_whatsapp_approval') {
+    if (organization.plan_code !== 'tendi_business' && body?.approved === true) {
+      return fail(409, 'Selecione o plano Business antes de aprovar a API oficial.');
+    }
+    const approved = body?.approved === true;
+    const billingVerified = approved && body?.billingVerified === true;
+    if (approved && !billingVerified) return fail(409, 'Confirme primeiro a responsabilidade financeira do cliente na Meta.');
+    const { error } = await auth.admin.from('whatsapp_official_approvals').upsert({
+      organization_id: organization.id,
+      approved,
+      billing_verified: billingVerified,
+      approved_by: approved ? auth.userId : null,
+      approved_at: approved ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'organization_id' });
+    if (error) return fail(500, 'Não foi possível atualizar a aprovação. Confira se a migration Business foi aplicada.');
+    return NextResponse.json({ approved, billingVerified });
+  }
+
   if (action === 'prepare_official_whatsapp') {
     // Reserva a conexão do WhatsApp do workspace com o código de sessão estável, para o
     // TendiDesk aceitar as mensagens dessa sessão assim que o número oficial for ligado no
