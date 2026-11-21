@@ -20,6 +20,12 @@ type Organization = {
 type Plan = { code: string; name: string };
 type Member = { user_id: string; role: string; status: string; name: string; email: string };
 type Grant = SupportGrant & { redeemed_by: string | null };
+type BusinessOnboarding = { status:string; proposed_monthly_cents:number; setup_fee_cents:number; number_source:string; payment_verified_at:string|null };
+type BusinessBilling = { status:string; plan_code:string|null; last_event_type:string|null; provider_subscription_id:string|null };
+const businessStages = [
+ ['requested','Solicitado'],['proposal_approved','Proposta aprovada'],['awaiting_payment','Aguardando pagamento'],
+ ['paid_awaiting_setup','Pago / Aguardando implantação'],['awaiting_meta_validation','Aguardando validação Meta'],['active','Ativo'],
+] as const;
 type WhatsappRow = { status: string; settings: Record<string, unknown> | null; provider_account_id: string | null };
 
 const day = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -49,6 +55,11 @@ export default function OrganizationAdminPage() {
   const [copied, setCopied] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [officialApproval, setOfficialApproval] = useState(false);
+  const [businessOnboarding,setBusinessOnboarding] = useState<BusinessOnboarding|null>(null);
+  const [businessBilling,setBusinessBilling] = useState<BusinessBilling|null>(null);
+  const [businessMonthly,setBusinessMonthly] = useState('489');
+  const [businessSetup,setBusinessSetup] = useState('499');
+  const [businessNumberSource,setBusinessNumberSource] = useState<'customer'|'tendidesk'>('customer');
   const [billingVerified, setBillingVerified] = useState(false);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +76,7 @@ export default function OrganizationAdminPage() {
     if (!admin) { router.replace('/inbox'); return; }
     setUserId(auth.user.id);
 
-    const [orgRes, planRes, memberRes, channelRes, agentRes, grantRes, approvalRes] = await Promise.all([
+    const [orgRes, planRes, memberRes, channelRes, agentRes, grantRes, approvalRes, onboardingRes] = await Promise.all([
       supabase.from('organizations').select(`id,name,slug,status,plan_code,created_at,trial_ends_at,${COMPLIMENTARY_COLUMNS}`).eq('id', organizationId).maybeSingle(),
       supabase.from('subscription_plans').select('code,name').order('display_order'),
       supabase.from('organization_memberships').select('user_id,role,status').eq('organization_id', organizationId),
@@ -73,6 +84,7 @@ export default function OrganizationAdminPage() {
       supabase.from('ai_agents').select('is_enabled').eq('organization_id', organizationId).maybeSingle(),
       supabase.from('support_access_grants').select(`${SUPPORT_GRANT_COLUMNS},redeemed_by`).eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(8),
       fetch(`/api/admin/organizations/${organizationId}/official-approval`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`/api/admin/organizations/${organizationId}/business-onboarding`,{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null),
     ]);
     if (!orgRes.data) { setOrganization(null); setLoading(false); return; }
     const org = orgRes.data as Organization;
@@ -82,6 +94,8 @@ export default function OrganizationAdminPage() {
     setWhatsappRow((channelRes.data as WhatsappRow | null) ?? null);
     setAiEnabled(Boolean((agentRes.data as { is_enabled?: boolean } | null)?.is_enabled));
     setOfficialApproval(approvalRes?.approved === true);
+    setBusinessOnboarding(onboardingRes?.onboarding??null);
+    setBusinessBilling(onboardingRes?.billing??null);
     setBillingVerified(approvalRes?.billingVerified === true);
     setGrants(grantRes.error ? [] : ((grantRes.data ?? []) as Grant[]));
 
@@ -113,6 +127,22 @@ export default function OrganizationAdminPage() {
     if (!response?.ok) { setMessage({ ok: false, text: typeof payload.error === 'string' ? payload.error : 'Não foi possível concluir.' }); return false; }
     setMessage({ ok: true, text: success });
     return true;
+  }
+
+  async function changeBusiness(action:'create'|'advance',toStatus?:string){
+    setBusy('business');setMessage(null);
+    const body=action==='create'?{
+      action,monthlyCents:Math.round(Number(businessMonthly)*100),
+      setupCents:Math.round(Number(businessSetup)*100),numberSource:businessNumberSource,
+    }:{action,toStatus};
+    const response=await fetch(`/api/admin/organizations/${organizationId}/business-onboarding`,{
+      method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),
+    }).catch(()=>null);
+    const payload=response?await response.json().catch(()=>({})):{};
+    setBusy('');
+    if(!response?.ok){setMessage({ok:false,text:typeof payload.error==='string'?payload.error:'Falha na contratação Business.'});return;}
+    setMessage({ok:true,text:'Etapa Business atualizada. Nenhuma cobrança foi criada automaticamente.'});
+    await load();
   }
 
   async function redeem(event: React.FormEvent) {
@@ -217,6 +247,30 @@ export default function OrganizationAdminPage() {
             )}
           </section>
         )}
+
+        <section className={card}>
+          <h2 className="td-title text-base">Implantação assistida — TendiDesk Business</h2>
+          <p className="mt-2 text-xs leading-5 text-slate-600">A proposta e a cobrança são separadas. A mensalidade deve ser criada e vinculada no Pagar.me; a etapa paga exige confirmação de pagamento recebida por webhook. A ativação Meta exige aprovação financeira independente.</p>
+          {!businessOnboarding ? <div className="mt-4 flex flex-wrap items-end gap-3">
+            <label className="text-xs">Mensalidade proposta (R$)<input className={field} inputMode="decimal" value={businessMonthly} onChange={e=>setBusinessMonthly(e.target.value)}/></label>
+            <label className="text-xs">Implantação (R$)<input className={field} inputMode="decimal" value={businessSetup} onChange={e=>setBusinessSetup(e.target.value)}/></label>
+            <label className="text-xs">Número<select className={field} value={businessNumberSource} onChange={e=>setBusinessNumberSource(e.target.value as 'customer'|'tendidesk')}><option value="customer">Do cliente</option><option value="tendidesk">Fornecido pelo TendiDesk</option></select></label>
+            <button type="button" className={primary} disabled={busy==='business'} onClick={()=>void changeBusiness('create')}>Abrir solicitação Business</button>
+          </div> : <div className="mt-4 space-y-3">
+            <div className="flex flex-wrap gap-2">{businessStages.map(([key,label],i)=>{
+              const index=businessStages.findIndex(([status])=>status===businessOnboarding.status);
+              return <span key={key} className={`rounded-full px-3 py-1 text-xs ${i===index?'bg-teal-100 font-semibold text-teal-800':i<index?'bg-slate-100 text-slate-600':'border border-slate-200 text-slate-400'}`}>{label}</span>;
+            })}</div>
+            <p className="text-xs text-slate-600">Proposta: R$ {(businessOnboarding.proposed_monthly_cents/100).toFixed(2)} por mês + R$ {(businessOnboarding.setup_fee_cents/100).toFixed(2)} de implantação. Número: {businessOnboarding.number_source==='customer'?'do cliente':'fornecido pelo TendiDesk'}.</p>
+            {businessOnboarding.status==='awaiting_payment'&&<p className="text-xs text-amber-800">Crie/vincule o plano Business no Pagar.me e aguarde o evento de pagamento confirmado. Não marque como pago apenas pela criação da assinatura.</p>}
+            <p className="text-xs text-slate-600">Pagar.me: {businessBilling?.plan_code==='tendi_business'?`${businessBilling.status} · ${businessBilling.last_event_type??'sem evento'}`:'assinatura Business ainda não vinculada'}.</p>
+            {businessOnboarding.status!=='active'&&<button type="button" className={secondary} disabled={busy==='business'} onClick={()=>{
+              const index=businessStages.findIndex(([key])=>key===businessOnboarding.status);
+              const next=businessStages[index+1];
+              if(next&&window.confirm(`Avançar para "${next[1]}"? A cobrança não será criada por esta ação.`))void changeBusiness('advance',next[0]);
+            }}>Avançar para próxima etapa</button>}
+          </div>}
+        </section>
 
         <PlanControls organization={organization} plans={plans} onChanged={async notice => { setMessage(notice); await load(); }} />
 
