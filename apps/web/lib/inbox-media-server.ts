@@ -41,7 +41,7 @@ export async function loadMessageMedia(userDb: Db, storageDb: Db, messageId: str
 
   if (source.storagePath) {
     // O arquivo precisa estar na pasta da empresa dona da mensagem.
-    if (!source.storagePath.startsWith(`${data.organization_id}/`) || source.storagePath.includes('..')) {
+    if (!source.storagePath.startsWith(`${data.organization_id}/${data.conversation_id}/`) || source.storagePath.includes('..') || source.storagePath.includes('\\\\')) {
       return { status: 422, error: 'Arquivo fora da pasta desta empresa.' };
     }
     const download = await storageDb.storage.from(MEDIA_BUCKET).download(source.storagePath);
