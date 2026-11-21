@@ -86,7 +86,7 @@ export default function SettingsPage() {
         <div className="mb-5 flex items-center gap-3"><span className="td-icon"><Building2 size={20} /></span><div><h2 className="td-title">Dados da empresa</h2><p className="text-xs text-slate-400">Nome que aparece para a equipe e no TendiDesk</p></div></div>
         <label className="mb-4 block"><span className="td-label">Nome da empresa</span>
           <input value={name} disabled={!canEditCompany} onChange={e => setName(e.target.value)} className="td-input" />
-          {!canEditCompany && <span className="mt-1 block text-[11px] text-slate-400">Só o dono ou um administrador altera o nome.</span>}
+          {!canEditCompany && <span className="mt-1 block text-[11px] text-slate-400">Só o admin principal ou um administrador altera o nome.</span>}
         </label>
         <div className="mb-4 grid grid-cols-2 gap-3">
           <div className="td-subtle p-3"><p className="td-eyebrow">Plano</p><p className="mt-1 text-sm font-semibold text-slate-800">{planName ?? '—'}</p></div>
@@ -111,7 +111,7 @@ export default function SettingsPage() {
       <section className={`${card} xl:col-span-2`}>
         <div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 shrink-0 text-tendi-teal" size={20} /><div>
           <h2 className="td-title">Segurança e permissões</h2>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Cada pessoa da equipe tem seu próprio login e um papel que define o que ela vê: <b>Dono</b> e <b>Administrador</b> cuidam de tudo, inclusive assinatura e Agente de IA; <b>Supervisor</b> gerencia conexões, equipe e relatórios; <b>Atendente</b> fica com Inbox, Agenda, CRM e Contatos. Essas regras também são aplicadas no banco de dados, não só na tela.</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Cada pessoa da equipe tem seu próprio login e um papel que define o que ela vê: <b>Admin principal</b> e <b>Administrador</b> cuidam de tudo, inclusive assinatura e Agente de IA; <b>Supervisor</b> gerencia conexões, equipe e relatórios; <b>Atendente</b> fica com Inbox, Agenda, CRM e Contatos. Essas regras também são aplicadas no banco de dados, não só na tela.</p>
           <p className="mt-2 text-xs text-slate-500">Seu papel: <b className="text-tendi-indigo">{role ? ROLE_INFO[role].label : superAdmin ? 'Super Admin' : '—'}</b>{canAccess(role, 'equipe') && <Link href={withOrganization('/equipe', org?.id)} className="ml-3 inline-flex items-center gap-1 font-semibold text-tendi-teal hover:underline">Gerenciar equipe<ArrowRight size={12} /></Link>}</p>
         </div></div>
       </section>
