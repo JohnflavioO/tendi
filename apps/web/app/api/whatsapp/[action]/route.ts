@@ -392,7 +392,7 @@ export async function POST(request: Request, { params }: Context) {
       );
       const providerType = readConnectionType(providerResponse);
       const providerStatus = extractDapiConnectionStatus(providerResponse);
-      if (providerType !== 'official' || !providerStatus || normalizeDapiStatus(providerStatus) === 'connected') {
+      if (providerType !== 'official' || !providerStatus || normalizeDapiStatus(providerStatus) !== 'disconnected') {
         return NextResponse.json({ error: 'Desconecte a API oficial antes de mudar para QR Code.' }, { status: 409 });
       }
       await dapiRequest(`/sessions/${encodeURIComponent(connection.provider_account_id)}/switch-to-qr`, { method: 'POST' });
