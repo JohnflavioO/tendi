@@ -25,7 +25,7 @@ export function Pricing({ plans, trialLabel }: { plans: PublicPlan[]; trialLabel
       </div>
     </div>}
 
-    <div className={`mx-auto grid max-w-4xl items-stretch gap-5 md:grid-cols-2 ${hasAnnual ? 'mt-8' : 'mt-12'}`}>
+    <div className={`mx-auto grid max-w-6xl items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3 ${hasAnnual ? 'mt-8' : 'mt-12'}`}>
       {plans.map((plan, index) => {
         const copy = planCopy[plan.code] ?? fallbackCopy;
         const offer = offers[index];
@@ -56,6 +56,29 @@ export function Pricing({ plans, trialLabel }: { plans: PublicPlan[]; trialLabel
           </div>
         </article>;
       })}
+      <article className="relative flex flex-col overflow-hidden rounded-3xl border border-[#004751]/30 bg-white shadow-sm">
+        <div className="flex flex-1 flex-col p-7 md:p-8">
+          <p className="text-xs font-bold uppercase tracking-[.16em] text-[#CB0A9F]">Para empresas que precisam da API oficial</p>
+          <h3 className="mt-3 text-2xl font-extrabold text-[#25275B]">TendiDesk Business</h3>
+          <p className="mt-3 min-h-12 text-sm leading-6 text-slate-600">Conexão oficial do WhatsApp pela Meta, com orientação da equipe TendiDesk para configurar sua conta empresarial.</p>
+          <div className="mt-6"><p className="text-2xl font-extrabold text-[#25275B]">Sob consulta</p>
+            <p className="mt-1 text-sm text-slate-500">Contratação e ativação acompanhadas pelo atendimento.</p>
+          </div>
+          <div className="mt-5 rounded-2xl bg-[#F7F8FC] px-5 py-4">
+            <p className="text-sm font-bold text-[#25275B]">Sua conta empresarial, seu faturamento</p>
+            <p className="mt-0.5 text-xs leading-5 text-slate-500">Tarifas de mensagens da Meta, quando aplicáveis, são cobradas separadamente. A equipe verifica a configuração financeira antes de ativar a conexão.</p>
+          </div>
+          <div className="mt-6 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">O que está incluído</p>
+            {['Conexão com a API oficial do WhatsApp da Meta', 'Orientação para configuração da conta empresarial', 'Inbox compartilhado e CRM', 'Automação e IA conforme proposta comercial', 'Suporte assistido para ativação'].map(feature => <div key={feature} className="flex items-start gap-3 text-sm text-slate-700"><Check size={17} className="mt-0.5 shrink-0 text-emerald-600" />{feature}</div>)}
+          </div>
+          <a href="mailto:suporte@tendidesk.com.br?subject=Interesse%20no%20TendiDesk%20Business%20-%20WhatsApp%20Oficial"
+            className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#004751] px-5 text-sm font-bold text-[#004751] transition hover:bg-[#004751]/5">
+            Falar com o atendimento<ArrowRight size={16} />
+          </a>
+          <p className="mt-3 text-xs leading-5 text-slate-500">Disponibilidade sujeita à análise da conta Meta e à contratação do plano.</p>
+        </div>
+      </article>
     </div>
 
     <div className="mx-auto mt-7 grid max-w-4xl gap-3 sm:grid-cols-2">
