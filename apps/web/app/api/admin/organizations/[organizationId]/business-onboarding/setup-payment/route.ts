@@ -1,3 +1,4 @@
+import { isInternalOrganization } from '@/lib/company-control';
 import { NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/admin-auth';
 import { createPagarmeClient } from '@/lib/pagarme';
@@ -12,6 +13,9 @@ const fail=(code:number,error:string)=>NextResponse.json({error},{status:code});
 export async function POST(request:Request,{params}:Context){
  const auth=await requireSuperAdmin();if(!auth.ok)return auth.response;
  const id=params.organizationId;if(!UUID.test(id))return fail(400,'Workspace inválido.');
+ const orgCheck=await auth.admin.from('organizations').select('slug').eq('id',id).maybeSingle();
+ if(orgCheck.error||!orgCheck.data)return fail(404,'Empresa não encontrada.');
+ if(isInternalOrganization(orgCheck.data))return fail(403,'O workspace interno não pode gerar cobrança de implantação.');
  const body=await request.json().catch(()=>null) as {action?:string;orderId?:string;reason?:string}|null;
  const current=await auth.admin.from('business_onboardings').select('*').eq('organization_id',id).maybeSingle();
  if(current.error||!current.data)return fail(404,'Solicitação Business não encontrada.');
