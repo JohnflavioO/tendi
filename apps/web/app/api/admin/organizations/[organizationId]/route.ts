@@ -133,6 +133,12 @@ export async function PATCH(request: Request, { params }: Context) {
   }
 
   if (action === 'set_official_whatsapp_approval') {
+    if (body?.approved === true) {
+      const onboarding = await auth.admin.from('business_onboardings').select('status,payment_verified_at').eq('organization_id', organization.id).maybeSingle();
+      if (onboarding.error || !onboarding.data?.payment_verified_at || !['awaiting_meta_validation','active'].includes(onboarding.data.status)) {
+        return fail(409, 'Conclua o pagamento e avance a implantação Business até a validação Meta antes de aprovar.');
+      }
+    }
     if (organization.plan_code !== 'tendi_business' && body?.approved === true) {
       return fail(409, 'Selecione o plano Business antes de aprovar a API oficial.');
     }
