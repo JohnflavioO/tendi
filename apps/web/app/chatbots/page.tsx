@@ -215,6 +215,21 @@ export default function ChatbotsPage(){
   catch(e){setError(e instanceof Error?e.message:'Não foi possível desconectar.');}
   finally{setBusy(false);}
  }
+ async function switchToQr(){
+  if(!window.confirm('Trocar a conexão oficial desconectada por WhatsApp via QR Code? O número continuará na Meta, mas deixará de ser a conexão deste workspace. O histórico será preservado.'))return;
+  setBusy(true);setError('');setNotice('');setQr(null);setQrPolling(false);
+  try{
+   await requestApi('switch-to-qr','POST');
+   await load();
+   const payload=await requestApi('qr');
+   applyQrPayload(payload);
+   qrStartedAt.current=Date.now();
+   setQrTimedOut(false);
+   setQrPolling(true);
+   setNotice('Modo QR Code ativado. Escaneie com o outro número do WhatsApp.');
+  }catch(e){setError(e instanceof Error?e.message:'Não foi possível trocar para QR Code.');await load();}
+  finally{setBusy(false);}
+ }
  async function refreshStatus(){
   setBusy(true);setError('');
   try{await requestApi('status');await load();setNotice('Status atualizado.');}
