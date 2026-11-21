@@ -14,6 +14,22 @@ export async function GET(request: Request) {
   if (tenantError || !tenantMembership || !['owner', 'admin', 'manager'].includes(tenantMembership.role)) {
     return NextResponse.json({ error: 'Acesso restrito aos gestores desta empresa.' }, { status: 403 });
   }
+  // Supervisors see only sellers who share a team with them.
+  // Fail closed if no team is assigned; never fall back to org-wide access.
+  let scopedUserIds: string[] | null = null;
+  if (tenantMembership.role === 'manager') {
+    const { data: myTeams, error: myTeamsError } = await admin.from('team_members')
+      .select('team_id').eq('organization_id', organizationId).eq('user_id', actor.userId);
+    if (myTeamsError) return NextResponse.json({ error: 'Não foi possível validar os setores.' }, { status: 503 });
+    const teamIds = (myTeams ?? []).map(row => row.team_id);
+    if (!teamIds.length) scopedUserIds = [actor.userId];
+    else {
+      const { data: teamLinks, error: linksError } = await admin.from('team_members')
+        .select('user_id').eq('organization_id', organizationId).in('team_id', teamIds);
+      if (linksError) return NextResponse.json({ error: 'Não foi possível validar os membros dos setores.' }, { status: 503 });
+      scopedUserIds = [...new Set([actor.userId, ...(teamLinks ?? []).map(row => row.user_id)])];
+    }
+  }
   // Only active, authorized managers are allowed. No cross-tenant access.
   const [{ data: settings, error: settingsError }, { data: members, error: membersError }, { data: contacts, error: contactsError }, { data: transfers, error: transfersError }] = await Promise.all([
     admin.from('sales_portfolio_settings').select('private_mode_enabled,authorized_transfers').eq('organization_id', organizationId).maybeSingle(),
@@ -24,14 +40,16 @@ export async function GET(request: Request) {
   if (settingsError || membersError || contactsError || transfersError) {
     return NextResponse.json({ error: 'Não foi possível carregar as carteiras. Verifique as migrações.' }, { status: 503 });
   }
-  const activeMembers = members ?? [];
+  const activeMembers = (members ?? []).filter(m => scopedUserIds === null || scopedUserIds.includes(m.user_id));
   const ids = activeMembers.map(member => member.user_id);
   const { data: profiles, error: profilesError } = ids.length
     ? await admin.from('profiles').select('id,full_name,email').in('id', ids)
     : { data: [], error: null };
   if (profilesError) return NextResponse.json({ error: 'Não foi possível consultar a equipe.' }, { status: 503 });
   const names = new Map((profiles ?? []).map(p => [p.id, p.full_name || p.email || 'Usuário']));
-  const visibleContacts = contacts ?? [];
+  const visibleContacts = (contacts ?? []).filter(c => scopedUserIds === null || (c.owner_id !== null && scopedUserIds.includes(c.owner_id)));
+  const visibleContactIds = new Set(visibleContacts.map(c => c.id));
+  const visibleTransfers = (transfers ?? []).filter(t => scopedUserIds === null || (visibleContactIds.has(t.contact_id) && scopedUserIds.includes(t.to_user_id) && (t.from_user_id === null || scopedUserIds.includes(t.from_user_id))));
   const counts = activeMembers.map(m => ({
     userId: m.user_id, name: names.get(m.user_id) || 'Usuário', role: m.role,
     count: visibleContacts.filter(c => c.owner_id === m.user_id).length,
@@ -44,6 +62,6 @@ export async function GET(request: Request) {
     contacts: visibleContacts,
     contactsCapped: visibleContacts.length === 500,
     members: counts,
-    transfers: transfers ?? [],
+    transfers: visibleTransfers,
   });
 }
