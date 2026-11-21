@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, MailPlus, ShieldCheck, Trash2, UserRound, UsersRound } from 'lucide-react';
+import { Loader2, MailPlus, ShieldCheck, Trash2, KeyRound, UserRound, UsersRound } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { WorkspaceShell } from '@/components/workspace-shell';
 import { ROLE_INFO, ROLES, type Role } from '@/lib/team';
@@ -85,6 +85,19 @@ export default function TeamPage() {
     if (response?.ok) await load(organizationId);
   }
 
+  async function resetPassword(member: Member) {
+    if (!window.confirm(`Enviar um link de redefinição de senha para ${member.email}?`)) return;
+    setBusy(member.userId); setMessage(null);
+    const response = await fetch(`/api/team/members/${member.userId}/reset-password`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ organizationId }),
+    }).catch(() => null);
+    const json = await response?.json().catch(() => null);
+    setBusy('');
+    setMessage(response?.ok
+      ? { ok: true, text: json?.message ?? 'E-mail enviado.' }
+      : { ok: false, text: json?.error ?? 'Não foi possível enviar o e-mail.' });
+  }
+
   async function remove(member: Member) {
     const pending = member.status === 'invited';
     if (!window.confirm(pending ? `Cancelar o convite de ${member.email}?` : `Remover ${member.name} da equipe? As conversas atribuídas a essa pessoa voltam para a fila.`)) return;
@@ -119,6 +132,7 @@ export default function TeamPage() {
           {member.canManage && data
             ? <select aria-label={`Papel de ${member.name}`} value={member.role} disabled={busy !== ''} onChange={e => void changeRole(member, e.target.value as Role)} className="td-input h-8 w-auto rounded-lg text-xs font-semibold">{data.assignableRoles.map(role => <option key={role} value={role}>{ROLE_INFO[role].label}</option>)}</select>
             : <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${ROLE_TONE[member.role]}`}>{ROLE_INFO[member.role].label}</span>}
+          {member.canManage && member.status === 'active' && <button type="button" onClick={() => void resetPassword(member)} disabled={busy !== ''} title="Enviar redefinição de senha" className="rounded-lg p-2 text-tendi-indigo hover:bg-tendi-haze disabled:opacity-50"><KeyRound size={15} /></button>}
           {member.canManage && <button type="button" onClick={() => void remove(member)} disabled={busy !== ''} title={member.status === 'invited' ? 'Cancelar convite' : 'Remover da equipe'} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50">{busy === member.userId ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}</button>}
         </li>)}</ul>
       </section>
