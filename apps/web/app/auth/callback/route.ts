@@ -58,5 +58,5 @@ export async function GET(request: Request) {
   }
 
   // Código inválido, expirado ou aberto em outro navegador: avisa na tela de login.
-  return NextResponse.redirect(new URL(code ? '/login?erro=link' : '/login', origin));
+  return NextResponse.redirect(new URL(code ? '/login?erro=link' : '/auth/complete', origin));
 }
