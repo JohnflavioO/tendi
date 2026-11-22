@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Bell, CheckCheck, X } from 'lucide-react';
+import { EnablePushButton } from '@/components/enable-push-button';
 import { createClient } from '@/lib/supabase/client';
 import { withOrganization } from '@/lib/current-organization';
 
@@ -80,6 +81,7 @@ export function NotificationBell({ organizationId }: { organizationId: string })
             <button type="button" aria-label="Fechar" onClick={() => setOpen(false)}><X size={17} /></button>
           </div>
         </div>
+        <EnablePushButton />
         <div className="max-h-[380px] overflow-y-auto">
           {!available ? <p className="p-5 text-sm text-slate-500">Notificações indisponíveis. A configuração do banco pode estar pendente.</p>
             : items.length === 0 ? <p className="p-5 text-sm text-slate-500">Nenhuma notificação por enquanto.</p>
