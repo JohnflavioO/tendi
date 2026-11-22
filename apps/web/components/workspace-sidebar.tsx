@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ChevronsUpDown, X, type LucideIcon } from 'lucide-react';
 import { SidebarFooter } from '@/components/sidebar-footer';
+import { InstallAppGuide } from '@/components/install-app-guide';
 import type { Area, Role } from '@/lib/team';
 import type { PlanBadge } from '@/lib/complimentary';
 
@@ -76,6 +77,7 @@ export function WorkspaceSidebar({ homeHref, organizationId, organizationName, p
       </Link>)}
     </nav>
 
+    <InstallAppGuide />
     <SidebarFooter organizationId={organizationId} role={role} superAdmin={superAdmin} onSignOut={onSignOut} />
   </aside>;
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { createPortal } from 'react-dom';
 import { Bell, CheckCheck, X } from 'lucide-react';
 import { EnablePushButton } from '@/components/enable-push-button';
 import { createClient } from '@/lib/supabase/client';
@@ -71,9 +72,9 @@ export function NotificationBell({ organizationId }: { organizationId: string })
       <Bell size={19} />
       {unread > 0 && <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-tendi-magenta px-1 text-center text-[10px] font-bold leading-[18px] text-white">{unread > 99 ? '99+' : unread}</span>}
     </button>
-    {open && <>
+    {open && typeof document !== 'undefined' && createPortal(<>
       <button type="button" className="fixed inset-0 z-20 cursor-default" aria-label="Fechar notificações" onClick={() => setOpen(false)} />
-      <section className="absolute right-0 top-12 z-30 w-[min(360px,calc(100vw-32px))] overflow-hidden rounded-2xl border border-tendi-line bg-white shadow-pop" aria-label="Central de notificações">
+      <section className="fixed inset-x-4 top-[calc(env(safe-area-inset-top)+72px)] z-30 mx-auto max-h-[calc(100dvh-120px)] w-auto max-w-[420px] overflow-hidden rounded-2xl border border-tendi-line bg-white shadow-pop sm:inset-x-auto sm:right-4 sm:mx-0 sm:w-[380px]" aria-label="Central de notificações">
         <div className="flex items-center justify-between border-b border-tendi-line px-4 py-3">
           <h2 className="text-sm font-semibold text-tendi-navy">Notificações</h2>
           <div className="flex items-center gap-2">
@@ -82,7 +83,7 @@ export function NotificationBell({ organizationId }: { organizationId: string })
           </div>
         </div>
         <EnablePushButton organizationId={organizationId} />
-        <div className="max-h-[380px] overflow-y-auto">
+        <div className="max-h-[min(380px,45dvh)] overflow-y-auto overscroll-contain">
           {!available ? <p className="p-5 text-sm text-slate-500">Notificações indisponíveis. A configuração do banco pode estar pendente.</p>
             : items.length === 0 ? <p className="p-5 text-sm text-slate-500">Nenhuma notificação por enquanto.</p>
             : items.map(item => <div key={item.id} className={`border-b border-tendi-line/60 px-4 py-3 last:border-0 ${item.read_at ? '' : 'bg-tendi-haze'}`}>
@@ -94,6 +95,6 @@ export function NotificationBell({ organizationId }: { organizationId: string })
             </div>)}
         </div>
       </section>
-    </>}
+    </>, document.body)}
   </div>;
 }
