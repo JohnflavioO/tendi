@@ -83,7 +83,7 @@ export default function InboxPage() {
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showDetails, setShowDetails] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
   const [conversationMenuOpen, setConversationMenuOpen] = useState(false);
   const [tabVisible, setTabVisible] = useState(true);
   const [viewerImageId, setViewerImageId] = useState('');
@@ -185,7 +185,7 @@ export default function InboxPage() {
     const wantedConversation = params.get('conversation');
     const wantedContact = params.get('contact');
     const fromLink = !selectedRef.current ? (rows.find(row => row.id === wantedConversation) ?? rows.find(row => row.contact_id === wantedContact)) : undefined;
-    const nextSelected = selectedRef.current && rows.some(row => row.id === selectedRef.current) ? selectedRef.current : (fromLink?.id ?? rows[0]?.id ?? '');
+    const nextSelected = selectedRef.current && rows.some(row => row.id === selectedRef.current) ? selectedRef.current : (fromLink?.id ?? (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? '' : rows[0]?.id ?? ''));
     selectedRef.current = nextSelected;
     setSelectedId(nextSelected);
     const ids = rows.map(row => row.id);
