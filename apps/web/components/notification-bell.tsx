@@ -81,7 +81,7 @@ export function NotificationBell({ organizationId }: { organizationId: string })
             <button type="button" aria-label="Fechar" onClick={() => setOpen(false)}><X size={17} /></button>
           </div>
         </div>
-        <EnablePushButton />
+        <EnablePushButton organizationId={organizationId} />
         <div className="max-h-[380px] overflow-y-auto">
           {!available ? <p className="p-5 text-sm text-slate-500">Notificações indisponíveis. A configuração do banco pode estar pendente.</p>
             : items.length === 0 ? <p className="p-5 text-sm text-slate-500">Nenhuma notificação por enquanto.</p>
