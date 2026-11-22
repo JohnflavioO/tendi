@@ -37,7 +37,8 @@ export async function POST(request: Request) {
     .select('is_active')
     .eq('id', auth.user.id)
     .maybeSingle();
-  if (profileError || !profile?.is_active) return bad('Usuário inativo.', 403);
+  const activeProfile = profile as { is_active: boolean } | null;
+  if (profileError || !activeProfile?.is_active) return bad('Usuário inativo.', 403);
 
   const admin = createAdminClient();
   if (!admin) return bad('Serviço de notificações indisponível.', 503);
