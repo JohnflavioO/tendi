@@ -86,30 +86,30 @@ export function ConversationList({ conversations, userId, selectedId, onSelect, 
   const channelCount = (key: ChannelKey) => conversations.filter(item => item.channel === key).length;
 
   return <>
-    <header className="px-4 pb-3 pt-5">
+    <header className="px-3 pb-3 pt-4 sm:px-4 sm:pt-5">
       <div className="flex items-center justify-between px-1">
-        <div><p className="text-[17px] font-semibold tracking-tight text-tendi-navy">Atendimento</p><p className="mt-0.5 text-xs text-slate-500">{conversations.length} conversas{unreadTotal > 0 && <> · <b className="font-semibold text-tendi-magenta">{unreadTotal} não lidas</b></>}</p></div>
+        <div><p className="text-xl font-bold tracking-tight text-tendi-navy">Atendimento</p><p className="mt-0.5 text-xs text-slate-500">{conversations.length} conversas{unreadTotal > 0 && <> · <b className="font-semibold text-tendi-magenta">{unreadTotal} não lidas</b></>}</p></div>
         <button onClick={onRefresh} className="td-icon-btn border border-tendi-line bg-white" title="Atualizar" aria-label="Atualizar conversas"><RefreshCw size={15} /></button>
       </div>
 
-      <div role="tablist" aria-label="Filas de atendimento" className="mt-4 grid grid-cols-4 gap-1 rounded-xl bg-tendi-haze p-1 ring-1 ring-inset ring-tendi-line/80">
+      <div role="tablist" aria-label="Filas de atendimento" className="mt-4 grid grid-cols-4 gap-1 rounded-2xl bg-tendi-haze p-1 ring-1 ring-inset ring-tendi-line/80">
         {TABS.map(item => {
           const active = activeTab === item.key;
           const count = counts[item.key];
-          return <button key={item.key} type="button" role="tab" aria-selected={active} title={item.hint} onClick={() => setTab(item.key)} className={active ? 'td-tab td-tab-active justify-center px-1 text-[12px]' : 'td-tab justify-center px-1 text-[12px]'}>
+          return <button key={item.key} type="button" role="tab" aria-selected={active} title={item.hint} onClick={() => setTab(item.key)} className={active ? 'td-tab td-tab-active min-h-10 justify-center px-1 text-[12px]' : 'td-tab justify-center px-1 text-[12px]'}>
             {item.label}
             {item.key !== 'todas' && count > 0 && <span className={item.key === 'novos' ? 'min-w-[18px] rounded-full bg-tendi-magenta px-1.5 text-[10px] font-bold leading-[18px] text-white' : 'min-w-[18px] rounded-full bg-tendi-navy px-1.5 text-[10px] font-bold leading-[18px] text-white'}>{count}</span>}
           </button>;
         })}
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <label className="flex h-10 flex-1 items-center gap-2 rounded-xl border border-tendi-line bg-white px-3 transition hover:border-slate-300 focus-within:border-tendi-lilac focus-within:shadow-focus">
+      <div className="mt-3 flex min-w-0 items-center gap-2">
+        <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-tendi-line bg-white px-3 transition hover:border-slate-300 focus-within:border-tendi-lilac focus-within:shadow-focus">
           <Search size={15} className="shrink-0 text-slate-400" />
-          <input placeholder="Buscar nome ou telefone" value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-transparent text-[13px] outline-none placeholder:text-slate-400" />
+          <input placeholder="Buscar nome ou telefone" value={search} onChange={e => setSearch(e.target.value)} className="min-w-0 w-full bg-transparent text-base sm:text-[13px] outline-none placeholder:text-slate-400" />
           {search && <button type="button" onClick={() => setSearch('')} aria-label="Limpar busca" className="text-slate-400 hover:text-slate-600"><X size={14} /></button>}
         </label>
-        <button type="button" onClick={() => setShowFilters(open => !open)} aria-expanded={showFilters} aria-label="Filtros" title="Filtros" className={filtersOn ? 'relative flex size-10 items-center justify-center rounded-xl bg-tendi-indigo text-white shadow-card' : 'relative flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:text-tendi-indigo'}><SlidersHorizontal size={15} /></button>
+        <button type="button" onClick={() => setShowFilters(open => !open)} aria-expanded={showFilters} aria-label="Filtros" title="Filtros" className={filtersOn ? 'relative flex size-11 items-center justify-center rounded-xl bg-tendi-indigo text-white shadow-card' : 'relative flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:text-tendi-indigo'}><SlidersHorizontal size={15} /></button>
       </div>
       {(channelsInUse.length > 1 || channel) && <div role="group" aria-label="Filtrar por canal" className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5">
         <button type="button" onClick={() => setChannel('')} aria-pressed={!channel} className={!channel ? 'shrink-0 rounded-full bg-tendi-navy px-3 py-1 text-[11px] font-semibold text-white' : 'shrink-0 rounded-full border border-tendi-line bg-white px-3 py-1 text-[11px] font-medium text-slate-500 hover:text-tendi-navy'}>Todos</button>
@@ -128,7 +128,7 @@ export function ConversationList({ conversations, userId, selectedId, onSelect, 
         const tags = conversationTags({ aiMode: item.ai_mode, contactTags: item.contacts?.tags, handoffWaitMinutes });
         const unread = item.unread_count > 0;
         const owner = item.assigned_to && item.assigned_to !== userId ? memberNames[item.assigned_to] : null;
-        return <button key={item.id} type="button" onClick={() => onSelect(item.id)} className={selected ? 'relative mb-0.5 flex w-full gap-3 rounded-xl bg-tendi-mist px-3 py-3 text-left ring-1 ring-inset ring-tendi-indigo/[.06]' : 'relative mb-0.5 flex w-full gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-tendi-haze'}>
+        return <button key={item.id} type="button" onClick={() => onSelect(item.id)} className={selected ? 'relative mb-0.5 flex w-full gap-3 rounded-2xl bg-tendi-mist px-3 py-3.5 text-left ring-1 ring-inset ring-tendi-indigo/[.06]' : 'relative mb-0.5 flex w-full gap-3 rounded-2xl px-3 py-3.5 text-left transition hover:bg-tendi-haze'}>
           {selected && <span className="absolute inset-y-3 -left-2 w-[3px] rounded-r-full bg-tendi-magenta" />}
           <ContactAvatar contactId={item.contact_id} name={item.contacts?.full_name} className="size-11 rounded-full text-[12px]" channel={item.channel} />
           <div className="min-w-0 flex-1">

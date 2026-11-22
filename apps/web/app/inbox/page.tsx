@@ -316,7 +316,7 @@ export default function InboxPage() {
   return <div className="flex h-[100dvh] flex-col bg-white pt-[env(safe-area-inset-top)] lg:min-h-[620px]">
     {supportOrganization && <SupportBanner organizationId={supportOrganization.id} organizationName={supportOrganization.name} supportUntil={supportUntil}/>}
     {menuOpen && <div className="fixed inset-0 z-40 flex lg:hidden"><button aria-label="Fechar menu" className="absolute inset-0 bg-tendi-night/50 backdrop-blur-[2px]" onClick={()=>setMenuOpen(false)}/><div className="relative z-10 flex h-full animate-pop shadow-pop">{sidebar(true)}</div></div>}
-    <main className="flex min-h-0 flex-1 overflow-hidden bg-tendi-haze text-slate-800">
+    <main className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-tendi-haze text-slate-800">
     <div className="hidden lg:flex">{sidebar(false)}</div>
     <OnboardingTour organizationId={organizationId} role={role} superAdmin={superAdmin}/>
 
@@ -340,7 +340,7 @@ export default function InboxPage() {
 
     {showDetails&&selected&&<aside className="hidden w-[280px] shrink-0 overflow-y-auto border-l border-tendi-line/80 bg-white xl:block"><ContactPanel conversation={selected} userId={userId} onChanged={()=>{void loadInbox().catch(err=>setError(err.message));}} onClose={()=>setShowDetails(false)}/></aside>}
     {/* Celular e tablet: os detalhes do contato abrem por cima da conversa. */}
-    {showDetails&&selected&&<div className="fixed inset-0 z-40 flex justify-end xl:hidden"><button aria-label="Fechar detalhes" className="absolute inset-0 bg-tendi-night/50 backdrop-blur-[2px]" onClick={()=>setShowDetails(false)}/><aside className="relative z-10 h-full w-full max-w-[380px] overflow-y-auto overscroll-contain bg-white pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] shadow-pop"><ContactPanel conversation={selected} userId={userId} onChanged={()=>{void loadInbox().catch(err=>setError(err.message));}} onClose={()=>setShowDetails(false)}/></aside></div>}
+    {showDetails&&selected&&<div className="fixed inset-0 z-40 flex justify-end xl:hidden"><button aria-label="Fechar detalhes" className="absolute inset-0 bg-tendi-night/50 backdrop-blur-[2px]" onClick={()=>setShowDetails(false)}/><aside className="relative z-10 h-[100dvh] w-full max-w-[420px] overflow-x-hidden overflow-y-auto overscroll-contain rounded-l-2xl bg-white pb-[max(env(safe-area-inset-bottom),16px)] pt-[env(safe-area-inset-top)] shadow-pop"><ContactPanel conversation={selected} userId={userId} onChanged={()=>{void loadInbox().catch(err=>setError(err.message));}} onClose={()=>setShowDetails(false)}/></aside></div>}
     </main>
     {/* Celular/tablet: navegação inferior; some com uma conversa aberta no celular (a conversa usa a tela toda). */}
     <MobileTabBar pathname="/inbox" organizationId={organizationId} role={role} superAdmin={superAdmin} onMenu={()=>setMenuOpen(true)} badge={conversations.filter(item=>item.unread_count>0).length} className={selectedId ? 'hidden md:block' : ''}/>
