@@ -58,7 +58,7 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
   const [error, setError] = useState('');
   const nameRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { nameRef.current?.focus(); }, []);
+  useEffect(() => { if (window.matchMedia('(min-width: 640px)').matches) nameRef.current?.focus(); }, []);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && !saving) onClose(); };
     window.addEventListener('keydown', onKey);
@@ -171,17 +171,17 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
   const currentStatus = editing?.status ?? null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4 sm:items-center" onClick={event => { if (event.target === event.currentTarget && !saving) onClose(); }}>
-      <section role="dialog" aria-modal="true" aria-label={editing ? 'Editar agendamento' : 'Novo agendamento'} className="w-full max-w-lg rounded-2xl bg-white shadow-pop">
-        <header className="flex items-center justify-between border-b border-tendi-line px-5 py-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-slate-950/50 sm:items-center sm:p-4" onClick={event => { if (event.target === event.currentTarget && !saving) onClose(); }}>
+      <section role="dialog" aria-modal="true" aria-label={editing ? 'Editar agendamento' : 'Novo agendamento'} className="flex max-h-[100dvh] w-full max-w-lg min-w-0 flex-col overflow-hidden rounded-t-3xl bg-white pt-[env(safe-area-inset-top)] shadow-pop sm:max-h-[min(92dvh,900px)] sm:rounded-2xl sm:pt-0">
+        <header className="flex shrink-0 items-center justify-between border-b border-tendi-line px-4 py-4 sm:px-5">
           <div>
             <h2 className="td-title text-base">{editing ? 'Agendamento' : 'Novo agendamento'}</h2>
             {currentStatus && <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500"><span className={`size-2 rounded-full ${STATUS_INFO[currentStatus].dot}`} />{STATUS_INFO[currentStatus].label}{editing?.source === 'ai' ? ' · marcado pela IA' : ''}</p>}
           </div>
-          <button type="button" onClick={onClose} disabled={saving} aria-label="Fechar" className="rounded-lg p-2 text-slate-400 hover:bg-tendi-haze disabled:opacity-40"><X size={18} /></button>
+          <button type="button" onClick={onClose} disabled={saving} aria-label="Fechar" className="inline-flex size-11 items-center justify-center rounded-xl text-slate-500 hover:bg-tendi-haze disabled:opacity-40"><X size={18} /></button>
         </header>
 
-        <form onSubmit={event => { event.preventDefault(); void save(); }} className="space-y-4 px-5 py-4">
+        <form onSubmit={event => { event.preventDefault(); void save(); }} className="min-h-0 min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4 pb-[max(env(safe-area-inset-bottom),20px)] sm:px-5">
           {editing?.reminder_reply === 'reschedule' && editing.status === 'scheduled' && (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">O cliente respondeu ao lembrete pedindo para remarcar. Escolha um novo dia ou horário e salve, ou cancele o agendamento.</p>
           )}
@@ -191,7 +191,7 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
           {editing?.reminder_status === 'failed' && (
             <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-800">O lembrete automático não foi enviado{editing.reminder_error ? `: ${editing.reminder_error}` : '.'} Vale avisar o cliente pela conversa.</p>
           )}
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
             <div className="relative">
               <label htmlFor="appointment-name" className={labelClass}>{customerLabel}</label>
               <input id="appointment-name" ref={nameRef} value={name} onChange={event => { setName(event.target.value); setContactId(null); }} autoComplete="off" maxLength={120} placeholder="Nome" className={fieldClass} />
@@ -210,8 +210,8 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-[1fr_110px_120px]">
-            <div>
+          <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-[1fr_110px_120px]">
+            <div className="col-span-2 min-w-0 sm:col-span-1">
               <label htmlFor="appointment-service" className={labelClass}>Serviço</label>
               <select id="appointment-service" value={serviceId} onChange={event => pickService(event.target.value)} className={fieldClass}>
                 <option value="">{editing?.service_name && !editing.service_id ? editing.service_name : 'Outro'}</option>
@@ -228,8 +228,8 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-[1fr_150px_110px]">
-            <div>
+          <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-[1fr_150px_110px]">
+            <div className="col-span-2 min-w-0 sm:col-span-1">
               <label htmlFor="appointment-professional" className={labelClass}>{professionalLabel}</label>
               <select id="appointment-professional" value={professionalId} onChange={event => setProfessionalId(event.target.value)} className={fieldClass}>
                 {professionals.filter(item => item.is_active || item.id === professionalId).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
@@ -251,7 +251,7 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
               <div className="flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
                 {suggestions.map(slot => {
                   const label = formatMinutes(slot);
-                  return <button key={slot} type="button" onClick={() => setTime(label)} className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${time === label ? 'border-tendi-teal bg-tendi-teal text-white' : 'border-tendi-line text-slate-600 hover:border-tendi-teal hover:text-tendi-teal'}`}>{label}</button>;
+                  return <button key={slot} type="button" onClick={() => setTime(label)} className={`min-h-10 rounded-lg border px-3 py-2 text-xs font-semibold transition ${time === label ? 'border-tendi-teal bg-tendi-teal text-white' : 'border-tendi-line text-slate-600 hover:border-tendi-teal hover:text-tendi-teal'}`}>{label}</button>;
                 })}
               </div>
             ) : <p className="text-xs text-slate-400">{shifts.length ? 'Nenhum horário livre neste dia para essa duração.' : `Este ${professionalLabel.toLowerCase()} não atende neste dia da semana.`}</p>}
@@ -276,11 +276,11 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-3 pt-1">
+          <div className="flex flex-col gap-3 border-t border-tendi-line/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-400">{price.trim() && !Number.isNaN(parsePrice(price)) ? formatPrice(parsePrice(price)) : ''}</p>
-            <div className="flex gap-2">
-              <button type="button" onClick={onClose} disabled={saving} className="td-btn td-btn-secondary  disabled:opacity-40">Fechar</button>
-              <button type="submit" disabled={saving} className="td-btn td-btn-teal  disabled:opacity-40">{saving && <Loader2 size={15} className="animate-spin" />}{editing ? 'Salvar alterações' : 'Agendar'}</button>
+            <div className="flex w-full gap-2 sm:w-auto">
+              <button type="button" onClick={onClose} disabled={saving} className="td-btn td-btn-secondary min-h-11 flex-1 justify-center disabled:opacity-40 sm:flex-none">Fechar</button>
+              <button type="submit" disabled={saving} className="td-btn td-btn-teal min-h-11 flex-1 justify-center disabled:opacity-40 sm:flex-none">{saving && <Loader2 size={15} className="animate-spin" />}{editing ? 'Salvar alterações' : 'Agendar'}</button>
             </div>
           </div>
         </form>
