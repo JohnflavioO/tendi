@@ -68,22 +68,22 @@ export default function CrmPage() {
 
   return <WorkspaceShell title="CRM" description="Pipeline comercial e gestão das oportunidades" actions={<Badge tone="indigo" className="hidden !px-3 !py-1.5 sm:inline-flex"><KanbanSquare size={13} />Pipeline de vendas</Badge>}>
     {loading ? <div className="grid h-64 place-items-center"><Loader2 className="animate-spin text-tendi-indigo" /></div> : <>
-      <div className="mb-6 grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
+      <div className="mb-5 grid min-w-0 grid-cols-2 gap-2 sm:gap-3 md:gap-4 xl:grid-cols-4">
         <Metric label="Oportunidades" value={deals.length} icon={Target} hint="No funil de vendas" />
         <Metric label="Em aberto" value={open.length} icon={CircleDot} hint="Ainda em negociação" />
         <Metric label="Valor em aberto" value={formatBRL(sum(open))} icon={Wallet} tone="teal" accent hint="Soma das etapas abertas" />
         <Metric label="Ganho" value={formatBRL(sum(won))} icon={Trophy} tone="magenta" hint="Negócios fechados" />
       </div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <label className="relative block w-full sm:max-w-sm"><span className="sr-only">Buscar oportunidade</span><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por título, contato ou telefone" className="td-input pl-9" /></label>
+        <label className="relative block w-full sm:max-w-sm"><span className="sr-only">Buscar oportunidade</span><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por título, contato ou telefone" className="td-input min-w-0 pl-9 text-base sm:text-sm" /></label>
         <p className="hidden text-xs text-slate-400 md:block">Use “Mover para” em cada card para trocar de etapa.</p>
       </div>
       {error && <p role="alert" className="mb-4 rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-700 ring-1 ring-inset ring-rose-600/10">{error}</p>}
-      {!stages.length ? <div className="td-card"><EmptyState icon={KanbanSquare} title="Pipeline ainda não configurado" description="Configure as etapas do seu funil para começar a acompanhar oportunidades." /></div> : <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-4 md:mx-0 md:px-0">{stages.map(stage => {
+      {!stages.length ? <div className="td-card"><EmptyState icon={KanbanSquare} title="Pipeline ainda não configurado" description="Configure as etapas do seu funil para começar a acompanhar oportunidades." /></div> : <div className="grid min-w-0 grid-cols-1 gap-4 pb-4 md:-mx-4 md:flex md:snap-x md:overflow-x-auto md:px-4 lg:mx-0 lg:px-0">{stages.map(stage => {
         const inStage = deals.filter(d => d.stage_id === stage.id);
         const items = inStage.filter(d => !query || [d.title, d.contacts?.full_name ?? '', d.contacts?.phone_e164 ?? ''].some(v => v.toLowerCase().includes(query)));
         const total = sum(inStage);
-        return <section key={stage.id} className="flex w-[292px] shrink-0 snap-start flex-col rounded-card bg-[#EEEFF6] p-2 ring-1 ring-inset ring-tendi-line/70">
+        return <section key={stage.id} className="flex min-w-0 w-full shrink-0 snap-start flex-col rounded-card md:w-[292px] bg-[#EEEFF6] p-2 ring-1 ring-inset ring-tendi-line/70">
           <header className="relative mb-2 overflow-hidden rounded-[14px] bg-white px-3.5 pb-3 pt-3.5 shadow-card">
             <span className="absolute inset-x-0 top-0 h-[3px]" style={{ backgroundColor: stage.color }} />
             <div className="flex items-center justify-between gap-2">
@@ -98,8 +98,8 @@ export default function CrmPage() {
             {(d.contacts?.tags ?? []).length > 0 && <div className="mt-2 flex flex-wrap gap-1">{(d.contacts?.tags ?? []).slice(0, 4).map(tag => <span key={tag} className="td-badge td-badge-indigo !text-[10px]">{tag}</span>)}</div>}
             <div className="mt-3"><AmountEditor value={d.amount} onSave={amount => patch(d.id, { amount })} /></div>
             <div className="mt-3 flex items-center gap-2 border-t border-tendi-line/60 pt-3">
-              <select value={d.stage_id} onChange={e => void move(d.id, e.target.value)} aria-label="Mover para outra etapa" className="td-input h-8 min-w-0 flex-1 rounded-lg !text-[11.5px]"><option value={d.stage_id}>Mover para...</option>{stages.filter(s => s.id !== d.stage_id).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
-              {d.contact_id && <Link href={`/inbox?organization=${encodeURIComponent(org)}&contact=${d.contact_id}`} title="Abrir conversa" aria-label="Abrir conversa" className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-tendi-line text-tendi-teal transition hover:border-tendi-teal/30 hover:bg-tendi-tealsoft"><MessageCircle size={14} /></Link>}
+              <select value={d.stage_id} onChange={e => void move(d.id, e.target.value)} aria-label="Mover para outra etapa" className="td-input min-h-11 min-w-0 flex-1 rounded-lg !text-sm md:min-h-8 md:!text-[11.5px]"><option value={d.stage_id}>Mover para...</option>{stages.filter(s => s.id !== d.stage_id).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+              {d.contact_id && <Link href={`/inbox?organization=${encodeURIComponent(org)}&contact=${d.contact_id}`} title="Abrir conversa" aria-label="Abrir conversa" className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg md:size-8 border border-tendi-line text-tendi-teal transition hover:border-tendi-teal/30 hover:bg-tendi-tealsoft"><MessageCircle size={14} /></Link>}
             </div>
           </article>)}</div>
           {!items.length && <p className="rounded-[14px] border border-dashed border-slate-300/80 px-3 py-8 text-center text-[11px] text-slate-400">{inStage.length ? 'Nenhuma oportunidade com essa busca' : 'Nenhuma oportunidade nesta etapa'}</p>}
