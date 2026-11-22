@@ -60,14 +60,14 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
     if (error) { setNotice('Não foi possível salvar: ' + error.message); return; }
     setReminders(current => [...current, data].sort((a,b) => a.scheduled_at.localeCompare(b.scheduled_at)));
     setTitle(''); setMessage(''); setWhen('');
-    setNotice('Lembrete registrado. O disparo automático ainda não está ativado nesta etapa.');
+    setNotice('Lembrete registrado. Push será processado pelo agendador quando ativado no servidor; WhatsApp ainda não está disponível.');
   }
 
   return <section className="td-card min-w-0 p-4 sm:p-5">
     <div className="flex items-start gap-3">
       <span className="td-icon td-icon-teal"><BellPlus size={18}/></span>
       <div><h2 className="td-title text-base">Alertas personalizados</h2>
-        <p className="mt-1 text-sm text-slate-500">Escolha destinatário, canal, dia e horário. Nesta primeira etapa os lembretes são salvos, mas ainda não são enviados automaticamente.</p>
+        <p className="mt-1 text-sm text-slate-500">Escolha destinatário, canal, dia e horário. Notificações no app são processadas pelo agendador (até 10 minutos de intervalo). O envio por WhatsApp ainda está em desenvolvimento.</p>
       </div>
     </div>
     <form onSubmit={event => void save(event)} className="mt-5 grid min-w-0 gap-3 sm:grid-cols-2">
@@ -102,7 +102,7 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
       {!reminders.length ? <p className="mt-2 text-sm text-slate-400">Nenhum lembrete cadastrado.</p> :
       <ul className="mt-2 divide-y divide-tendi-line">{reminders.map(item => <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
         <div className="min-w-0"><p className="break-words font-semibold text-tendi-navy">{item.title}</p><p className="text-xs text-slate-500">{new Date(item.scheduled_at).toLocaleString('pt-BR')} · {item.channel === 'both' ? 'App e WhatsApp' : item.channel === 'push' ? 'App' : 'WhatsApp'}</p></div>
-        <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-800">{item.status === 'scheduled' ? 'Aguardando ativação do disparo' : item.status}</span>
+        <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-800">{item.status === 'scheduled' ? 'Agendado' : item.status === 'sent' ? 'Enviado' : item.status === 'partial' ? 'Parcial' : item.status === 'failed' ? 'Falhou' : item.status === 'processing' ? 'Processando' : item.status}</span>
       </li>)}</ul>}
     </div>
   </section>;
