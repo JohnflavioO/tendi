@@ -8,6 +8,7 @@ import {
   minutesOf, parsePrice, type Segment,
 } from '@/lib/agenda';
 import { ReminderSettingsCard } from '@/components/agenda/reminder-settings';
+import { ScheduledRemindersCard } from '@/components/agenda/scheduled-reminders';
 import { fieldClass, labelClass, type AgendaOrganization, type HoursRow, type Professional, type Service } from '@/components/agenda/types';
 
 const timeClass = 'td-input !w-[104px] px-2.5';
@@ -243,6 +244,7 @@ export function AgendaSettings({ organization, professionals, services, hours, c
       </section>
 
       <ReminderSettingsCard key={JSON.stringify(organization.agenda_settings ?? null)} organization={organization} canManage={canManageOrganization} professionalLabel={professionalLabel} onChanged={onChanged} />
+      <ScheduledRemindersCard organizationId={organization.id} />
     </div>
   );
 }
