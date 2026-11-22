@@ -6,7 +6,7 @@ import { FIREBASE_WEB_CONFIG, FIREBASE_WEB_PUSH_VAPID_KEY } from '@/lib/firebase
 
 type PushState = 'idle' | 'loading' | 'ready' | 'error';
 
-export function EnablePushButton() {
+export function EnablePushButton({ organizationId }: { organizationId: string }) {
   const [state, setState] = useState<PushState>('idle');
   const [message, setMessage] = useState('');
 
@@ -30,10 +30,17 @@ export function EnablePushButton() {
         serviceWorkerRegistration: registration,
       });
       if (!token) throw new Error('Não foi possível gerar o token de notificações.');
-      // Do not persist the FCM token in localStorage or expose it in UI/logs.
-      // Server-side enrollment with verified membership is a separate step.
+      const response = await fetch('/api/push/devices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationId, token, platform: 'web' }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(result.error || 'Não foi possível registrar o dispositivo.');
+      }
       setState('ready');
-      setMessage('Permissão concedida e dispositivo preparado. O cadastro seguro no servidor ainda será habilitado.');
+      setMessage('Dispositivo registrado para receber notificações. O envio de teste será disponibilizado em breve.');
     } catch (error) {
       setState('error');
       setMessage(error instanceof Error ? error.message : 'Não foi possível ativar as notificações.');
