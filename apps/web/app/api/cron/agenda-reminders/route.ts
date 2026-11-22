@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { dapiRequest } from '@/lib/dapi';
 import { runAgendaReminders } from '@/lib/agenda-reminders-server';
+import { runScheduledPushReminders } from '@/lib/scheduled-reminders-server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -36,8 +37,12 @@ export async function POST(request: Request) {
     const result = await runAgendaReminders(admin as any, {
       send: (path, body) => dapiRequest<unknown>(path, { method: 'POST', body: JSON.stringify(body), signal: AbortSignal.timeout(20_000) }),
     });
-    console.info('[Agenda] lembretes', result);
-    return NextResponse.json({ success: true, ...result });
+    const scheduled = await runScheduledPushReminders(admin as any).catch(error => {
+      console.error('[Agenda] alertas personalizados indisponíveis', { message: error instanceof Error ? error.message : 'Falha desconhecida' });
+      return { error: 'Alertas personalizados indisponíveis.' };
+    });
+    console.info('[Agenda] lembretes', result, scheduled);
+    return NextResponse.json({ success: true, ...result, scheduled });
   } catch (cause) {
     console.error('[Agenda] falha nos lembretes', { message: cause instanceof Error ? cause.message : String(cause) });
     return NextResponse.json({ success: false, error: 'Falha ao enviar os lembretes.' }, { status: 500 });

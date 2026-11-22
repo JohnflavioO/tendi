@@ -63,3 +63,26 @@ export async function sendTestPush(fcmToken: string) {
     throw new Error(`Firebase recusou o envio (HTTP ${response.status}).`);
   }
 }
+
+/** Sends a scheduled reminder to a registered web push device. */
+export async function sendReminderPush(fcmToken: string, title: string, body: string, reminderId: string) {
+  const { token, projectId } = await getAccessToken();
+  const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: {
+        token: fcmToken,
+        data: {
+          title: title.slice(0, 120),
+          body: body.slice(0, 240),
+          path: '/agenda',
+          tag: `reminder-${reminderId}`,
+        },
+        webpush: { headers: { Urgency: 'high', TTL: '3600' } },
+      },
+    }),
+    cache: 'no-store',
+  });
+  if (!response.ok) throw new Error(`Firebase recusou o lembrete (HTTP ${response.status}).`);
+}
