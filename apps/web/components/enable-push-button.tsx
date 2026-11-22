@@ -10,6 +10,22 @@ export function EnablePushButton({ organizationId }: { organizationId: string })
   const [state, setState] = useState<PushState>('idle');
   const [message, setMessage] = useState('');
 
+  async function testPush() {
+    setMessage('');
+    try {
+      const response = await fetch('/api/push/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationId }),
+      });
+      const result = await response.json() as { error?: string; message?: string };
+      if (!response.ok) throw new Error(result.error || 'Falha ao enviar teste.');
+      setMessage(result.message || 'Teste enviado.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Falha ao enviar teste.');
+    }
+  }
+
   async function enable() {
     setState('loading');
     setMessage('');
@@ -53,6 +69,8 @@ export function EnablePushButton({ organizationId }: { organizationId: string })
       <BellRing size={15} />
       {state === 'loading' ? 'Ativando...' : state === 'ready' ? 'Dispositivo preparado' : 'Ativar notificações'}
     </button>
+    {state === 'ready' && <button type="button" onClick={() => void testPush()}
+      className="px-3 py-1 text-xs font-medium text-tendi-indigo hover:underline">Enviar push de teste</button>}
     {message && <p role="status" className={`px-3 pb-2 text-xs ${state === 'error' ? 'text-red-600' : 'text-slate-500'}`}>{message}</p>}
   </div>;
 }
