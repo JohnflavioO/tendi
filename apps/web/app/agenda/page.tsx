@@ -123,7 +123,7 @@ export default function AgendaPage() {
   const firstOpen = shown.find(item => shiftsFor(hours, item.id, day ? weekdayOf(day) : 0).length) ?? shown[0];
 
   const actions = organization && tab === 'day' && activeProfessionals.length > 0
-    ? <button type="button" onClick={() => setDraft({ day, professionalId: firstOpen?.id })} className="td-btn td-btn-teal"><Plus size={15} />Novo agendamento</button>
+    ? <button type="button" onClick={() => setDraft({ day, professionalId: firstOpen?.id })} className="td-btn td-btn-teal min-h-11 w-full justify-center sm:w-auto"><Plus size={15} />Novo agendamento</button>
     : undefined;
 
   return (
@@ -133,20 +133,20 @@ export default function AgendaPage() {
       ) : !organization ? (
         <p className="rounded-2xl bg-white p-6 text-sm text-slate-500 shadow-card">{error || 'Sua conta não tem vínculo ativo com uma empresa.'}</p>
       ) : (
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="td-tabs">
-              <button type="button" onClick={() => setTab('day')} aria-pressed={tab === 'day'} className={`td-tab ${tab === 'day' ? 'td-tab-active' : ''}`}><CalendarDays size={14} />Dia</button>
-              <button type="button" onClick={() => setTab('settings')} aria-pressed={tab === 'settings'} className={`td-tab ${tab === 'settings' ? 'td-tab-active' : ''}`}><Settings2 size={14} />Configurar</button>
+        <div className="min-w-0 space-y-5">
+          <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="td-tabs flex w-full sm:w-auto">
+              <button type="button" onClick={() => setTab('day')} aria-pressed={tab === 'day'} className={`td-tab min-h-11 flex-1 justify-center sm:flex-none ${tab === 'day' ? 'td-tab-active' : ''}`}><CalendarDays size={14} />Dia</button>
+              <button type="button" onClick={() => setTab('settings')} aria-pressed={tab === 'settings'} className={`td-tab min-h-11 flex-1 justify-center sm:flex-none ${tab === 'settings' ? 'td-tab-active' : ''}`}><Settings2 size={14} />Configurar</button>
             </div>
             {tab === 'day' && (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <button type="button" onClick={() => setDay(shiftDay(day, -1))} aria-label="Dia anterior" className="inline-flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:border-tendi-lilac/40 hover:text-tendi-indigo"><ChevronLeft size={16} /></button>
-                <input type="date" value={day} onChange={event => { if (event.target.value) setDay(event.target.value); }} aria-label="Dia" className="td-input w-auto font-semibold text-tendi-navy" />
+                <input type="date" value={day} onChange={event => { if (event.target.value) setDay(event.target.value); }} aria-label="Dia" className="td-input min-w-0 flex-1 font-semibold text-tendi-navy sm:w-auto sm:flex-none" />
                 <button type="button" onClick={() => setDay(shiftDay(day, 1))} aria-label="Próximo dia" className="inline-flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:border-tendi-lilac/40 hover:text-tendi-indigo"><ChevronRight size={16} /></button>
                 {day !== today.day && <button type="button" onClick={() => setDay(today.day)} className="td-btn td-btn-secondary !text-tendi-teal">Hoje</button>}
                 {activeProfessionals.length > 1 && (
-                  <select value={filter} onChange={event => setFilter(event.target.value)} aria-label={`Filtrar por ${professionalLabel.toLowerCase()}`} className="td-input w-auto font-semibold text-slate-600">
+                  <select value={filter} onChange={event => setFilter(event.target.value)} aria-label={`Filtrar por ${professionalLabel.toLowerCase()}`} className="td-input min-w-0 max-w-full font-semibold text-slate-600 sm:w-auto">
                     <option value="">Todos</option>
                     {activeProfessionals.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
@@ -161,7 +161,7 @@ export default function AgendaPage() {
           {tab === 'settings' ? (
             <AgendaSettings organization={organization} professionals={professionals} services={services} hours={hours} canManage={canManage} canManageOrganization={canManageOrganization} professionalLabel={professionalLabel} onChanged={refresh} />
           ) : setupMissing ? (
-            <div className="td-card border-dashed p-8 text-center">
+            <div className="td-card min-w-0 border-dashed px-5 py-8 text-center sm:p-8">
               <CalendarDays className="mx-auto text-tendi-magenta" size={30} />
               <h2 className="mt-3 td-title text-base">Configure a agenda para começar</h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Cadastre quem atende, os horários de atendimento e os serviços com a duração de cada um. Depois é só marcar os horários.</p>
@@ -171,7 +171,7 @@ export default function AgendaPage() {
             <>
               <div>
                 <p className="text-sm font-semibold capitalize text-tendi-navy">{formatDayLong(day)}{day === today.day ? ' · hoje' : ''}</p>
-                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+                <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5">
                   <Stat label="Marcados" value={summary.total} />
                   <Stat label="Confirmados" value={summary.confirmed} tone="text-emerald-700" />
                   <Stat label="Atendidos" value={summary.completed} />
@@ -217,9 +217,9 @@ export default function AgendaPage() {
 
 function Stat({ label, value, tone, detail }: { label: string; value: number | string; tone?: string; detail?: string }) {
   return (
-    <div className="td-card px-4 py-3.5">
+    <div className="td-card min-w-0 px-3 py-3.5 sm:px-4">
       <p className="td-eyebrow">{label}</p>
-      <p className={`mt-1.5 text-2xl font-semibold tracking-tight tabular-nums ${tone ?? 'text-tendi-navy'}`}>{value}</p>
+      <p className={`mt-1.5 break-words text-xl font-semibold tracking-tight tabular-nums sm:text-2xl ${tone ?? 'text-tendi-navy'}`}>{value}</p>
       {detail && <p className="text-[11px] text-slate-400">{detail}</p>}
     </div>
   );
