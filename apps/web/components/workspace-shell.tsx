@@ -11,6 +11,7 @@ import { NotificationBell } from '@/components/notification-bell';
 import { BrandLoader } from '@/components/brand-loader';
 import { OnboardingTour } from '@/components/onboarding-tour';
 import { MobileTabBar } from '@/components/mobile-tab-bar';
+import { MobileInstallBanner } from '@/components/mobile-install-banner';
 import { WorkspaceSidebar } from '@/components/workspace-sidebar';
 import { FullPageNotice } from '@/components/ui';
 import { TOUR_EVENT } from '@/lib/onboarding';
@@ -184,7 +185,7 @@ export function WorkspaceShell({ children, title, description, actions }: {
           </div>
         </div>
       </header>
-      <div className="mx-auto w-full max-w-[1600px] flex-1 animate-fade-up p-4 pb-[calc(env(safe-area-inset-bottom)+92px)] md:p-8 md:pb-[calc(env(safe-area-inset-bottom)+100px)] lg:pb-10">{children}</div>
+      <div className="mx-auto w-full max-w-[1600px] flex-1 animate-fade-up p-4 pb-[calc(env(safe-area-inset-bottom)+92px)] md:p-8 md:pb-[calc(env(safe-area-inset-bottom)+100px)] lg:pb-10"><MobileInstallBanner />{children}</div>
       <MobileTabBar fixed pathname={pathname} organizationId={organization.id} role={role} superAdmin={superAdmin} onMenu={() => setMobileOpen(true)} />
       <OnboardingTour organizationId={organization.id} role={role} superAdmin={superAdmin} />
     </section>
