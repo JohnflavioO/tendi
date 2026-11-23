@@ -27,7 +27,7 @@ export default function AgendaPage() {
   const [hours, setHours] = useState<HoursRow[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [day, setDay] = useState('');
-  const [tab, setTab] = useState<'day' | 'settings'>('day');
+  const [tab, setTab] = useState<'day' | 'settings'>(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'settings' ? 'settings' : 'day');
   const [filter, setFilter] = useState('');
   const [draft, setDraft] = useState<AppointmentDraft | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,6 +93,16 @@ export default function AgendaPage() {
     loadDay(organization.id, day, timeZone).catch(err => { if (active) setError(agendaError(err)); });
     return () => { active = false; };
   }, [organization, day, timeZone, loadDay]);
+
+  // Deep links from scheduled reminder push notifications must open the settings list.
+  useEffect(() => {
+    const openFromUrl = () => {
+      if (new URLSearchParams(window.location.search).get('tab') === 'settings') setTab('settings');
+    };
+    openFromUrl();
+    window.addEventListener('popstate', openFromUrl);
+    return () => window.removeEventListener('popstate', openFromUrl);
+  }, []);
 
   // Linha do "agora" na grade.
   useEffect(() => {
