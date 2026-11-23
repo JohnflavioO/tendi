@@ -76,7 +76,7 @@ export async function sendReminderPush(fcmToken: string, title: string, body: st
         data: {
           title: title.slice(0, 120),
           body: body.slice(0, 240),
-          path: '/agenda',
+          path: `/agenda?tab=settings&reminder=${encodeURIComponent(reminderId)}`,
           tag: `reminder-${reminderId}`,
         },
         webpush: { headers: { Urgency: 'high', TTL: '3600' } },
