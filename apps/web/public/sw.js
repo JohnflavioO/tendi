@@ -5,7 +5,7 @@
  * - Arquivos fixos (JS/CSS do build, fontes, logos, ícones): guardados para abrir mais rápido.
  * - API, login e serviços externos (Supabase, WhatsApp) passam direto, sem cache.
  */
-const VERSION = 'tendidesk-v1';
+const VERSION = 'tendidesk-v2';
 const STATIC_CACHE = `${VERSION}-static`;
 const OFFLINE_URL = '/offline.html';
 const PRECACHE = [OFFLINE_URL, '/icons/icon-192.png', '/brand/tendidesk-logo.png'];
@@ -73,14 +73,16 @@ self.addEventListener('push', event => {
   let payload = {};
   try { payload = event.data ? event.data.json() : {}; } catch { payload = {}; }
   if (!payload || typeof payload !== 'object') payload = {};
-  const title = typeof payload.title === 'string' ? payload.title.slice(0, 120) : 'TendiDesk';
-  const body = typeof payload.body === 'string' ? payload.body.slice(0, 240) : 'Você tem um novo lembrete.';
-  const path = notificationPath(payload.path);
+  // FCM HTTP v1 data messages may arrive as { data: {...} } rather than at the root.
+  const details = payload.data && typeof payload.data === 'object' ? payload.data : payload;
+  const title = typeof details.title === 'string' ? details.title.slice(0, 120) : 'TendiDesk';
+  const body = typeof details.body === 'string' ? details.body.slice(0, 240) : 'Você tem um novo lembrete.';
+  const path = notificationPath(details.path);
   event.waitUntil(self.registration.showNotification(title, {
     body,
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
-    tag: typeof payload.tag === 'string' ? payload.tag.slice(0, 100) : undefined,
+    tag: typeof details.tag === 'string' ? details.tag.slice(0, 100) : undefined,
     data: { path },
   }));
 });
