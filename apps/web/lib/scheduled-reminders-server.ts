@@ -15,7 +15,7 @@ type Reminder = {
  * WhatsApp dispatch is restricted to opted-in contacts with a connected business channel.
  */
 export async function runScheduledPushReminders(admin: Admin, deps: { send: SendFn }) {
-  const { data, error } = await admin.rpc('claim_due_scheduled_reminders', { batch_size: 20 });
+  const { data, error } = await admin.rpc('claim_due_scheduled_reminders', { batch_size: 8 });
   if (error) throw new Error('Não foi possível reservar os lembretes vencidos.');
   const jobs = (data ?? []) as Reminder[];
   const result = { claimed: jobs.length, sent: 0, partial: 0, failed: 0 };
