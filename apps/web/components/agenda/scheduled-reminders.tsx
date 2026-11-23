@@ -68,7 +68,16 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
       contact_id: recipient === 'client' ? recipientId : null,
       channel, title: title.trim(), message: message.trim(), scheduled_at: scheduledAt.toISOString(),
     };
-    const { data, error } = await supabase.from('scheduled_reminders').insert(payload).select('id,title,recipient_type,channel,scheduled_at,status').single();
+    const fields = 'id,title,message,recipient_type,recipient_user_id,contact_id,channel,scheduled_at,status,push_status,whatsapp_status,last_error';
+    const query = editingId
+      ? supabase.from('scheduled_reminders').update({
+          recipient_type: payload.recipient_type, recipient_user_id: payload.recipient_user_id,
+          contact_id: payload.contact_id, channel: payload.channel,
+          title: payload.title, message: payload.message, scheduled_at: payload.scheduled_at,
+          updated_at: new Date().toISOString(),
+        }).eq('id', editingId).eq('organization_id', organizationId).eq('status', 'scheduled')
+      : supabase.from('scheduled_reminders').insert(payload);
+    const { data, error } = await query.select(fields).single();
     setBusy(false);
     if (error) { setNotice('Não foi possível salvar: ' + error.message); return; }
     setReminders(current => [...current.filter(item => item.id !== data.id), data].sort((a,b) => a.scheduled_at.localeCompare(b.scheduled_at)));
@@ -116,7 +125,7 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
       </div>
     </div>
     <form id="scheduled-reminder-form" onSubmit={event => void save(event)} className="mt-5 grid min-w-0 gap-3 sm:grid-cols-2">
-      <label className="min-w-0 text-xs font-semibold text-slate-600">Destinatário
+      <label className="min-w-0 text-sm font-semibold text-slate-700">Destinatário
         <select className="td-input mt-1 w-full text-base sm:text-sm" value={recipient} onChange={event => { setRecipient(event.target.value as Recipient); setRecipientId(''); }}>
           <option value="me">Para mim</option><option value="client">Cliente</option><option value="team">Equipe</option>
         </select>
@@ -148,13 +157,13 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
       <ul className="mt-2 divide-y divide-tendi-line">{reminders.map(item => <li id={`reminder-${item.id}`} key={item.id} className={`flex flex-wrap items-center justify-between gap-3 rounded-xl py-3 text-sm ${highlightId === item.id ? 'bg-tendi-mist px-3 ring-2 ring-tendi-indigo/30' : ''}`}>
         <div className="min-w-0 flex-1"><p className="break-words font-semibold text-tendi-navy">{item.title}</p>
           <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-600">{item.message}</p>
-          <p className="mt-1 text-xs text-slate-500">{new Date(item.scheduled_at).toLocaleString('pt-BR')} · {item.channel === 'both' ? 'App e WhatsApp' : item.channel === 'push' ? 'App' : 'WhatsApp'}</p>
-          {item.last_error && <p className="mt-1 text-xs text-red-700">{item.last_error}</p>}
+          <p className="mt-1 text-sm text-slate-600">{new Date(item.scheduled_at).toLocaleString('pt-BR')} · {item.channel === 'both' ? 'App e WhatsApp' : item.channel === 'push' ? 'App' : 'WhatsApp'}</p>
+          {item.last_error && <p className="mt-1 text-sm text-red-700">{item.last_error}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-800">{item.status === 'scheduled' ? 'Agendado' : item.status === 'sent' ? 'Enviado' : item.status === 'partial' ? 'Parcial' : item.status === 'failed' ? 'Falhou' : item.status === 'processing' ? 'Processando' : item.status}</span>
-          {item.status === 'scheduled' && <button type="button" disabled={busy} onClick={() => startEdit(item)} className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-tendi-line px-3 text-xs font-semibold text-tendi-navy hover:bg-tendi-haze"><Pencil size={14}/>Editar</button>}
-          {item.status !== 'processing' && <button type="button" disabled={busy} onClick={() => void remove(item)} className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-red-100 px-3 text-xs font-semibold text-red-700 hover:bg-red-50"><Trash2 size={14}/>Excluir</button>}
+          {item.status === 'scheduled' && <button type="button" disabled={busy} onClick={() => startEdit(item)} className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-tendi-line px-3 text-sm font-semibold text-tendi-navy hover:bg-tendi-haze"><Pencil size={14}/>Editar</button>}
+          {item.status !== 'processing' && <button type="button" disabled={busy} onClick={() => void remove(item)} className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-red-100 px-3 text-sm font-semibold text-red-700 hover:bg-red-50"><Trash2 size={14}/>Excluir</button>}
         </div>
       </li>)}</ul>}
     </div>

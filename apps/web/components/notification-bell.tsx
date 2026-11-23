@@ -76,9 +76,9 @@ export function NotificationBell({ organizationId }: { organizationId: string })
       <button type="button" className="fixed inset-0 z-20 cursor-default" aria-label="Fechar notificações" onClick={() => setOpen(false)} />
       <section className="fixed inset-x-4 top-[calc(env(safe-area-inset-top)+72px)] z-30 mx-auto max-h-[calc(100dvh-120px)] w-auto max-w-[420px] overflow-hidden rounded-2xl border border-tendi-line bg-white shadow-pop sm:inset-x-auto sm:right-4 sm:mx-0 sm:w-[380px]" aria-label="Central de notificações">
         <div className="flex items-center justify-between border-b border-tendi-line px-4 py-3">
-          <h2 className="text-sm font-semibold text-tendi-navy">Notificações</h2>
+          <h2 className="text-lg font-bold text-tendi-navy">Notificações</h2>
           <div className="flex items-center gap-2">
-            {unread > 0 && <button type="button" disabled={busy} onClick={() => void markRead(items.filter(item => !item.read_at).map(item => item.id))} className="text-xs text-tendi-indigo hover:underline"><CheckCheck size={14} className="mr-1 inline" />Marcar lidas</button>}
+            {unread > 0 && <button type="button" disabled={busy} onClick={() => void markRead(items.filter(item => !item.read_at).map(item => item.id))} className="text-sm font-semibold text-tendi-indigo hover:underline"><CheckCheck size={14} className="mr-1 inline" />Marcar lidas</button>}
             <button type="button" aria-label="Fechar" onClick={() => setOpen(false)}><X size={17} /></button>
           </div>
         </div>
@@ -88,9 +88,9 @@ export function NotificationBell({ organizationId }: { organizationId: string })
             : items.length === 0 ? <p className="p-5 text-sm text-slate-500">Nenhuma notificação por enquanto.</p>
             : items.map(item => <div key={item.id} className={`border-b border-tendi-line/60 px-4 py-3 last:border-0 ${item.read_at ? '' : 'bg-tendi-haze'}`}>
               <Link href={safePath(item.target_path, organizationId)} onClick={() => { setOpen(false); if (!item.read_at) void markRead([item.id]); }} className="block">
-                <p className="text-sm font-semibold text-tendi-navy">{item.title}</p>
-                {item.body && <p className="mt-1 line-clamp-2 text-xs text-slate-600">{item.body}</p>}
-                <time className="mt-1 block text-[11px] text-slate-400" dateTime={item.created_at}>{new Date(item.created_at).toLocaleString('pt-BR')}</time>
+                <p className="text-base font-semibold text-tendi-navy">{item.title}</p>
+                {item.body && <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-slate-700">{item.body}</p>}
+                <time className="mt-1 block text-sm text-slate-500" dateTime={item.created_at}>{new Date(item.created_at).toLocaleString('pt-BR')}</time>
               </Link>
             </div>)}
         </div>
