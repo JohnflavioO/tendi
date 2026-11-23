@@ -64,6 +64,7 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
     const scheduledAt = new Date(when);
     if (!when || !Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now()) { setNotice('Escolha uma data e horário futuros.'); return; }
     if (recipient !== 'me' && !recipientId) { setNotice('Selecione o destinatário.'); return; }
+    if (recipient === 'client' && channel !== 'whatsapp') { setNotice('Para clientes, use WhatsApp. Push exige uma conta do cliente no aplicativo e ainda não é suportado.'); return; }
     if (channel !== 'push' && recipient !== 'client') { setNotice('WhatsApp para mim/equipe ainda não está disponível. Escolha Notificação no app.'); return; }
     if (channel !== 'push' && !whatsAppConnected) { setNotice('Conecte o WhatsApp da empresa antes de agendar este envio.'); return; }
     if (channel !== 'push' && !whatsAppEligible.has(recipientId)) { setNotice('O cliente precisa ter número válido e autorização de contato para receber WhatsApp.'); return; }
@@ -134,7 +135,7 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
     </div>
     <form id="scheduled-reminder-form" onSubmit={event => void save(event)} className="mt-5 grid min-w-0 gap-3 sm:grid-cols-2">
       <label className="min-w-0 text-sm font-semibold text-slate-700">Destinatário
-        <select className="td-input mt-1 w-full text-base sm:text-sm" value={recipient} onChange={event => { setRecipient(event.target.value as Recipient); setRecipientId(''); if (event.target.value !== 'client') setChannel('push'); }}>
+        <select className="td-input mt-1 w-full text-base sm:text-sm" value={recipient} onChange={event => { setRecipient(event.target.value as Recipient); setRecipientId(''); setChannel(event.target.value === 'client' ? 'whatsapp' : 'push'); }}>
           <option value="me">Para mim</option><option value="client">Cliente</option><option value="team">Equipe</option>
         </select>
       </label>
@@ -145,10 +146,10 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
       </label>}
       <label className="min-w-0 text-xs font-semibold text-slate-600">Canal
         <select className="td-input mt-1 w-full text-base sm:text-sm" value={channel} onChange={event => setChannel(event.target.value as Channel)}>
-          <option value="push">Notificação no app</option>{recipient === 'client' && <option value="whatsapp">WhatsApp</option>}{recipient === 'client' && <option value="both">App e WhatsApp (push exige conta do cliente)</option>}
+          {recipient !== 'client' && <option value="push">Notificação no app</option>}{recipient === 'client' && <option value="whatsapp">WhatsApp</option>}
         </select>
       </label>
-      {recipient === 'client' && channel !== 'push' && <p className="sm:col-span-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{!whatsAppConnected ? 'WhatsApp desconectado: conecte o canal antes de salvar.' : !whatsAppEligible.has(recipientId) ? 'Selecione um cliente com número válido e autorização de contato.' : 'WhatsApp habilitado para este cliente. O status Enviado confirma aceite pela integração, não entrega ou leitura.'}{channel === 'both' && ' Clientes sem acesso ao aplicativo não recebem push; use apenas WhatsApp nesse caso.'}</p>}
+      {recipient === 'client' && channel !== 'push' && <p className="sm:col-span-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{!whatsAppConnected ? 'WhatsApp desconectado: conecte o canal antes de salvar.' : !whatsAppEligible.has(recipientId) ? 'Selecione um cliente com número válido e autorização de contato.' : 'WhatsApp habilitado para este cliente. O status Enviado confirma aceite pela integração, não entrega ou leitura.'}</p>}
       <label className="min-w-0 text-xs font-semibold text-slate-600">Data e horário
         <input required type="datetime-local" className="td-input mt-1 w-full min-w-0 text-base sm:text-sm" value={when} onChange={event => setWhen(event.target.value)}/>
       </label>
