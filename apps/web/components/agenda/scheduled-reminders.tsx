@@ -43,7 +43,7 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
       ]);
       if (!active) return;
       setContacts((c.data ?? []).map((x: {id:string;full_name:string;phone_e164:string|null;opt_in:boolean}) => ({ id:x.id, label:x.full_name || 'Cliente sem nome' })));
-      setWhatsAppEligible(new Set((c.data ?? []).filter((x: {phone_e164:string|null;opt_in:boolean}) => x.opt_in && /^\\d{10,15}$/.test(String(x.phone_e164 ?? '').replace(/\\D/g, ''))).map((x: {id:string}) => x.id)));
+      setWhatsAppEligible(new Set((c.data ?? []).filter((x: {phone_e164:string|null;opt_in:boolean}) => x.opt_in && /^\d{10,15}$/.test(String(x.phone_e164 ?? '').replace(/\D/g, ''))).map((x: {id:string}) => x.id)));
       setWhatsAppConnected(Boolean(connection.data?.length));
       setTeam((members.data ?? []).map((x: {user_id:string}) => ({ id:x.user_id, label:x.user_id })));
       if (r.error) setNotice('A Central de Lembretes precisa da migration da PR #143 antes de ser utilizada.');
