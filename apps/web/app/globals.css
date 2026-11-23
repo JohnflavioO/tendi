@@ -127,6 +127,12 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2F316B; }
 .td-typing-dot:nth-child(3) { animation-delay: .3s; }
 .td-typing-wrap { animation: tendi-typing-wrap .9s ease-in both; }
 
+/* Landing: deriva lenta dos círculos desfocados do fundo (hero) — só transform/opacity, leve. */
+@keyframes tendi-drift-a { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-22px, 26px) scale(1.06); } }
+@keyframes tendi-drift-b { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(24px, -18px) scale(1.05); } }
+.td-drift-a { animation: tendi-drift-a 16s ease-in-out infinite; }
+.td-drift-b { animation: tendi-drift-b 18s ease-in-out infinite; }
+
 /* Guia de primeiros passos: fundo escuro com recorte no item destacado e pulso suave. */
 .tendi-tour-spot { box-shadow: 0 0 0 9999px rgba(15, 17, 50, .55), 0 0 0 3px #CB0A9F; animation: tendi-tour-pulse 1.8s ease-out infinite; }
 @keyframes tendi-tour-pulse {
