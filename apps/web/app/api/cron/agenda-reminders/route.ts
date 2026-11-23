@@ -37,7 +37,9 @@ export async function POST(request: Request) {
     const result = await runAgendaReminders(admin as any, {
       send: (path, body) => dapiRequest<unknown>(path, { method: 'POST', body: JSON.stringify(body), signal: AbortSignal.timeout(20_000) }),
     });
-    const scheduled = await runScheduledPushReminders(admin as any).catch(error => {
+    const scheduled = await runScheduledPushReminders(admin as any, {
+      send: (path, body) => dapiRequest<unknown>(path, { method: 'POST', body: JSON.stringify(body), signal: AbortSignal.timeout(20_000) }),
+    }).catch(error => {
       console.error('[Agenda] alertas personalizados indisponíveis', { message: error instanceof Error ? error.message : 'Falha desconhecida' });
       return { error: 'Alertas personalizados indisponíveis.' };
     });

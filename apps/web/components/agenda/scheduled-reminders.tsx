@@ -73,7 +73,7 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
     if (error) { setNotice('Não foi possível salvar: ' + error.message); return; }
     setReminders(current => [...current.filter(item => item.id !== data.id), data].sort((a,b) => a.scheduled_at.localeCompare(b.scheduled_at)));
     setTitle(''); setMessage(''); setWhen(''); setEditingId(null);
-    setNotice(editingId ? 'Lembrete atualizado.' : 'Lembrete agendado. O envio por WhatsApp ainda não está disponível.');
+    setNotice(editingId ? 'Lembrete atualizado.' : 'Lembrete agendado. WhatsApp exige cliente autorizado e conexão ativa.');
   }
 
   function startEdit(item: Reminder) {
@@ -112,7 +112,7 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
     <div className="flex items-start gap-3">
       <span className="td-icon td-icon-teal"><BellPlus size={18}/></span>
       <div><h2 className="td-title text-base">Alertas personalizados</h2>
-        <p className="mt-1 text-sm text-slate-500">Escolha destinatário, canal, dia e horário. Notificações no app são processadas pelo agendador (até 10 minutos de intervalo). O envio por WhatsApp ainda está em desenvolvimento.</p>
+        <p className="mt-1 text-sm text-slate-500">Escolha destinatário, canal, dia e horário. Notificações no app são processadas pelo agendador (até 10 minutos de intervalo). WhatsApp para clientes com autorização e conexão ativa; para mim/equipe, use notificações no app.</p>
       </div>
     </div>
     <form id="scheduled-reminder-form" onSubmit={event => void save(event)} className="mt-5 grid min-w-0 gap-3 sm:grid-cols-2">
