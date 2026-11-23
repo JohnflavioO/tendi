@@ -164,17 +164,27 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
     {notice && <p role="status" className="mt-3 rounded-xl bg-tendi-haze px-3 py-2 text-sm text-slate-700">{notice}</p>}
     <div className="mt-6 border-t border-tendi-line pt-4"><h3 className="text-sm font-semibold text-tendi-navy">Lembretes cadastrados</h3>
       {!reminders.length ? <p className="mt-2 text-sm text-slate-400">Nenhum lembrete cadastrado.</p> :
-      <ul className="mt-2 divide-y divide-tendi-line">{reminders.map(item => <li id={`reminder-${item.id}`} key={item.id} className={`flex flex-wrap items-center justify-between gap-3 rounded-xl py-3 text-sm ${highlightId === item.id ? 'bg-tendi-mist px-3 ring-2 ring-tendi-indigo/30' : ''}`}>
-        <div className="min-w-0 flex-1"><p className="break-words font-semibold text-tendi-navy">{item.title}</p>
-          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-600">{item.message}</p>
-          <p className="mt-1 text-sm text-slate-600">{new Date(item.scheduled_at).toLocaleString('pt-BR')} · {item.channel === 'both' ? 'App e WhatsApp' : item.channel === 'push' ? 'App' : 'WhatsApp'}</p>
-          <p className="mt-1 text-sm text-slate-600">{item.channel !== 'whatsapp' && `App: ${item.push_status === 'sent' ? 'Aceito pelo Firebase' : item.push_status === 'failed' ? 'Falhou' : item.push_status === 'skipped' ? 'Não aplicável' : 'Pendente'}`}{item.channel === 'both' && ' · '}{item.channel !== 'push' && `WhatsApp: ${item.whatsapp_status === 'sent' ? 'Aceito pela integração' : item.whatsapp_status === 'failed' ? 'Falhou' : item.whatsapp_status === 'skipped' ? 'Não aplicável' : 'Pendente'}`}</p>
-          {item.last_error && <p className="mt-1 text-sm text-red-700">{item.last_error}</p>}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-800">{item.status === 'scheduled' ? 'Agendado' : item.status === 'sent' ? 'Enviado' : item.status === 'partial' ? 'Parcial' : item.status === 'failed' ? 'Falhou' : item.status === 'processing' ? 'Processando' : item.status}</span>
-          {item.status === 'scheduled' && <button type="button" disabled={busy} onClick={() => startEdit(item)} className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-tendi-line px-3 text-sm font-semibold text-tendi-navy hover:bg-tendi-haze"><Pencil size={14}/>Editar</button>}
-          {item.status !== 'processing' && <button type="button" disabled={busy} onClick={() => void remove(item)} className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-red-100 px-3 text-sm font-semibold text-red-700 hover:bg-red-50"><Trash2 size={14}/>Excluir</button>}
+      <ul className="mt-3 grid min-w-0 gap-3">{reminders.map(item => <li id={`reminder-${item.id}`} key={item.id} className={`min-w-0 rounded-2xl border p-4 sm:p-5 ${highlightId === item.id ? 'border-tendi-indigo/40 bg-tendi-mist ring-2 ring-tendi-indigo/20' : 'border-tendi-line bg-white'}`}>
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="min-w-0">
+            <p className="whitespace-normal break-words text-base font-semibold leading-6 text-tendi-navy">{item.title}</p>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">{item.message}</p>
+          </div>
+          <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-slate-600">
+            <span className="rounded-lg bg-slate-50 px-2.5 py-1.5">{new Date(item.scheduled_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+            <span className="rounded-lg bg-slate-50 px-2.5 py-1.5">{item.channel === 'both' ? 'App e WhatsApp' : item.channel === 'push' ? 'App' : 'WhatsApp'}</span>
+          </div>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className={`rounded-full px-3 py-1.5 text-sm font-medium ${item.status === 'sent' ? 'bg-emerald-50 text-emerald-800' : item.status === 'failed' ? 'bg-red-50 text-red-800' : item.status === 'partial' ? 'bg-orange-50 text-orange-800' : 'bg-amber-50 text-amber-800'}`}>{item.status === 'scheduled' ? 'Agendado' : item.status === 'sent' ? 'Enviado' : item.status === 'partial' ? 'Parcial' : item.status === 'failed' ? 'Falhou' : item.status === 'processing' ? 'Processando' : item.status}</span>
+          </div>
+          {(item.status !== 'scheduled' || item.last_error) && <div className="min-w-0 text-sm leading-6 text-slate-600">
+            <p className="break-words">{item.channel !== 'whatsapp' && `App: ${item.push_status === 'sent' ? 'Aceito pelo Firebase' : item.push_status === 'failed' ? 'Falhou' : item.push_status === 'skipped' ? 'Não aplicável' : 'Pendente'}`}{item.channel === 'both' && ' · '}{item.channel !== 'push' && `WhatsApp: ${item.whatsapp_status === 'sent' ? 'Aceito pela integração' : item.whatsapp_status === 'failed' ? 'Falhou' : item.whatsapp_status === 'skipped' ? 'Não aplicável' : 'Pendente'}`}</p>
+            {item.last_error && <p className="mt-1 break-words text-red-700">{item.last_error}</p>}
+          </div>}
+          {(item.status === 'scheduled' || item.status !== 'processing') && <div className="flex min-w-0 flex-wrap gap-2 border-t border-tendi-line pt-3">
+            {item.status === 'scheduled' && <button type="button" disabled={busy} onClick={() => startEdit(item)} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-tendi-line px-3 text-sm font-semibold text-tendi-navy hover:bg-tendi-haze"><Pencil size={16}/>Editar</button>}
+            {item.status !== 'processing' && <button type="button" disabled={busy} onClick={() => void remove(item)} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-red-100 px-3 text-sm font-semibold text-red-700 hover:bg-red-50"><Trash2 size={16}/>Excluir</button>}
+          </div>}
         </div>
       </li>)}</ul>}
     </div>
