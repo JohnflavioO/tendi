@@ -17,11 +17,15 @@ export async function GET(request: Request) {
   // Supervisors see only sellers who share a team with them.
   // Fail closed if no team is assigned; never fall back to org-wide access.
   let scopedUserIds: string[] | null = null;
+  // A supervisor (manager who leads at least one active team) also sees the unclaimed queue,
+  // to triage and assign new leads. A manager with no team to lead does not.
+  let isSupervisor = false;
   if (tenantMembership.role === 'manager') {
     const { data: myTeams, error: myTeamsError } = await admin.from('team_members')
       .select('team_id').eq('organization_id', organizationId).eq('user_id', actor.userId).eq('team_role', 'leader');
     if (myTeamsError) return NextResponse.json({ error: 'Não foi possível validar os setores.' }, { status: 503 });
     const teamIds = (myTeams ?? []).map(row => row.team_id);
+    isSupervisor = teamIds.length > 0;
     if (!teamIds.length) scopedUserIds = [actor.userId];
     else {
       const { data: teamLinks, error: linksError } = await admin.from('team_members')
@@ -47,7 +51,9 @@ export async function GET(request: Request) {
     : { data: [], error: null };
   if (profilesError) return NextResponse.json({ error: 'Não foi possível consultar a equipe.' }, { status: 503 });
   const names = new Map((profiles ?? []).map(p => [p.id, p.full_name || p.email || 'Usuário']));
-  const visibleContacts = (contacts ?? []).filter(c => scopedUserIds === null || (c.owner_id !== null && scopedUserIds.includes(c.owner_id)));
+  const visibleContacts = (contacts ?? []).filter(c => scopedUserIds === null
+    || (c.owner_id !== null && scopedUserIds.includes(c.owner_id))
+    || (c.owner_id === null && isSupervisor));
   const visibleContactIds = new Set(visibleContacts.map(c => c.id));
   const visibleTransfers = (transfers ?? []).filter(t => scopedUserIds === null || (visibleContactIds.has(t.contact_id) && scopedUserIds.includes(t.to_user_id) && (t.from_user_id === null || scopedUserIds.includes(t.from_user_id))));
   const counts = activeMembers.map(m => ({
