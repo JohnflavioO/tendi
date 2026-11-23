@@ -73,29 +73,34 @@ o Messenger, do `META_INSTAGRAM_CONFIG_ID`). Depois de criar ou alterar uma vari
 **"Publicado" não é a mesma coisa que "permissão aprovada".** São dois controles separados da Meta:
 
 - **Publicar o app** (menu **Publicar**) deixa o app visível/ativo publicamente.
-- **Análise das permissões** (menu **Analisar → Análise do app**) é o que dá *Acesso avançado*
-  a cada permissão sensível (`pages_show_list`, `pages_messaging`, `pages_manage_metadata` para o
-  Messenger; `instagram_basic`, `instagram_manage_messages` para o Instagram). Enquanto uma
-  permissão estiver em **"Análise em andamento"** (ou nem tiver sido enviada), ela só funciona em
-  *Acesso padrão* — ou seja, **só para contas cadastradas em Funções do app** (dono, desenvolvedor,
-  testador), mesmo com o app já publicado.
+- **Acesso avançado** a cada permissão sensível (`pages_show_list`, `pages_messaging`,
+  `pages_manage_metadata` para o Messenger; `instagram_basic`, `instagram_manage_messages` para o
+  Instagram) é o que permite o app atender **contas que o Tendi não é dono** — ou seja, os clientes
+  de verdade. Isso exige dois pré-requisitos, nessa ordem:
+  1. **Verificação da empresa** (Business Verification), em
+     [business.facebook.com](https://business.facebook.com/) → Configurações → Central de
+     segurança. Sem isso a Meta nem libera o Acesso avançado depois da análise.
+  2. **Análise do app aprovada** (**Analisar → Análise do app**) para cada permissão.
 
-Isso explica um sintoma comum: a conta interna do Tendi (que tem Função no app) consegue conectar
-o Instagram e receber respostas da IA, mas a conta de outro cliente não — não é um bug, é a
-análise dessas duas permissões ainda pendente.
+Enquanto uma permissão estiver em **Acesso padrão** — análise não enviada, "Em andamento" ou
+reprovada —, ela só funciona para **contas cadastradas em Funções do app** (dono, desenvolvedor,
+testador), mesmo com o app publicado e a empresa verificada. **Isso não é um substituto para
+produção**: cadastrar o Instagram de um cliente como testador deixa aquela conta específica
+funcionar (foi assim que validamos o fluxo internamente), mas não resolve para os clientes reais
+dela — cada cliente final da Tendi precisaria virar testador, o que não escala. Só o Acesso
+avançado aprovado libera para qualquer conta, sem cadastrar ninguém.
 
 **O que fazer:**
 
-1. Enviar a análise em **Analisar → Análise do app → Enviar para análise**, pedindo Acesso
-   avançado para `pages_show_list`, `pages_messaging`, `pages_manage_metadata`,
-   `instagram_basic` e `instagram_manage_messages`. A Meta pede um vídeo mostrando o uso de cada
-   permissão; a análise costuma levar até 20 dias (acompanhe em **Analisar → Análise do app →
-   Ver detalhes do envio**).
-2. **Enquanto a análise não sai**: em **Funções do app**, adicione a conta do Facebook de cada
-   cliente que precisa testar (Testador ou Desenvolvedor) — a pessoa recebe um convite e precisa
-   aceitar antes de conseguir conectar.
-3. **Depois que a Meta aprovar**, as duas permissões passam a valer para qualquer conta, sem
-   precisar cadastrar ninguém em Funções do app.
+1. Confirmar a Verificação da empresa (já feita, nesse caso).
+2. Enviar/acompanhar a análise em **Analisar → Análise do app**, pedindo Acesso avançado para
+   `pages_show_list`, `pages_messaging`, `pages_manage_metadata`, `instagram_basic` e
+   `instagram_manage_messages`. A Meta pede um vídeo mostrando o uso de cada permissão; a análise
+   costuma levar até 20 dias (acompanhe em **Analisar → Análise do app → Ver detalhes do envio**).
+3. **Enquanto a análise não sai**, usar Funções do app só para o próprio time testar — não
+   divulgar o recurso de Instagram para clientes reais até o Acesso avançado ser aprovado.
+4. **Depois que a Meta aprovar**, as permissões passam a valer para qualquer conta, sem precisar
+   cadastrar ninguém em Funções do app.
 
 ## Como funciona depois de configurado
 
