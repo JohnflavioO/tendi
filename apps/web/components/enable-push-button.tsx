@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { BellRing } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BellRing, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { FIREBASE_WEB_CONFIG, FIREBASE_WEB_PUSH_VAPID_KEY } from '@/lib/firebase-public-config';
 
 type PushState = 'idle' | 'loading' | 'ready' | 'error';
@@ -9,6 +9,12 @@ type PushState = 'idle' | 'loading' | 'ready' | 'error';
 export function EnablePushButton({ organizationId }: { organizationId: string }) {
   const [state, setState] = useState<PushState>('idle');
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      setMessage('Permissão concedida neste aparelho. Toque em Verificar e ativar para atualizar o cadastro do dispositivo.');
+    }
+  }, []);
 
   async function testPush() {
     setMessage('');
@@ -56,21 +62,33 @@ export function EnablePushButton({ organizationId }: { organizationId: string })
         throw new Error(result.error || 'Não foi possível registrar o dispositivo.');
       }
       setState('ready');
-      setMessage('Dispositivo registrado para receber notificações. O envio de teste será disponibilizado em breve.');
+      setMessage('Notificações ativadas e dispositivo atualizado. Use o botão abaixo para enviar um teste.');
     } catch (error) {
       setState('error');
       setMessage(error instanceof Error ? error.message : 'Não foi possível ativar as notificações.');
     }
   }
 
-  return <div className="space-y-1">
-    <button type="button" onClick={() => void enable()} disabled={state === 'loading' || state === 'ready'}
-      className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-tendi-indigo hover:bg-tendi-haze disabled:opacity-60">
-      <BellRing size={15} />
-      {state === 'loading' ? 'Ativando...' : state === 'ready' ? 'Dispositivo preparado' : 'Ativar notificações'}
+  return <div className="border-b border-tendi-line bg-indigo-50/70 px-4 py-4">
+    <div className="flex items-start gap-3">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-tendi-indigo"><BellRing size={22}/></span>
+      <div className="min-w-0 flex-1">
+        <p className="text-base font-bold text-tendi-navy">Notificações no celular</p>
+        <p className="mt-1 text-sm leading-relaxed text-slate-700">Receba lembretes mesmo com o TendiDesk fechado. Ative e teste neste aparelho.</p>
+      </div>
+    </div>
+    <button type="button" onClick={() => void enable()} disabled={state === 'loading'}
+      className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-tendi-indigo px-4 text-base font-semibold text-white shadow-sm disabled:opacity-60">
+      {state === 'ready' ? <CheckCircle2 size={19}/> : <BellRing size={19}/>}
+      {state === 'loading' ? 'Verificando...' : state === 'ready' ? 'Notificações ativadas — atualizar' : 'Verificar e ativar notificações'}
     </button>
-    {state === 'ready' && <button type="button" onClick={() => void testPush()}
-      className="px-3 py-1 text-xs font-medium text-tendi-indigo hover:underline">Enviar push de teste</button>}
-    {message && <p role="status" className={`px-3 pb-2 text-xs ${state === 'error' ? 'text-red-600' : 'text-slate-500'}`}>{message}</p>}
+    <button type="button" onClick={() => void testPush()} disabled={state === 'loading'}
+      className="mt-2 flex min-h-11 w-full items-center justify-center rounded-xl border border-tendi-indigo/30 bg-white px-4 text-sm font-semibold text-tendi-indigo">
+      Enviar notificação de teste
+    </button>
+    {message && <p role="status" className={`mt-3 flex items-start gap-2 rounded-lg bg-white p-3 text-sm leading-relaxed ${state === 'error' ? 'text-red-700' : 'text-slate-700'}`}>
+      {state === 'error' && <AlertTriangle size={18} className="shrink-0"/>}{message}
+    </p>}
+    <p className="mt-2 text-sm text-slate-600">No iPhone, use o TendiDesk instalado na Tela de Início e permita as notificações nas configurações do iOS.</p>
   </div>;
 }
