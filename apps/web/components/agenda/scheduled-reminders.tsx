@@ -48,6 +48,12 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
     return () => { active = false; };
   }, [organizationId, supabase]);
 
+  useEffect(() => {
+    if (!highlightId || !reminders.some(item => item.id === highlightId)) return;
+    const frame = window.requestAnimationFrame(() => document.getElementById(`reminder-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [highlightId, reminders]);
+
   async function save(event: React.FormEvent) {
     event.preventDefault();
     const scheduledAt = new Date(when);
