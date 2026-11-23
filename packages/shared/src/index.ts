@@ -14,3 +14,5 @@ export type Message = z.infer<typeof messageSchema>;
 export type Session = z.infer<typeof sessionSchema>;
 export type Stage = z.infer<typeof stageSchema>;
 export type CrmCard = z.infer<typeof cardSchema>;
+
+export * from './workspace';

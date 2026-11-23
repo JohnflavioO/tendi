@@ -587,6 +587,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          last_workspace_id: string | null
           avatar_url: string | null
           created_at: string
           email: string
@@ -596,6 +597,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          last_workspace_id?: string | null
           avatar_url?: string | null
           created_at?: string
           email: string
@@ -605,6 +607,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          last_workspace_id?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string
@@ -613,7 +616,50 @@ export type Database = {
           is_active?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_last_workspace_id_fkey"
+            columns: ["last_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string
+          company_id: string
+          created_at: string
+          id: string
+          ip_address: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_members: {
         Row: {
