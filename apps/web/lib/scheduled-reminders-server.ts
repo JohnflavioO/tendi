@@ -1,25 +1,27 @@
 import { sendReminderPush } from '@/lib/firebase-server';
+import { sendScheduledWhatsApp } from '@/lib/scheduled-reminders-whatsapp';
+import type { SendFn } from '@/lib/agenda-reminders-server';
 
 type Admin = { from: (table: string) => any; rpc: (fn: string, args: object) => any };
 type Reminder = {
   id: string; organization_id: string; recipient_type: 'me'|'client'|'team';
-  recipient_user_id: string | null; channel: 'push'|'whatsapp'|'both';
+  recipient_user_id: string | null; contact_id: string | null; channel: 'push'|'whatsapp'|'both';
   title: string; message: string;
 };
 
 /**
  * Runs inside the existing authenticated agenda cron.
  * Atomic RPC claim prevents concurrent workers from claiming the same reminder.
- * WhatsApp dispatch is intentionally NOT attempted until a validated channel adapter is available.
+ * WhatsApp dispatch is restricted to opted-in contacts with a connected business channel.
  */
-export async function runScheduledPushReminders(admin: Admin) {
+export async function runScheduledPushReminders(admin: Admin, deps: { send: SendFn }) {
   const { data, error } = await admin.rpc('claim_due_scheduled_reminders', { batch_size: 20 });
   if (error) throw new Error('Não foi possível reservar os lembretes vencidos.');
   const jobs = (data ?? []) as Reminder[];
   const result = { claimed: jobs.length, sent: 0, partial: 0, failed: 0 };
   for (const job of jobs) {
     let pushStatus: 'sent'|'failed'|'skipped' = 'skipped';
-    let whatsappStatus: 'failed'|'skipped' = 'skipped';
+    let whatsappStatus: 'sent'|'failed'|'skipped' = 'skipped';
     const errors: string[] = [];
     if (job.channel === 'push' || job.channel === 'both') {
       if (!job.recipient_user_id) {
@@ -53,10 +55,11 @@ export async function runScheduledPushReminders(admin: Admin) {
       }
     }
     if (job.channel === 'whatsapp' || job.channel === 'both') {
-      whatsappStatus = 'failed';
-      errors.push('Envio por WhatsApp ainda não está habilitado para alertas personalizados.');
+      const outcome = await sendScheduledWhatsApp(admin, job, deps.send);
+      whatsappStatus = outcome.ok ? 'sent' : 'failed';
+      if (!outcome.ok) errors.push(outcome.error);
     }
-    const success = pushStatus === 'sent';
+    const success = pushStatus === 'sent' || whatsappStatus === 'sent';
     const failure = pushStatus === 'failed' || whatsappStatus === 'failed';
     const status = success && failure ? 'partial' : success ? 'sent' : 'failed';
     const { error: updateError } = await admin.from('scheduled_reminders').update({
