@@ -70,11 +70,37 @@ o Messenger, do `META_INSTAGRAM_CONFIG_ID`). Depois de criar ou alterar uma vari
 
 ## 5. Revisão do app (App Review)
 
-Enquanto o app estiver em modo de desenvolvimento ("Não publicado"), só contas cadastradas em
-**Funções do app** conseguem conectar. Para qualquer cliente conectar, é preciso pedir à Meta a
-revisão das permissões usadas nas configurações acima (`pages_show_list`, `pages_messaging`,
-`pages_manage_metadata` para o Messenger; `instagram_basic`, `instagram_manage_messages` para o
-Instagram). A revisão pede um vídeo mostrando o uso de cada permissão e pode levar alguns dias.
+**"Publicado" não é a mesma coisa que "permissão aprovada".** São dois controles separados da Meta:
+
+- **Publicar o app** (menu **Publicar**) deixa o app visível/ativo publicamente.
+- **Acesso avançado** a cada permissão sensível (`pages_show_list`, `pages_messaging`,
+  `pages_manage_metadata` para o Messenger; `instagram_basic`, `instagram_manage_messages` para o
+  Instagram) é o que permite o app atender **contas que o Tendi não é dono** — ou seja, os clientes
+  de verdade. Isso exige dois pré-requisitos, nessa ordem:
+  1. **Verificação da empresa** (Business Verification), em
+     [business.facebook.com](https://business.facebook.com/) → Configurações → Central de
+     segurança. Sem isso a Meta nem libera o Acesso avançado depois da análise.
+  2. **Análise do app aprovada** (**Analisar → Análise do app**) para cada permissão.
+
+Enquanto uma permissão estiver em **Acesso padrão** — análise não enviada, "Em andamento" ou
+reprovada —, ela só funciona para **contas cadastradas em Funções do app** (dono, desenvolvedor,
+testador), mesmo com o app publicado e a empresa verificada. **Isso não é um substituto para
+produção**: cadastrar o Instagram de um cliente como testador deixa aquela conta específica
+funcionar (foi assim que validamos o fluxo internamente), mas não resolve para os clientes reais
+dela — cada cliente final da Tendi precisaria virar testador, o que não escala. Só o Acesso
+avançado aprovado libera para qualquer conta, sem cadastrar ninguém.
+
+**O que fazer:**
+
+1. Confirmar a Verificação da empresa (já feita, nesse caso).
+2. Enviar/acompanhar a análise em **Analisar → Análise do app**, pedindo Acesso avançado para
+   `pages_show_list`, `pages_messaging`, `pages_manage_metadata`, `instagram_basic` e
+   `instagram_manage_messages`. A Meta pede um vídeo mostrando o uso de cada permissão; a análise
+   costuma levar até 20 dias (acompanhe em **Analisar → Análise do app → Ver detalhes do envio**).
+3. **Enquanto a análise não sai**, usar Funções do app só para o próprio time testar — não
+   divulgar o recurso de Instagram para clientes reais até o Acesso avançado ser aprovado.
+4. **Depois que a Meta aprovar**, as permissões passam a valer para qualquer conta, sem precisar
+   cadastrar ninguém em Funções do app.
 
 ## Como funciona depois de configurado
 
