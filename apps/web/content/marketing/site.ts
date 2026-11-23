@@ -22,6 +22,7 @@ export const navigation = [
 export const features = [
   { id: 'inbox', eyebrow: 'ATENDIMENTO', title: 'Inbox do WhatsApp para toda a equipe', description: 'Conecte o número da empresa por QR Code e atenda em equipe: conversas, áudios, fotos e documentos no mesmo lugar.', detail: 'Histórico e painel do contato em cada conversa.' },
   { id: 'crm', eyebrow: 'COMERCIAL', title: 'CRM com funil de vendas', description: 'Quem chama pela primeira vez já vira oportunidade no funil. Acompanhe cada negociação até o fechamento.', detail: 'Etapas, valores e conversa a um clique.' },
+  { id: 'agenda', eyebrow: 'AGENDA', title: 'Agenda com lembrete automático', description: 'Marque horários com seus profissionais e deixe o TendiDesk confirmar com o cliente pelo WhatsApp. Crie também lembretes avulsos por push ou WhatsApp, pra você, um cliente ou a equipe.', detail: 'Notificação chega mesmo com o app fechado.' },
   { id: 'ai', eyebrow: 'INTELIGÊNCIA ARTIFICIAL', title: 'Agente de IA que responde no WhatsApp', description: 'A IA aprende sobre o seu negócio, responde no seu tom, respeita o horário de atendimento e chama um atendente quando precisa.', detail: 'Incluído nos dois planos, com respostas mensais por plano.' },
   { id: 'teams', eyebrow: 'EQUIPE', title: 'Equipe com papéis e permissões', description: 'Convide pessoas por e-mail e defina quem é dono, administrador, supervisor ou atendente. Cada um vê só o que precisa.', detail: 'Setores para organizar a operação.' },
   { id: 'billing', eyebrow: 'AUTOMAÇÃO', title: '2ª via de boleto pela IA', description: 'No TendiDesk Pro, o cliente pede o boleto pelo chat e a Duda envia a linha digitável e o PDF na hora, sem ninguém da equipe parar o que está fazendo.', detail: 'Conecta com Asaas, Pagar.me ou Vindi.' },
@@ -55,5 +56,7 @@ export const getFaqs = (trialLabel: string, plans: PublicPlan[] = []) => {
     { question: 'Posso pagar por ano?', answer: annualPercent > 0 ? `Sim. O plano anual sai com ${annualPercent}% de desconto em relação a 12 mensalidades, cobrado uma vez por ano no cartão.` : 'No momento a cobrança é mensal, no cartão de crédito.' },
     { question: 'Como troco de plano ou cancelo?', answer: 'Fale com o nosso suporte em suporte@tendidesk.com.br e ajustamos a sua assinatura.' },
     { question: 'A 2ª via de boleto funciona com qual sistema de cobrança?', answer: 'Hoje conecta com Asaas, Pagar.me (Stone) e Vindi — é só colar a chave de API em Integrações. Se você usa outro sistema, fale com o nosso suporte para avaliarmos a conexão.' },
+    { question: 'Como funcionam os lembretes da Agenda?', answer: 'Ao marcar um horário, o TendiDesk confirma automaticamente com o cliente pelo WhatsApp. Você também pode criar lembretes avulsos (push e/ou WhatsApp) para você mesmo, para um cliente ou para a equipe — a notificação chega mesmo com o app fechado.' },
+    { question: 'O TendiDesk conecta o WhatsApp oficial da Meta?', answer: 'Sim, no TendiDesk Business: implantação assistida pela nossa equipe, com número oficial da Meta. Os planos Start e Pro usam a conexão por QR Code, mais rápida de ativar.' },
   ];
 };
