@@ -3,8 +3,7 @@ import type { PublicPlan } from '@/lib/public-plans';
 export const siteContent = {
   brand: 'TendiDesk',
   eyebrow: 'ATENDIMENTO E GESTÃO COMERCIAL',
-  heroTitle: 'Sua equipe atende melhor quando tudo está conectado.',
-  heroDescription: 'Organize o WhatsApp da empresa, coloque um agente de IA para responder seus clientes e acompanhe cada oportunidade no CRM. Tudo em uma única plataforma.',
+  heroDescription: 'WhatsApp, agente de IA e CRM numa só plataforma, pronta em minutos.',
   primaryCta: 'Começar teste grátis',
   secondaryCta: 'Conhecer os planos',
   loginLabel: 'Entrar',
