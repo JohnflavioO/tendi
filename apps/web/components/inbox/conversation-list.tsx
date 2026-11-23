@@ -80,7 +80,7 @@ export function ConversationList({ conversations, userId, selectedId, onSelect, 
     return name.includes(term) || (item.contacts?.phone_e164 ?? '').includes(term.replace(/\D/g, '') || '\u0000');
   });
   const unreadTotal = conversations.filter(item => item.unread_count > 0).length;
-  const filtersOn = unreadOnly || Boolean(status);
+  const filtersOn = unreadOnly || Boolean(status) || Boolean(channel);
   // Canais com conversa ou conectados; o filtro aparece quando há mais de um.
   const channelsInUse = CHANNEL_ORDER.filter(key => connectedChannels.includes(key) || conversations.some(item => item.channel === key));
   const channelCount = (key: ChannelKey) => conversations.filter(item => item.channel === key).length;
@@ -111,13 +111,16 @@ export function ConversationList({ conversations, userId, selectedId, onSelect, 
         </label>
         <button type="button" onClick={() => setShowFilters(open => !open)} aria-expanded={showFilters} aria-label="Filtros" title="Filtros" className={filtersOn ? 'relative flex size-11 items-center justify-center rounded-xl bg-tendi-indigo text-white shadow-card' : 'relative flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:text-tendi-indigo'}><SlidersHorizontal size={15} /></button>
       </div>
-      {(channelsInUse.length > 1 || channel) && <div role="group" aria-label="Filtrar por canal" className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5">
-        <button type="button" onClick={() => setChannel('')} aria-pressed={!channel} className={!channel ? 'shrink-0 rounded-full bg-tendi-navy px-3 py-1 text-[11px] font-semibold text-white' : 'shrink-0 rounded-full border border-tendi-line bg-white px-3 py-1 text-[11px] font-medium text-slate-500 hover:text-tendi-navy'}>Todos</button>
-        {channelsInUse.map(key => <button key={key} type="button" onClick={() => setChannel(current => current === key ? '' : key)} aria-pressed={channel === key} className={channel === key ? 'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-tendi-navy py-1 pl-1 pr-3 text-[11px] font-semibold text-white' : 'inline-flex shrink-0 items-center gap-1.5 rounded-full border border-tendi-line bg-white py-1 pl-1 pr-3 text-[11px] font-medium text-slate-600 hover:text-tendi-navy'}><ChannelBadge channel={key} className="size-[18px]" />{CHANNEL_INFO[key].label}<span className={channel === key ? 'text-white/70' : 'text-slate-400'}>{channelCount(key)}</span></button>)}
-      </div>}
-      {showFilters && <div className="mt-2 flex animate-pop flex-wrap items-center gap-2 rounded-xl border border-tendi-line bg-tendi-haze/70 p-2.5">
-        <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600"><input type="checkbox" checked={unreadOnly} onChange={e => setUnreadOnly(e.target.checked)} className="accent-tendi-magenta" />Só não lidas</label>
-        <select aria-label="Status" value={status} onChange={e => setStatus(e.target.value)} className="ml-auto h-8 rounded-lg border border-tendi-line bg-white px-2 text-xs text-slate-600 outline-none focus:border-tendi-lilac">{STATUS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+      {channel && !showFilters && <div className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-slate-500"><ChannelBadge channel={channel} className="size-4" />Só {CHANNEL_INFO[channel].label}<button type="button" onClick={() => setChannel('')} className="ml-0.5 rounded-full p-0.5 text-slate-400 hover:text-tendi-navy" aria-label="Limpar filtro de canal"><X size={12} /></button></div>}
+      {showFilters && <div className="mt-2 animate-pop space-y-3 rounded-xl border border-tendi-line bg-tendi-haze/70 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600"><input type="checkbox" checked={unreadOnly} onChange={e => setUnreadOnly(e.target.checked)} className="accent-tendi-magenta" />Só não lidas</label>
+          <select aria-label="Status" value={status} onChange={e => setStatus(e.target.value)} className="ml-auto h-8 rounded-lg border border-tendi-line bg-white px-2 text-xs text-slate-600 outline-none focus:border-tendi-lilac">{STATUS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+        </div>
+        {channelsInUse.length > 1 && <div role="group" aria-label="Filtrar por canal" className="flex flex-wrap gap-1.5 border-t border-tendi-line/70 pt-3">
+          <button type="button" onClick={() => setChannel('')} aria-pressed={!channel} className={!channel ? 'rounded-full bg-tendi-navy px-3 py-1 text-[11px] font-semibold text-white' : 'rounded-full border border-tendi-line bg-white px-3 py-1 text-[11px] font-medium text-slate-500 hover:text-tendi-navy'}>Todos os canais</button>
+          {channelsInUse.map(key => <button key={key} type="button" onClick={() => setChannel(current => current === key ? '' : key)} aria-pressed={channel === key} className={channel === key ? 'inline-flex items-center gap-1.5 rounded-full bg-tendi-navy py-1 pl-1 pr-3 text-[11px] font-semibold text-white' : 'inline-flex items-center gap-1.5 rounded-full border border-tendi-line bg-white py-1 pl-1 pr-3 text-[11px] font-medium text-slate-600 hover:text-tendi-navy'}><ChannelBadge channel={key} className="size-[18px]" />{CHANNEL_INFO[key].label}<span className={channel === key ? 'text-white/70' : 'text-slate-400'}>{channelCount(key)}</span></button>)}
+        </div>}
       </div>}
     </header>
 
