@@ -70,11 +70,32 @@ o Messenger, do `META_INSTAGRAM_CONFIG_ID`). Depois de criar ou alterar uma vari
 
 ## 5. Revisão do app (App Review)
 
-Enquanto o app estiver em modo de desenvolvimento ("Não publicado"), só contas cadastradas em
-**Funções do app** conseguem conectar. Para qualquer cliente conectar, é preciso pedir à Meta a
-revisão das permissões usadas nas configurações acima (`pages_show_list`, `pages_messaging`,
-`pages_manage_metadata` para o Messenger; `instagram_basic`, `instagram_manage_messages` para o
-Instagram). A revisão pede um vídeo mostrando o uso de cada permissão e pode levar alguns dias.
+**"Publicado" não é a mesma coisa que "permissão aprovada".** São dois controles separados da Meta:
+
+- **Publicar o app** (menu **Publicar**) deixa o app visível/ativo publicamente.
+- **Análise das permissões** (menu **Analisar → Análise do app**) é o que dá *Acesso avançado*
+  a cada permissão sensível (`pages_show_list`, `pages_messaging`, `pages_manage_metadata` para o
+  Messenger; `instagram_basic`, `instagram_manage_messages` para o Instagram). Enquanto uma
+  permissão estiver em **"Análise em andamento"** (ou nem tiver sido enviada), ela só funciona em
+  *Acesso padrão* — ou seja, **só para contas cadastradas em Funções do app** (dono, desenvolvedor,
+  testador), mesmo com o app já publicado.
+
+Isso explica um sintoma comum: a conta interna do Tendi (que tem Função no app) consegue conectar
+o Instagram e receber respostas da IA, mas a conta de outro cliente não — não é um bug, é a
+análise dessas duas permissões ainda pendente.
+
+**O que fazer:**
+
+1. Enviar a análise em **Analisar → Análise do app → Enviar para análise**, pedindo Acesso
+   avançado para `pages_show_list`, `pages_messaging`, `pages_manage_metadata`,
+   `instagram_basic` e `instagram_manage_messages`. A Meta pede um vídeo mostrando o uso de cada
+   permissão; a análise costuma levar até 20 dias (acompanhe em **Analisar → Análise do app →
+   Ver detalhes do envio**).
+2. **Enquanto a análise não sai**: em **Funções do app**, adicione a conta do Facebook de cada
+   cliente que precisa testar (Testador ou Desenvolvedor) — a pessoa recebe um convite e precisa
+   aceitar antes de conseguir conectar.
+3. **Depois que a Meta aprovar**, as duas permissões passam a valer para qualquer conta, sem
+   precisar cadastrar ninguém em Funções do app.
 
 ## Como funciona depois de configurado
 
