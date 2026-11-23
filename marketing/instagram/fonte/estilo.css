@@ -116,6 +116,11 @@ h1 .ring { border: 6px solid var(--magenta); border-radius: 999px; padding: 0 22
 .plan.pro li::before { box-shadow: inset 0 0 0 6px #4A4D93; }
 .plan .flag { position: absolute; top: -20px; right: 30px; background: var(--magenta); color: #fff; font-weight: 800; font-size: 20px; padding: 10px 20px; border-radius: 999px; }
 
+.plan-business { margin-top: 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-radius: 26px; padding: 26px 32px; background: var(--navy-dark); color: #fff; }
+.plan-business .biz-name { font-family: 'Montserrat'; font-style: italic; font-weight: 900; font-size: 30px; }
+.plan-business .biz-desc { margin-top: 6px; font-size: 19px; font-weight: 500; line-height: 1.3; color: rgba(255,255,255,.72); max-width: 540px; }
+.plan-business .biz-tag { flex-shrink: 0; background: var(--magenta); font-family: 'Montserrat'; font-style: italic; font-weight: 800; font-size: 19px; padding: 12px 22px; border-radius: 999px; }
+
 .steps-dots { display: flex; gap: 12px; }
 .steps-dots i { width: 16px; height: 16px; border-radius: 50%; background: currentColor; opacity: .25; }
 .steps-dots i.on { width: 46px; border-radius: 999px; opacity: 1; background: var(--magenta); }

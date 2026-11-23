@@ -141,13 +141,17 @@ const posts = [
 
   { file: '08-planos', cls: 'light', body: `${curves('arc', '#D9DAF0')}
     <p class="kicker">Planos</p>
-    <h1 style="margin-top:24px;font-size:96px">Simples assim.</h1>
-    <p class="lead" style="margin-top:22px">Pague por mês ou economize <b style="color:#CB0A9F">15% no anual</b>.</p>
-    <div class="plans" style="margin-top:60px">
-      <div class="plan"><div class="name">Start</div><div class="price"><sup>R$</sup>189<small>/mês</small></div><ul><li>Até 4 usuários</li><li>1.000 respostas do Agente de IA por mês</li><li>Inbox, agenda, CRM e contatos</li></ul></div>
-      <div class="plan pro"><span class="flag">Mais completo</span><div class="name">Pro</div><div class="price"><sup>R$</sup>289<small>/mês</small></div><ul><li>Até 10 usuários</li><li>3.000 respostas do Agente de IA por mês</li><li>Até 10 setores</li><li>Segunda via de boleto</li></ul></div>
+    <h1 style="margin-top:20px;font-size:88px">Simples assim.</h1>
+    <p class="lead" style="margin-top:18px;font-size:32px">Pague por mês ou economize <b style="color:#CB0A9F">15% no anual</b>.</p>
+    <div class="plans" style="margin-top:40px">
+      <div class="plan"><div class="name">Start</div><div class="price"><sup>R$</sup>189<small>/mês</small></div><ul><li>Até 4 usuários</li><li>1.000 respostas do Agente de IA por mês</li><li>Inbox, agenda com lembrete, CRM e contatos</li></ul></div>
+      <div class="plan pro"><span class="flag">Mais completo</span><div class="name">Pro</div><div class="price"><sup>R$</sup>289<small>/mês</small></div><ul><li>Até 10 usuários</li><li>3.000 respostas do Agente de IA por mês</li><li>Até 10 setores</li><li>2ª via de boleto automática</li></ul></div>
     </div>
-    <p style="margin-top:40px;font-size:28px;font-weight:600;color:#2F316B">Comece com 7 dias grátis. Sem cartão de crédito.</p>
+    <div class="plan-business">
+      <div><p class="biz-name">TendiDesk Business</p><p class="biz-desc">WhatsApp oficial da Meta, com implantação assistida pela nossa equipe.</p></div>
+      <span class="biz-tag">Sob consulta</span>
+    </div>
+    <p style="margin-top:26px;font-size:26px;font-weight:600;color:#2F316B">Comece com 7 dias grátis. Sem cartão de crédito.</p>
     ${footer(false)}` },
 
   { file: '09-teste-gratis', cls: 'deep', body: `${curves('bubble', '#3E4190', '#CB0A9F')}

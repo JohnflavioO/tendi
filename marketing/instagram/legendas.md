@@ -122,7 +122,8 @@ No TendiDesk o nome de quem atende aparece na mensagem que chega no WhatsApp do 
 Simples assim.
 
 Start: R$ 189/mês. Até 4 usuários e 1.000 respostas do Agente de IA por mês.
-Pro: R$ 289/mês. Até 10 usuários, 3.000 respostas do Agente de IA por mês e até 10 setores.
+Pro: R$ 289/mês. Até 10 usuários, 3.000 respostas do Agente de IA por mês, até 10 setores e 2ª via de boleto automática.
+Business: sob consulta. WhatsApp oficial da Meta, com implantação assistida.
 
 No plano anual você economiza 15%. Comece com 7 dias grátis, sem cartão de crédito. Link na bio.
 
