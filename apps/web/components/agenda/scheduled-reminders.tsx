@@ -18,6 +18,8 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
   const [message, setMessage] = useState('');
   const [when, setWhen] = useState('');
   const [contacts, setContacts] = useState<Choice[]>([]);
+  const [whatsAppEligible, setWhatsAppEligible] = useState<Set<string>>(new Set());
+  const [whatsAppConnected, setWhatsAppConnected] = useState(false);
   const [team, setTeam] = useState<Choice[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [busy, setBusy] = useState(false);
@@ -33,13 +35,16 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
   useEffect(() => {
     let active = true;
     async function load() {
-      const [c, members, r] = await Promise.all([
-        supabase.from('contacts').select('id,full_name').eq('organization_id', organizationId).order('full_name').limit(200),
+      const [c, members, r, connection] = await Promise.all([
+        supabase.from('contacts').select('id,full_name,phone_e164,opt_in').eq('organization_id', organizationId).order('full_name').limit(200),
         supabase.from('organization_memberships').select('user_id').eq('organization_id', organizationId).eq('status', 'active').limit(100),
         supabase.from('scheduled_reminders').select('id,title,message,recipient_type,recipient_user_id,contact_id,channel,scheduled_at,status,push_status,whatsapp_status,last_error').eq('organization_id', organizationId).order('scheduled_at', { ascending: true }).limit(30),
+        supabase.from('channel_connections').select('id,status').eq('organization_id', organizationId).eq('channel', 'whatsapp').eq('status', 'connected').limit(1),
       ]);
       if (!active) return;
-      setContacts((c.data ?? []).map((x: {id:string;full_name:string}) => ({ id:x.id, label:x.full_name })));
+      setContacts((c.data ?? []).map((x: {id:string;full_name:string;phone_e164:string|null;opt_in:boolean}) => ({ id:x.id, label:x.full_name || 'Cliente sem nome' })));
+      setWhatsAppEligible(new Set((c.data ?? []).filter((x: {phone_e164:string|null;opt_in:boolean}) => x.opt_in && /^\\d{10,15}$/.test(String(x.phone_e164 ?? '').replace(/\\D/g, ''))).map((x: {id:string}) => x.id)));
+      setWhatsAppConnected(Boolean(connection.data?.length));
       setTeam((members.data ?? []).map((x: {user_id:string}) => ({ id:x.user_id, label:x.user_id })));
       if (r.error) setNotice('A Central de Lembretes precisa da migration da PR #143 antes de ser utilizada.');
       else setReminders(r.data ?? []);
@@ -59,6 +64,9 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
     const scheduledAt = new Date(when);
     if (!when || !Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now()) { setNotice('Escolha uma data e horário futuros.'); return; }
     if (recipient !== 'me' && !recipientId) { setNotice('Selecione o destinatário.'); return; }
+    if (channel !== 'push' && recipient !== 'client') { setNotice('WhatsApp para mim/equipe ainda não está disponível. Escolha Notificação no app.'); return; }
+    if (channel !== 'push' && !whatsAppConnected) { setNotice('Conecte o WhatsApp da empresa antes de agendar este envio.'); return; }
+    if (channel !== 'push' && !whatsAppEligible.has(recipientId)) { setNotice('O cliente precisa ter número válido e autorização de contato para receber WhatsApp.'); return; }
     setBusy(true); setNotice('');
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) { setNotice('Faça login novamente.'); setBusy(false); return; }
@@ -121,12 +129,12 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
     <div className="flex items-start gap-3">
       <span className="td-icon td-icon-teal"><BellPlus size={18}/></span>
       <div><h2 className="td-title text-base">Alertas personalizados</h2>
-        <p className="mt-1 text-sm text-slate-500">Escolha destinatário, canal, dia e horário. Notificações no app são processadas pelo agendador (até 10 minutos de intervalo). WhatsApp para clientes com autorização e conexão ativa; para mim/equipe, use notificações no app.</p>
+        <p className="mt-1 text-sm text-slate-500">Escolha destinatário, canal, dia e horário. Notificações no app são processadas pelo agendador (até 10 minutos de intervalo). WhatsApp disponível para clientes com número válido, autorização de contato e conexão ativa. Para mim/equipe, use notificações no app. O processamento ocorre aproximadamente a cada minuto.</p>
       </div>
     </div>
     <form id="scheduled-reminder-form" onSubmit={event => void save(event)} className="mt-5 grid min-w-0 gap-3 sm:grid-cols-2">
       <label className="min-w-0 text-sm font-semibold text-slate-700">Destinatário
-        <select className="td-input mt-1 w-full text-base sm:text-sm" value={recipient} onChange={event => { setRecipient(event.target.value as Recipient); setRecipientId(''); }}>
+        <select className="td-input mt-1 w-full text-base sm:text-sm" value={recipient} onChange={event => { setRecipient(event.target.value as Recipient); setRecipientId(''); if (event.target.value !== 'client') setChannel('push'); }}>
           <option value="me">Para mim</option><option value="client">Cliente</option><option value="team">Equipe</option>
         </select>
       </label>
@@ -137,9 +145,10 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
       </label>}
       <label className="min-w-0 text-xs font-semibold text-slate-600">Canal
         <select className="td-input mt-1 w-full text-base sm:text-sm" value={channel} onChange={event => setChannel(event.target.value as Channel)}>
-          <option value="push">Notificação no app</option><option value="whatsapp">WhatsApp</option><option value="both">App e WhatsApp</option>
+          <option value="push">Notificação no app</option>{recipient === 'client' && <option value="whatsapp">WhatsApp</option>}{recipient === 'client' && <option value="both">App e WhatsApp (push exige conta do cliente)</option>}
         </select>
       </label>
+      {recipient === 'client' && channel !== 'push' && <p className="sm:col-span-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{!whatsAppConnected ? 'WhatsApp desconectado: conecte o canal antes de salvar.' : !whatsAppEligible.has(recipientId) ? 'Selecione um cliente com número válido e autorização de contato.' : 'WhatsApp habilitado para este cliente. O status Enviado confirma aceite pela integração, não entrega ou leitura.'}{channel === 'both' && ' Clientes sem acesso ao aplicativo não recebem push; use apenas WhatsApp nesse caso.'}</p>}
       <label className="min-w-0 text-xs font-semibold text-slate-600">Data e horário
         <input required type="datetime-local" className="td-input mt-1 w-full min-w-0 text-base sm:text-sm" value={when} onChange={event => setWhen(event.target.value)}/>
       </label>
@@ -158,6 +167,7 @@ export function ScheduledRemindersCard({ organizationId }: { organizationId: str
         <div className="min-w-0 flex-1"><p className="break-words font-semibold text-tendi-navy">{item.title}</p>
           <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-600">{item.message}</p>
           <p className="mt-1 text-sm text-slate-600">{new Date(item.scheduled_at).toLocaleString('pt-BR')} · {item.channel === 'both' ? 'App e WhatsApp' : item.channel === 'push' ? 'App' : 'WhatsApp'}</p>
+          <p className="mt-1 text-sm text-slate-600">{item.channel !== 'whatsapp' && `App: ${item.push_status === 'sent' ? 'Aceito pelo Firebase' : item.push_status === 'failed' ? 'Falhou' : item.push_status === 'skipped' ? 'Não aplicável' : 'Pendente'}`}{item.channel === 'both' && ' · '}{item.channel !== 'push' && `WhatsApp: ${item.whatsapp_status === 'sent' ? 'Aceito pela integração' : item.whatsapp_status === 'failed' ? 'Falhou' : item.whatsapp_status === 'skipped' ? 'Não aplicável' : 'Pendente'}`}</p>
           {item.last_error && <p className="mt-1 text-sm text-red-700">{item.last_error}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
