@@ -2,7 +2,6 @@ import { Bot, CheckCheck, Headphones, MoreHorizontal, Search, Send, UserRound } 
 
 export function ProductPreview() {
   return <div aria-label="Prévia ilustrativa da interface TendiDesk" className="relative mx-auto w-full max-w-[570px]">
-    <div className="absolute -inset-5 rounded-[2rem] bg-[#CB0A9F]/[.06] blur-2xl" />
     <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(32,39,91,.14)]">
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div className="flex items-center gap-2"><span className="size-2 rounded-full bg-emerald-500"/><span className="text-sm font-bold text-[#25275B]">Central de atendimento</span></div><MoreHorizontal className="text-slate-400" size={20}/></div>
       <div className="grid min-h-[340px] grid-cols-[.9fr_1.1fr]">
@@ -12,7 +11,14 @@ export function ProductPreview() {
         </aside>
         <section className="flex flex-col p-4">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3"><span className="flex size-8 items-center justify-center rounded-full bg-[#CB0A9F]/10 text-[#CB0A9F]"><UserRound size={15}/></span><div><p className="text-xs font-bold text-[#25275B]">Mariana Costa</p><p className="text-[10px] text-emerald-600">Em atendimento</p></div></div>
-          <div className="flex-1 space-y-3 py-5"><div className="max-w-[90%] rounded-xl rounded-tl-sm bg-slate-100 p-3 text-[11px] leading-5 text-slate-600">Olá! Gostaria de receber uma proposta para minha empresa.</div><div className="ml-auto max-w-[90%] rounded-xl rounded-tr-sm bg-[#004751] p-3 text-[11px] leading-5 text-white">Claro, Mariana. Vou organizar as informações para você.</div><div className="flex items-center gap-2 text-[10px] text-slate-400"><Bot size={13}/> Sugestão de resposta disponível <CheckCheck size={12}/></div></div>
+          <div className="flex-1 space-y-3 py-5">
+            <div className="max-w-[90%] rounded-xl rounded-tl-sm bg-slate-100 p-3 text-[11px] leading-5 text-slate-600">Olá! Gostaria de receber uma proposta para minha empresa.</div>
+            <div className="td-typing-wrap flex w-fit items-center gap-1.5 rounded-xl rounded-tr-sm bg-[#004751] px-3 py-2.5 text-white" style={{ animationDelay: '.4s' }}>
+              <span className="td-typing-dot" /><span className="td-typing-dot" /><span className="td-typing-dot" />
+            </div>
+            <div className="animate-fade-up ml-auto max-w-[90%] rounded-xl rounded-tr-sm bg-[#004751] p-3 text-[11px] leading-5 text-white" style={{ animationDelay: '1.2s' }}>Claro, Mariana. Vou organizar as informações para você.</div>
+            <div className="animate-fade-up flex items-center gap-2 text-[10px] text-slate-400" style={{ animationDelay: '1.5s' }}><Bot size={13}/> Sugestão de resposta disponível <CheckCheck size={12}/></div>
+          </div>
           <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-[11px] text-slate-400"><span>Escreva sua mensagem...</span><Send size={14} className="text-[#004751]"/></div>
         </section>
       </div>

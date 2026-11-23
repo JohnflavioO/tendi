@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  ArrowRight, ArrowUpRight, Bot, Check, CheckCircle2, CircleHelp,
+  ArrowRight, ArrowUpRight, Bot, CheckCircle2, CircleHelp,
   MessageSquareText, Users, Workflow, ReceiptText, Building2, CalendarClock,
   Clock3, MessagesSquare, ChartNoAxesCombined, ShieldCheck,
 } from 'lucide-react';
@@ -11,6 +11,8 @@ import { Pricing } from '@/components/marketing/pricing';
 import { getPublicPlans } from '@/lib/public-plans';
 import { ProductPreview } from '@/components/marketing/product-preview';
 import { Reveal } from '@/components/marketing/reveal';
+import { ChannelBadge } from '@/components/inbox/channel-badge';
+import { CHANNEL_ORDER, CHANNEL_INFO } from '@/lib/channels';
 
 const featureIcons = [MessageSquareText, Workflow, CalendarClock, Bot, Users, ReceiptText, Building2];
 // Cada recurso com uma cor da marca, em rodízio — menos "tudo igual", mais hierarquia visual.
@@ -141,26 +143,26 @@ export default async function MarketingHome() {
   const startPrice = plans.map(plan => plan.annualPrice ? Math.min(plan.monthlyPrice ?? Infinity, plan.annualPrice / 12) : plan.monthlyPrice ?? Infinity).reduce((a, b) => Math.min(a, b), Infinity);
   return (
     <>
-      <section className="relative isolate overflow-hidden bg-gradient-to-br from-[#F7F8FC] via-[#F7F8FC] to-[#FCEAF7]">
-        <div className="td-drift-a pointer-events-none absolute -right-48 -top-24 -z-10 size-[620px] rounded-full bg-[#CB0A9F]/[.08] blur-3xl" />
-        <div className="td-drift-b pointer-events-none absolute -bottom-48 -left-40 -z-10 size-[440px] rounded-full bg-[#004751]/[.07] blur-3xl" />
-        <div className="mx-auto grid min-h-[690px] max-w-[1200px] items-center gap-14 px-5 pb-20 pt-24 md:grid-cols-2 md:px-6 md:pb-24 md:pt-28">
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-[#CB0A9F]/15 bg-white/80 px-3 py-2 text-[10px] font-bold uppercase tracking-[.16em] text-[#CB0A9F]">Atendimento e gestão conectados</p>
-            <h1 className="mt-6 max-w-xl text-[clamp(2.45rem,5vw,4.1rem)] font-extrabold leading-[1.04] tracking-[-.05em] text-[#25275B]">{siteContent.heroTitle}</h1>
-            <p className="mt-6 max-w-[38rem] text-lg leading-8 text-slate-600">{siteContent.heroDescription}</p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link href="/register" className="inline-flex h-12 items-center gap-2 rounded-xl bg-[#004751] px-6 text-sm font-bold text-white shadow-lg shadow-[#004751]/15 transition hover:-translate-y-0.5 hover:bg-[#003943]">{siteContent.primaryCta}<ArrowRight size={17} /></Link>
-              <a href="#como-funciona" className="inline-flex h-12 items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-[#2F316B] transition hover:border-[#004751]">Veja como funciona<ArrowUpRight size={16} /></a>
+      <section className="bg-white">
+        <div className="mx-auto max-w-[880px] px-5 pb-14 pt-28 text-center md:px-6 md:pb-20 md:pt-36">
+          <Reveal>
+            <p className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">Atendimento e gestão conectados</p>
+            <h1 className="mx-auto mt-7 max-w-3xl text-[clamp(2.6rem,6.8vw,5rem)] font-extrabold leading-[1.04] tracking-[-.04em] text-[#1B1D4A]">
+              Tudo conectado.<br /><span className="text-slate-400">Sua equipe atende melhor.</span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-md text-base leading-7 text-slate-500">{siteContent.heroDescription}</p>
+            <div className="mt-9 flex flex-col items-center gap-4">
+              <Link href="/register" className="inline-flex h-14 items-center gap-2 rounded-full bg-[#1B1D4A] px-8 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#13153a]">{siteContent.primaryCta}<ArrowRight size={17} /></Link>
+              <a href="#como-funciona" className="text-sm font-semibold text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-[#1B1D4A] hover:decoration-[#1B1D4A]">Veja como funciona</a>
             </div>
-            <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
-              <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />{trialLabel} para testar</span>
-              <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />Sem cartão no cadastro</span>
-              <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />IA que responde no WhatsApp</span>
-              {Number.isFinite(startPrice) && <span className="inline-flex items-center gap-2"><Check size={14} className="text-emerald-600" />Planos a partir de {startPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês</span>}
-            </div>
-          </div>
-          <ProductPreview />
+            <p className="mt-6 text-xs text-slate-400">{trialLabel} grátis · sem cartão · a partir de {Number.isFinite(startPrice) ? startPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : 'R$ 160'}/mês</p>
+          </Reveal>
+        </div>
+        <div className="border-y border-slate-100 bg-slate-50/60 py-6">
+          <Reveal delayMs={120} className="mx-auto flex max-w-[1000px] flex-wrap items-center justify-center gap-x-8 gap-y-3 px-5">
+            <span className="text-[11px] font-bold uppercase tracking-[.14em] text-slate-400">Funciona com</span>
+            {CHANNEL_ORDER.map(key => <span key={key} className="flex items-center gap-2 text-sm font-semibold text-slate-600"><ChannelBadge channel={key} className="size-6" />{CHANNEL_INFO[key].label}</span>)}
+          </Reveal>
         </div>
       </section>
 
