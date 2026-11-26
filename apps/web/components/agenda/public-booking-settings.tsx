@@ -23,6 +23,7 @@ export function PublicBookingSettingsCard({ organization, canManage, customerLab
   const [minNoticeMinutes, setMinNoticeMinutes] = useState(saved.minNoticeMinutes);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const qrRef = useRef<HTMLCanvasElement>(null);
 
@@ -44,8 +45,31 @@ export function PublicBookingSettingsCard({ organization, canManage, customerLab
     setMessage({ ok: true, text: enabled ? 'Agendamento público ligado. Compartilhe o link abaixo.' : 'Agendamento público desligado.' });
   }
 
+  /** Cópia automática (clipboard) com um método alternativo (selecionar + copiar) para navegadores que a recusam. */
+  function legacyCopy(text: string): boolean {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    document.body.removeChild(area);
+    return ok;
+  }
+
   async function copyLink() {
-    try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* o navegador recusou a cópia automática */ }
+    setCopyError(false);
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      if (legacyCopy(link)) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
+      else setCopyError(true);
+    }
   }
 
   function downloadQr() {
@@ -90,6 +114,7 @@ export function PublicBookingSettingsCard({ organization, canManage, customerLab
 
       <div className={`mt-4 rounded-xl border border-tendi-line p-3.5 ${saved.enabled ? 'bg-tendi-haze/60' : 'bg-slate-50'}`}>
         {!saved.enabled && <p className="mb-2.5 text-xs font-medium text-amber-700">Ligue e salve para este link funcionar. Ele já pode ser copiado para deixar tudo pronto.</p>}
+        {copyError && <p className="mb-2.5 text-xs font-medium text-red-700">Não consegui copiar automaticamente. Selecione o link acima e copie manualmente (Ctrl+C).</p>}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <code className="min-w-0 flex-1 truncate text-xs text-slate-600">{link}</code>
