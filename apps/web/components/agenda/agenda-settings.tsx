@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Briefcase, Flower2, Loader2, Lock, Plus, Scissors, Stethoscope, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
   DEFAULT_WEEK_HOURS, PROFESSIONAL_COLORS, SEGMENTS, SEGMENT_INFO, WEEKDAY_LABELS, formatDuration, formatPrice, isSegment,
@@ -13,6 +13,14 @@ import { ScheduledRemindersCard } from '@/components/agenda/scheduled-reminders'
 import { fieldClass, labelClass, type AgendaOrganization, type HoursRow, type Professional, type Service } from '@/components/agenda/types';
 
 const timeClass = 'td-input !w-[104px] px-2.5';
+
+/** Ícone e cor por segmento: reforça visualmente qual tipo de negócio está configurado em cada seção. */
+const SEGMENT_ICON: Record<Segment, { Icon: typeof Scissors; cls: string }> = {
+  barbershop: { Icon: Scissors, cls: 'td-icon-teal' },
+  clinic: { Icon: Stethoscope, cls: 'td-icon-magenta' },
+  beauty: { Icon: Flower2, cls: 'td-icon-magenta' },
+  other: { Icon: Briefcase, cls: '' },
+};
 
 type DayForm = { open: boolean; starts: string; ends: string; breakStarts: string; breakEnds: string };
 
@@ -148,6 +156,8 @@ export function AgendaSettings({ organization, professionals, services, hours, c
   const card = 'td-card p-5';
   const smallButton = 'td-btn td-btn-secondary td-btn-sm';
   const primaryButton = 'td-btn td-btn-teal';
+  const SegmentIcon = segment ? SEGMENT_ICON[segment].Icon : Briefcase;
+  const segmentIconCls = segment ? SEGMENT_ICON[segment].cls : '';
 
   return (
     <div className="space-y-5">
@@ -155,8 +165,13 @@ export function AgendaSettings({ organization, professionals, services, hours, c
       {message && <p role={message.ok ? 'status' : 'alert'} className={`rounded-xl px-4 py-3 text-sm ${message.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700'}`}>{message.text}</p>}
 
       <section className={card}>
-        <h2 className="td-title text-base">Tipo de negócio</h2>
-        <p className="mt-1 text-sm text-slate-500">Ajusta os nomes usados na agenda e oferece uma lista inicial de serviços.</p>
+        <div className="flex items-start gap-3">
+          <span className={`td-icon ${segmentIconCls}`}><SegmentIcon size={18} /></span>
+          <div>
+            <h2 className="td-title text-base">1. Tipo de negócio</h2>
+            <p className="mt-1 text-sm text-slate-500">Escolha primeiro: ajusta os nomes usados na agenda (ex.: &quot;Barbeiro&quot; em vez de &quot;Profissional&quot;) e oferece uma lista inicial de serviços.</p>
+          </div>
+        </div>
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <div className="min-w-[240px] flex-1">
             <label htmlFor="agenda-segment" className={labelClass}>Segmento</label>
@@ -169,9 +184,22 @@ export function AgendaSettings({ organization, professionals, services, hours, c
         </div>
       </section>
 
+      {!segment && (
+        <section className={`${card} flex items-center gap-3 text-sm text-slate-400`}>
+          <span className="td-icon"><Lock size={16} /></span>
+          Escolha o tipo de negócio acima para continuar configurando barbeiros ou profissionais, serviços, lembretes e o link de agendamento.
+        </section>
+      )}
+
+      {segment && <>
       <section className={card}>
-        <h2 className="td-title text-base">{professionalLabel === 'Barbeiro' ? 'Barbeiros' : 'Profissionais'}</h2>
-        <p className="mt-1 text-sm text-slate-500">Cada pessoa tem a sua coluna na agenda e o seu horário de atendimento.</p>
+        <div className="flex items-start gap-3">
+          <span className={`td-icon ${segmentIconCls}`}><SegmentIcon size={18} /></span>
+          <div>
+            <h2 className="td-title text-base">2. {professionalLabel === 'Barbeiro' ? 'Barbeiros' : 'Profissionais'}</h2>
+            <p className="mt-1 text-sm text-slate-500">Cada pessoa tem a sua coluna na agenda e o seu horário de atendimento.</p>
+          </div>
+        </div>
         <ul className="mt-4 divide-y divide-tendi-line/70">
           {professionals.map(professional => {
             const days = WEEKDAY_LABELS.map((label, weekday) => ({ label, open: hours.some(row => row.professional_id === professional.id && row.weekday === weekday) }));
@@ -223,8 +251,13 @@ export function AgendaSettings({ organization, professionals, services, hours, c
       </section>
 
       <section className={card}>
-        <h2 className="td-title text-base">Serviços</h2>
-        <p className="mt-1 text-sm text-slate-500">A duração define os horários livres oferecidos ao agendar.</p>
+        <div className="flex items-start gap-3">
+          <span className={`td-icon ${segmentIconCls}`}><SegmentIcon size={18} /></span>
+          <div>
+            <h2 className="td-title text-base">3. Serviços</h2>
+            <p className="mt-1 text-sm text-slate-500">A duração define os horários livres oferecidos ao agendar.</p>
+          </div>
+        </div>
         <ul className="mt-4 divide-y divide-tendi-line/70">
           {services.map(service => (
             <li key={service.id} className="flex flex-wrap items-center gap-3 py-3">
@@ -248,6 +281,7 @@ export function AgendaSettings({ organization, professionals, services, hours, c
       <PublicBookingSettingsCard key={`public-${JSON.stringify(organization.agenda_settings ?? null)}`} organization={organization} canManage={canManageOrganization} customerLabel={customerLabel} onChanged={onChanged} />
       <ReminderSettingsCard key={JSON.stringify(organization.agenda_settings ?? null)} organization={organization} canManage={canManageOrganization} professionalLabel={professionalLabel} onChanged={onChanged} />
       <ScheduledRemindersCard organizationId={organization.id} />
+      </>}
     </div>
   );
 }
