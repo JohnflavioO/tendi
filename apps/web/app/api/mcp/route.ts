@@ -80,13 +80,40 @@ const handler = createMcpHandler((server) => {
         .eq('organization_id', ORGANIZATION_ID)
         .eq('status', 'open')
         .order('last_message_at', { ascending: true, nullsFirst: true })
-        .limit(limite);
+        .limit(200);
       if (error) throw new Error('Falha ao consultar conversas pendentes.');
-      return jsonResult((data ?? []).map((item: any) => ({
+      const conversationIds = (data ?? []).map((item: any) => item.id);
+      if (!conversationIds.length) return jsonResult([]);
+      const { data: recentMessages, error: messagesError } = await admin
+        .from('messages')
+        .select('conversation_id,direction,created_at')
+        .eq('organization_id', ORGANIZATION_ID)
+        .in('conversation_id', conversationIds)
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      if (messagesError) throw new Error('Falha ao identificar a última interação das conversas.');
+      const latestByConversation = new Map<string, { direction: string; created_at: string }>();
+      for (const message of recentMessages ?? []) {
+        if (!latestByConversation.has(message.conversation_id)) {
+          latestByConversation.set(message.conversation_id, {
+            direction: message.direction,
+            created_at: message.created_at,
+          });
+        }
+      }
+      const pending = (data ?? [])
+        .filter((item: any) => latestByConversation.get(item.id)?.direction === 'inbound')
+        .sort((a: any, b: any) => {
+          const aDate = latestByConversation.get(a.id)?.created_at ?? '';
+          const bDate = latestByConversation.get(b.id)?.created_at ?? '';
+          return aDate.localeCompare(bDate);
+        })
+        .slice(0, limite);
+      return jsonResult(pending.map((item: any) => ({
         conversa_id: item.id,
         contato: Array.isArray(item.contacts) ? item.contacts[0]?.full_name ?? null : item.contacts?.full_name ?? null,
         canal: item.channel,
-        ultima_interacao_em: item.last_message_at,
+        ultima_interacao_em: latestByConversation.get(item.id)?.created_at ?? item.last_message_at,
         mensagens_nao_lidas: item.unread_count,
         atendente_id: item.assigned_to,
       })));
