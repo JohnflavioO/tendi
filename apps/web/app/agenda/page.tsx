@@ -1,7 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Loader2, Plus, RefreshCw, Settings2 } from 'lucide-react';
+import {
+  Briefcase, CalendarCheck, CalendarDays, CalendarX2, ChevronLeft, ChevronRight, CircleCheck, Flower2, Loader2, Plus, RefreshCw,
+  Scissors, Settings2, Stethoscope, Wallet,
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { WorkspaceShell } from '@/components/workspace-shell';
 import { useWorkspaceRole } from '@/lib/use-workspace-role';
@@ -17,6 +20,9 @@ import {
 } from '@/components/agenda/types';
 import { weekdayOf } from '@/lib/agenda';
 import { requestedOrganizationId, resolveCurrentOrganization } from '@/lib/current-organization';
+
+/** Ícone por segmento: mesma identidade visual da Configuração, agora também no dia a dia da agenda. */
+const SEGMENT_ICON: Record<string, typeof Scissors> = { barbershop: Scissors, clinic: Stethoscope, beauty: Flower2, other: Briefcase };
 
 export default function AgendaPage() {
   const supabase = useMemo(() => createClient() as any, []);
@@ -42,6 +48,7 @@ export default function AgendaPage() {
   const segment = isSegment(organization?.business_segment) ? organization!.business_segment as keyof typeof SEGMENT_INFO : 'other';
   const customerLabel = SEGMENT_INFO[segment].customer;
   const professionalLabel = SEGMENT_INFO[segment].professional;
+  const SegmentIcon = SEGMENT_ICON[segment] ?? Briefcase;
 
   const loadSetup = useCallback(async (organizationId: string) => {
     const [professionalRows, serviceRows, hourRows] = await Promise.all([
@@ -74,7 +81,7 @@ export default function AgendaPage() {
       if (!auth.user) { window.location.assign('/login'); return; }
       // Empresas em que a pessoa trabalha: vínculo ativo ou acesso de suporte liberado pelo cliente.
       const requested = requestedOrganizationId();
-      const { accessible: list } = await resolveCurrentOrganization<AgendaOrganization>(supabase, auth.user.id, 'id,name,slug,timezone,business_segment,agenda_settings', requested);
+      const { accessible: list } = await resolveCurrentOrganization<AgendaOrganization>(supabase, auth.user.id, 'id,name,slug,timezone,business_segment,agenda_settings,address', requested);
       if (!active) return;
       const selected = list.find(org => org.id === requested) ?? list[0] ?? null;
       if (!selected) { setLoading(false); return; }
@@ -115,7 +122,7 @@ export default function AgendaPage() {
     setRefreshing(true);
     setError('');
     try {
-      const { data: org } = await supabase.from('organizations').select('id,name,slug,timezone,business_segment,agenda_settings').eq('id', organization.id).maybeSingle();
+      const { data: org } = await supabase.from('organizations').select('id,name,slug,timezone,business_segment,agenda_settings,address').eq('id', organization.id).maybeSingle();
       if (org) setOrganization(org as AgendaOrganization);
       await Promise.all([loadSetup(organization.id), loadDay(organization.id, day, timeZone)]);
     } catch (err) { setError(agendaError(err)); } finally { setRefreshing(false); }
@@ -180,14 +187,17 @@ export default function AgendaPage() {
           ) : (
             <>
               <div>
-                <p className="text-sm font-semibold capitalize text-tendi-navy">{formatDayLong(day)}{day === today.day ? ' · hoje' : ''}</p>
+                <p className="flex items-center gap-2 text-sm font-semibold capitalize text-tendi-navy">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-tendi-tealsoft text-tendi-teal"><SegmentIcon size={14} /></span>
+                  {formatDayLong(day)}{day === today.day ? ' · hoje' : ''}
+                </p>
                 <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5">
-                  <Stat label="Marcados" value={summary.total} />
-                  <Stat label="Confirmados" value={summary.confirmed} tone="text-emerald-700" />
-                  <Stat label="Atendidos" value={summary.completed} />
-                  <Stat label="Faltas" value={summary.noShow} tone={summary.noShow ? 'text-rose-700' : undefined} />
-                  {rescheduleRequests > 0 && <Stat label="Pediram para remarcar" value={rescheduleRequests} tone="text-amber-700" />}
-                  {hasPrices && <Stat label="Previsto no dia" value={formatPrice(summary.expectedCents)} detail={summary.receivedCents ? `${formatPrice(summary.receivedCents)} já atendido` : undefined} />}
+                  <Stat label="Marcados" value={summary.total} icon={CalendarDays} iconClass="bg-tendi-mist text-tendi-indigo" />
+                  <Stat label="Confirmados" value={summary.confirmed} tone="text-emerald-700" icon={CircleCheck} iconClass="bg-emerald-50 text-emerald-600" />
+                  <Stat label="Atendidos" value={summary.completed} icon={CalendarCheck} iconClass="bg-tendi-tealsoft text-tendi-teal" />
+                  <Stat label="Faltas" value={summary.noShow} tone={summary.noShow ? 'text-rose-700' : undefined} icon={CalendarX2} iconClass="bg-rose-50 text-rose-600" />
+                  {rescheduleRequests > 0 && <Stat label="Pediram para remarcar" value={rescheduleRequests} tone="text-amber-700" icon={CalendarX2} iconClass="bg-amber-50 text-amber-700" />}
+                  {hasPrices && <Stat label="Previsto no dia" value={formatPrice(summary.expectedCents)} detail={summary.receivedCents ? `${formatPrice(summary.receivedCents)} já atendido` : undefined} icon={Wallet} iconClass="bg-tendi-blush text-tendi-magenta" />}
                 </div>
               </div>
               <DayGrid
@@ -225,11 +235,16 @@ export default function AgendaPage() {
   );
 }
 
-function Stat({ label, value, tone, detail }: { label: string; value: number | string; tone?: string; detail?: string }) {
+function Stat({ label, value, tone, detail, icon: Icon, iconClass }: {
+  label: string; value: number | string; tone?: string; detail?: string; icon: typeof CalendarCheck; iconClass: string;
+}) {
   return (
     <div className="td-card min-w-0 px-3 py-3.5 sm:px-4">
-      <p className="td-eyebrow">{label}</p>
-      <p className={`mt-1.5 break-words text-xl font-semibold tracking-tight tabular-nums sm:text-2xl ${tone ?? 'text-tendi-navy'}`}>{value}</p>
+      <div className="flex items-center gap-2">
+        <span className={`flex size-6 shrink-0 items-center justify-center rounded-lg ${iconClass}`}><Icon size={13} /></span>
+        <p className="td-eyebrow truncate">{label}</p>
+      </div>
+      <p className={`mt-2 break-words text-xl font-semibold tracking-tight tabular-nums sm:text-2xl ${tone ?? 'text-tendi-navy'}`}>{value}</p>
       {detail && <p className="text-[11px] text-slate-400">{detail}</p>}
     </div>
   );

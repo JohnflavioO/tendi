@@ -64,7 +64,7 @@ function seed(overrides: { publicBooking?: Row; org?: Row } = {}) {
   const db = new FakeDb();
   db.t.organizations.push({
     id: ORG, slug: SLUG, name: 'Barbearia Central', status: 'active', trial_ends_at: null, timezone: 'America/Sao_Paulo',
-    logo_url: null, agenda_settings: { publicBooking: { enabled: true, windowDays: 14, minNoticeMinutes: 60, ...overrides.publicBooking } },
+    logo_url: null, address: 'Rua das Palmeiras, 123 - Centro', agenda_settings: { publicBooking: { enabled: true, windowDays: 14, minNoticeMinutes: 60, ...overrides.publicBooking } },
     ...overrides.org,
   });
   db.t.agenda_professionals.push({ id: 'prof-1', organization_id: ORG, name: 'Rafael', color: '#004751', is_active: true, position: 0 });
@@ -94,6 +94,7 @@ describe('loadPublicAgenda', () => {
     db.t.agenda_services.push({ id: 'serv-2', organization_id: ORG, name: 'Barba (inativo)', duration_minutes: 20, price_cents: null, is_active: false });
     const agenda = await loadPublicAgenda(db as any, SLUG);
     expect(agenda?.organization.name).toBe('Barbearia Central');
+    expect(agenda?.organization.address).toBe('Rua das Palmeiras, 123 - Centro');
     expect(agenda?.professionals).toEqual([{ id: 'prof-1', name: 'Rafael', color: '#004751' }]);
     expect(agenda?.services).toEqual([{ id: 'serv-1', name: 'Corte', durationMinutes: 30, priceCents: 4000 }]);
   });
@@ -149,6 +150,8 @@ describe('createPublicBooking', () => {
     expect(db.t.contacts[0]).toMatchObject({ organization_id: ORG, full_name: 'Maria Souza', phone_e164: '+5585999990000' });
     expect(sendFn).toHaveBeenCalledTimes(1);
     expect(sendFn.mock.calls[0]![1].text).toContain('Rafael');
+    expect(sendFn.mock.calls[0]![1].text).toContain('Rua das Palmeiras, 123 - Centro');
+    expect(sendFn.mock.calls[0]![1].text).toContain('Precisa remarcar ou cancelar?');
   });
 
   it('rejeita horário que já não está mais livre', async () => {
