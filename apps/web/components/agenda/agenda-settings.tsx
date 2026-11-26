@@ -8,6 +8,7 @@ import {
   minutesOf, parsePrice, type Segment,
 } from '@/lib/agenda';
 import { ReminderSettingsCard } from '@/components/agenda/reminder-settings';
+import { PublicBookingSettingsCard } from '@/components/agenda/public-booking-settings';
 import { ScheduledRemindersCard } from '@/components/agenda/scheduled-reminders';
 import { fieldClass, labelClass, type AgendaOrganization, type HoursRow, type Professional, type Service } from '@/components/agenda/types';
 
@@ -29,7 +30,7 @@ function toDayForm(rows: HoursRow[]): DayForm {
 }
 
 /** Configuração da agenda: segmento, profissionais com horários e serviços. */
-export function AgendaSettings({ organization, professionals, services, hours, canManage, canManageOrganization, professionalLabel, onChanged }: {
+export function AgendaSettings({ organization, professionals, services, hours, canManage, canManageOrganization, professionalLabel, customerLabel, onChanged }: {
   organization: AgendaOrganization;
   professionals: Professional[];
   services: Service[];
@@ -38,6 +39,7 @@ export function AgendaSettings({ organization, professionals, services, hours, c
   /** Dono ou administrador: pode alterar dados da empresa (segmento e lembretes). */
   canManageOrganization: boolean;
   professionalLabel: string;
+  customerLabel: string;
   onChanged: () => Promise<void> | void;
 }) {
   const supabase = useMemo(() => createClient() as any, []);
@@ -243,6 +245,7 @@ export function AgendaSettings({ organization, professionals, services, hours, c
         </form>
       </section>
 
+      <PublicBookingSettingsCard key={`public-${JSON.stringify(organization.agenda_settings ?? null)}`} organization={organization} canManage={canManageOrganization} customerLabel={customerLabel} onChanged={onChanged} />
       <ReminderSettingsCard key={JSON.stringify(organization.agenda_settings ?? null)} organization={organization} canManage={canManageOrganization} professionalLabel={professionalLabel} onChanged={onChanged} />
       <ScheduledRemindersCard organizationId={organization.id} />
     </div>

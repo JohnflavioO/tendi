@@ -1,7 +1,7 @@
 import type { AppointmentStatus, Interval } from '@/lib/agenda';
 import { minutesOf } from '@/lib/agenda';
 
-export type AgendaOrganization = { id: string; name: string; timezone: string; business_segment: string | null; agenda_settings: unknown };
+export type AgendaOrganization = { id: string; name: string; slug: string; timezone: string; business_segment: string | null; agenda_settings: unknown };
 export type Professional = { id: string; name: string; color: string; is_active: boolean; position: number };
 export type Service = { id: string; name: string; duration_minutes: number; price_cents: number | null; is_active: boolean };
 export type HoursRow = { id?: string; professional_id: string; weekday: number; starts: string; ends: string };
