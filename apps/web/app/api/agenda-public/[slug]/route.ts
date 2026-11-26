@@ -18,7 +18,7 @@ export async function GET(_request: Request, { params }: Context) {
   const agenda = await loadPublicAgenda(admin, params.slug);
   if (!agenda) return NextResponse.json({ error: 'Agendamento não disponível.' }, { status: 404 });
   return NextResponse.json({
-    organization: { name: agenda.organization.name, segment: agenda.organization.segment, logoUrl: agenda.organization.logoUrl },
+    organization: { name: agenda.organization.name, segment: agenda.organization.segment, logoUrl: agenda.organization.logoUrl, address: agenda.organization.address },
     professionals: agenda.professionals,
     services: agenda.services,
   });

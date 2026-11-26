@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { Check, Copy, Download, Instagram, Link2, Loader2, Megaphone, QrCode } from 'lucide-react';
+import { Check, Copy, Download, Instagram, Link2, Loader2, MapPin, Megaphone, QrCode } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { createClient } from '@/lib/supabase/client';
 import { PUBLIC_BOOKING_NOTICE_OPTIONS, PUBLIC_BOOKING_WINDOW_OPTIONS, normalizePublicBookingSettings } from '@/lib/agenda-public';
@@ -21,13 +21,14 @@ export function PublicBookingSettingsCard({ organization, canManage, customerLab
   const [enabled, setEnabled] = useState(saved.enabled);
   const [windowDays, setWindowDays] = useState(saved.windowDays);
   const [minNoticeMinutes, setMinNoticeMinutes] = useState(saved.minNoticeMinutes);
+  const [address, setAddress] = useState(organization.address ?? '');
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const qrRef = useRef<HTMLCanvasElement>(null);
 
-  const dirty = enabled !== saved.enabled || windowDays !== saved.windowDays || minNoticeMinutes !== saved.minNoticeMinutes;
+  const dirty = enabled !== saved.enabled || windowDays !== saved.windowDays || minNoticeMinutes !== saved.minNoticeMinutes || address.trim() !== (organization.address ?? '');
   const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/agendar/${organization.slug}`;
 
   async function save() {
@@ -37,7 +38,7 @@ export function PublicBookingSettingsCard({ organization, canManage, customerLab
       ? (organization.agenda_settings as Record<string, unknown>)
       : {};
     const next = { ...current, publicBooking: { enabled, windowDays, minNoticeMinutes } };
-    const { data, error } = await supabase.from('organizations').update({ agenda_settings: next }).eq('id', organization.id).select('id');
+    const { data, error } = await supabase.from('organizations').update({ agenda_settings: next, address: address.trim() || null }).eq('id', organization.id).select('id');
     setSaving(false);
     if (error) { setMessage({ ok: false, text: `Não foi possível salvar: ${error.message}` }); return; }
     if (!(data ?? []).length) { setMessage({ ok: false, text: 'Só o dono ou um administrador pode alterar o agendamento público.' }); return; }
@@ -97,7 +98,15 @@ export function PublicBookingSettingsCard({ organization, canManage, customerLab
         </label>
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      <div className="mt-5">
+        <label htmlFor="public-booking-address" className={labelClass}>Endereço (aparece pro cliente, com link pro mapa)</label>
+        <div className="flex items-center gap-2">
+          <MapPin size={15} className="shrink-0 text-slate-400" />
+          <input id="public-booking-address" value={address} disabled={!canManage || saving} onChange={event => setAddress(event.target.value)} maxLength={200} placeholder="Rua, número, bairro, cidade" className={fieldClass} />
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="public-booking-window" className={labelClass}>Até quantos dias à frente</label>
           <select id="public-booking-window" value={windowDays} disabled={!canManage || saving} onChange={event => setWindowDays(Number(event.target.value))} className={fieldClass}>

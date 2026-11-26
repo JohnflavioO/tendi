@@ -20,11 +20,11 @@ type Db = SupabaseClient<any, any, any>;
 export type { PublicBookingSettings };
 
 type OrgRow = TrialOrganization & {
-  id: string; name: string; timezone: string | null; business_segment: string | null; agenda_settings: unknown; logo_url: string | null;
+  id: string; name: string; timezone: string | null; business_segment: string | null; agenda_settings: unknown; logo_url: string | null; address: string | null;
 };
 
 export type PublicAgendaOrganization = {
-  id: string; name: string; timezone: string; segment: string; logoUrl: string | null; settings: PublicBookingSettings;
+  id: string; name: string; timezone: string; segment: string; logoUrl: string | null; address: string | null; settings: PublicBookingSettings;
 };
 export type PublicProfessional = { id: string; name: string; color: string };
 export type PublicService = { id: string; name: string; durationMinutes: number; priceCents: number | null };
@@ -35,7 +35,7 @@ export type PublicAgenda = { organization: PublicAgendaOrganization; professiona
 export async function loadPublicAgenda(admin: Db, slug: string): Promise<PublicAgenda | null> {
   if (!slug || slug.length > 80) return null;
   const { data } = await admin.from('organizations')
-    .select(`id,name,timezone,business_segment,agenda_settings,logo_url,${ACCESS_COLUMNS}`)
+    .select(`id,name,timezone,business_segment,agenda_settings,logo_url,address,${ACCESS_COLUMNS}`)
     .eq('slug', slug).maybeSingle();
   const org = data as OrgRow | null;
   if (!org || isOrganizationBlocked(org)) return null;
@@ -55,7 +55,7 @@ export async function loadPublicAgenda(admin: Db, slug: string): Promise<PublicA
   return {
     organization: {
       id: org.id, name: org.name, timezone: org.timezone || DEFAULT_TIME_ZONE,
-      segment: org.business_segment || 'other', logoUrl: org.logo_url, settings,
+      segment: org.business_segment || 'other', logoUrl: org.logo_url, address: org.address, settings,
     },
     professionals, services,
   };
@@ -156,7 +156,8 @@ export async function createPublicBooking(admin: Db, agenda: PublicAgenda, input
   const timeLabel = formatMinutes(input.startMinutes);
   const sessionId = await connectedSession(admin, organization.id);
   if (sessionId) {
-    const text = `Olá, ${name}! Seu horário com ${professional.name} (${organization.name}) está marcado para ${dayLabel} às ${timeLabel}. Até lá!`;
+    const addressLine = organization.address ? `\n📍 ${organization.address}` : '';
+    const text = `Olá, ${name}! Seu horário com ${professional.name} (${organization.name}) está marcado para ${dayLabel} às ${timeLabel}.${addressLine}\n\nPrecisa remarcar ou cancelar? É só responder esta mensagem.`;
     await sendSystemMessage(admin, {
       organizationId: organization.id, sessionId, conversationId: conversation.id, phone, text,
       kind: 'public_booking_confirmation', appointmentId,

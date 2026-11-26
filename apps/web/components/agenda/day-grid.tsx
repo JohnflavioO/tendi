@@ -61,8 +61,8 @@ export function DayGrid({ day, timeZone, professionals, hours, appointments, now
           const mine = placed.filter(item => item.appointment.professional_id === professional.id);
           return (
             <div key={professional.id} className="min-w-[190px] flex-1 border-r border-tendi-line/70 last:border-r-0">
-              <div className="flex h-12 items-center gap-2 border-b border-tendi-line/70 px-3">
-                <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: professional.color }} />
+              <div className="flex h-12 items-center gap-2 border-b border-tendi-line/70 bg-tendi-haze/40 px-3">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: professional.color }}>{professional.name.charAt(0).toUpperCase()}</span>
                 <span className="truncate text-sm font-semibold text-tendi-navy">{professional.name}</span>
                 {!shifts.length && <span className="ml-auto flex shrink-0 items-center gap-1 text-[10px] text-slate-400"><CalendarOff size={12} />Folga</span>}
               </div>
@@ -88,7 +88,9 @@ export function DayGrid({ day, timeZone, professionals, hours, appointments, now
                   <div key={minute} className="pointer-events-none absolute inset-x-0 border-t border-tendi-line/70" style={{ top: (minute - from) * PX_PER_MINUTE }} />
                 ))}
                 {nowMinutes !== null && nowMinutes >= from && nowMinutes <= to && (
-                  <div className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-tendi-magenta" style={{ top: (nowMinutes - from) * PX_PER_MINUTE }} />
+                  <div className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-tendi-magenta" style={{ top: (nowMinutes - from) * PX_PER_MINUTE }}>
+                    <span className="absolute -left-1 -top-[7px] size-2.5 rounded-full bg-tendi-magenta" />
+                  </div>
                 )}
                 {mine.map(({ appointment, start, end }) => {
                   const info = STATUS_INFO[appointment.status] ?? STATUS_INFO.scheduled;

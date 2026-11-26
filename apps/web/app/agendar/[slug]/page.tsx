@@ -4,12 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   ArrowLeft, ArrowRight, Briefcase, Calendar, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock,
-  Flower2, Loader2, MessageCircle, Scissors, ShieldCheck, Stethoscope,
+  Flower2, Loader2, MapPin, MessageCircle, Scissors, ShieldCheck, Stethoscope,
 } from 'lucide-react';
 import { BrandLoader } from '@/components/brand-loader';
 import { SEGMENT_INFO, formatDayLong, formatDuration, formatPrice, isSegment, localParts, shiftDay } from '@/lib/agenda';
 
-type Organization = { name: string; segment: string; logoUrl: string | null };
+type Organization = { name: string; segment: string; logoUrl: string | null; address: string | null };
 type Professional = { id: string; name: string; color: string };
 type Service = { id: string; name: string; durationMinutes: number; priceCents: number | null };
 type Agenda = { organization: Organization; professionals: Professional[]; services: Service[] };
@@ -22,6 +22,15 @@ const STEP_ORDER: Step[] = ['service', 'professional', 'time', 'contact'];
 const SEGMENT_ICON: Record<string, typeof Scissors> = {
   barbershop: Scissors, clinic: Stethoscope, beauty: Flower2, other: Briefcase,
 };
+/** Cor de destaque do ícone por segmento (mesmas cores da marca, não tons genéricos de IA). */
+const SEGMENT_ACCENT: Record<string, { bg: string; fg: string }> = {
+  barbershop: { bg: 'bg-tendi-teal', fg: 'text-white' },
+  clinic: { bg: 'bg-tendi-magenta', fg: 'text-white' },
+  beauty: { bg: 'bg-tendi-magenta', fg: 'text-white' },
+  other: { bg: 'bg-white/10', fg: 'text-white' },
+};
+
+const mapsUrl = (address: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
 async function readJson(response: Response) {
   const body = await response.json().catch(() => ({}));
@@ -108,16 +117,21 @@ export default function PublicAgendaPage() {
   return (
     <div className="min-h-screen bg-tendi-haze/40 pb-16">
       {step === 'intro' ? (
-        <header className="bg-tendi-navy px-5 pb-12 pt-14 text-center text-white">
+        <header className="relative border-b-4 border-tendi-teal bg-tendi-navy px-5 pb-12 pt-16 text-center text-white">
           {agenda.organization.logoUrl
-            ? <img src={agenda.organization.logoUrl} alt={agenda.organization.name} className="mx-auto h-14 w-auto rounded-xl bg-white object-contain p-2" />
-            : <span className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-inset ring-white/15"><SegmentIcon size={28} /></span>}
-          <h1 className="mt-5 text-2xl font-extrabold tracking-tight">{agenda.organization.name}</h1>
-          <p className="mt-1.5 text-sm text-white/60">Agende seu horário em poucos cliques, sem precisar ligar</p>
-          <button type="button" onClick={() => setStep('service')} className="mt-7 inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-bold text-tendi-navy transition hover:-translate-y-0.5 hover:bg-white/90">
+            ? <img src={agenda.organization.logoUrl} alt={agenda.organization.name} className="mx-auto h-16 w-auto rounded-2xl bg-white object-contain p-2.5 shadow-pop" />
+            : <span className={`mx-auto flex size-16 items-center justify-center rounded-2xl shadow-pop ${SEGMENT_ACCENT[segment]?.bg} ${SEGMENT_ACCENT[segment]?.fg}`}><SegmentIcon size={28} /></span>}
+          <h1 className="mt-6 text-[28px] font-extrabold leading-tight tracking-tight">{agenda.organization.name}</h1>
+          <p className="mt-2 text-sm text-white/55">Agende seu horário em poucos cliques, sem precisar ligar</p>
+          {agenda.organization.address && (
+            <a href={mapsUrl(agenda.organization.address)} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-white/70 underline decoration-white/30 underline-offset-2 hover:text-white">
+              <MapPin size={13} />{agenda.organization.address}
+            </a>
+          )}
+          <button type="button" onClick={() => setStep('service')} className="mt-8 inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-bold text-tendi-navy transition hover:-translate-y-0.5 hover:bg-white/90">
             Quero agendar<ArrowRight size={16} />
           </button>
-          <ul className="mx-auto mt-8 flex max-w-sm flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] font-medium text-white/60">
+          <ul className="mx-auto mt-8 flex max-w-sm flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] font-medium text-white/55">
             <li className="flex items-center gap-1.5"><ShieldCheck size={13} />Sem conta, sem senha</li>
             <li className="flex items-center gap-1.5"><MessageCircle size={13} />Confirmação no WhatsApp</li>
             <li className="flex items-center gap-1.5"><Clock size={13} />Leva menos de 1 minuto</li>
@@ -158,7 +172,9 @@ export default function PublicAgendaPage() {
                       <span className="block text-sm font-semibold text-tendi-navy">{item.name}</span>
                       <span className="block text-xs text-slate-400">{formatDuration(item.durationMinutes)}</span>
                     </span>
-                    {item.priceCents !== null && <span className="shrink-0 text-sm font-bold text-tendi-navy">{formatPrice(item.priceCents)}</span>}
+                    {item.priceCents !== null
+                      ? <span className="shrink-0 text-sm font-bold text-tendi-navy">{formatPrice(item.priceCents)}</span>
+                      : <span className="shrink-0 text-xs font-medium italic text-slate-400">Sob consulta</span>}
                   </button>
                 </li>
               ))}
@@ -239,7 +255,13 @@ export default function PublicAgendaPage() {
             <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-tendi-tealsoft text-tendi-teal"><CheckCircle2 size={26} /></span>
             <h2 className="td-title mt-4 text-base">Agendamento confirmado!</h2>
             <p className="mt-2 text-sm text-slate-600">{service.name} com {professional.name}, <span className="capitalize">{formatDayLong(day)}</span> às {formatTime(startMinutes)}.</p>
+            {agenda.organization.address && (
+              <a href={mapsUrl(agenda.organization.address)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-tendi-teal underline decoration-tendi-teal/30 underline-offset-2 hover:text-tendi-navy">
+                <MapPin size={12} />{agenda.organization.address}
+              </a>
+            )}
             <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-400"><MessageCircle size={13} />Você vai receber a confirmação pelo WhatsApp.</p>
+            <p className="mt-1 text-[11px] text-slate-400">Precisa remarcar ou cancelar? É só responder a mensagem no WhatsApp.</p>
           </section>
         )}
 
