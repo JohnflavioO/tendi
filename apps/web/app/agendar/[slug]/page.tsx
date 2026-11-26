@@ -117,8 +117,8 @@ export default function PublicAgendaPage() {
   return (
     <div className="min-h-screen bg-tendi-haze/40 pb-16">
       {step === 'intro' ? (
-        <header className="border-b border-tendi-line bg-white px-5 pb-10 pt-16 text-center">
-          <div className="mx-auto max-w-sm">
+        <header className="flex min-h-screen flex-col items-center justify-center bg-white px-5 py-12 text-center">
+          <div className="mx-auto w-full max-w-sm">
             {agenda.organization.logoUrl
               ? <img src={agenda.organization.logoUrl} alt={agenda.organization.name} className="mx-auto h-14 w-auto object-contain" />
               : <span className={`mx-auto flex size-14 items-center justify-center rounded-2xl ${SEGMENT_ACCENT[segment]?.bg} ${SEGMENT_ACCENT[segment]?.fg}`}><SegmentIcon size={24} /></span>}
@@ -138,6 +138,21 @@ export default function PublicAgendaPage() {
               <li className="flex items-center gap-1.5"><MessageCircle size={13} />Confirmação no WhatsApp</li>
               <li className="flex items-center gap-1.5"><Clock size={13} />Leva menos de 1 minuto</li>
             </ul>
+
+            {agenda.services.length > 0 && (
+              <div className="mt-8 rounded-2xl border border-tendi-line bg-tendi-haze/50 p-4 text-left">
+                <p className="text-[11px] font-bold uppercase tracking-[.1em] text-slate-400">Serviços disponíveis</p>
+                <ul className="mt-2.5 divide-y divide-tendi-line/70">
+                  {agenda.services.slice(0, 3).map(item => (
+                    <li key={item.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                      <span className="min-w-0 truncate font-medium text-tendi-navy">{item.name}</span>
+                      <span className="shrink-0 text-xs text-slate-400">{formatDuration(item.durationMinutes)}{item.priceCents !== null ? ` · ${formatPrice(item.priceCents)}` : ''}</span>
+                    </li>
+                  ))}
+                </ul>
+                {agenda.services.length > 3 && <p className="mt-2 text-xs text-slate-400">+{agenda.services.length - 3} outro{agenda.services.length - 3 > 1 ? 's' : ''} serviço{agenda.services.length - 3 > 1 ? 's' : ''}</p>}
+              </div>
+            )}
           </div>
         </header>
       ) : (
@@ -155,7 +170,7 @@ export default function PublicAgendaPage() {
         </div>
       )}
 
-      <main className="mx-auto mt-4 max-w-md px-5">
+      <main className={step === 'intro' ? '' : 'mx-auto mt-4 max-w-md px-5'}>
         {step !== 'intro' && step !== 'service' && step !== 'done' && (
           <button type="button" onClick={goBack} className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-tendi-navy">
             <ArrowLeft size={15} />Voltar
