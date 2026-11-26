@@ -23,6 +23,11 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname === '/webchat.js' || request.nextUrl.pathname.startsWith('/api/webchat/')) {
     return NextResponse.next({ request });
   }
+  // Agendamento público: o cliente final marca o próprio horário sem fazer login no Tendi. A tela e
+  // as rotas que ela chama (sem sessão; cada rota valida o slug e o recurso ligado) ficam fora do login.
+  if (request.nextUrl.pathname.startsWith('/agendar/') || request.nextUrl.pathname.startsWith('/api/agenda-public/')) {
+    return NextResponse.next({ request });
+  }
   // Link de confirmação que caiu na página inicial (ex.: redirect fora da lista permitida
   // do Supabase): encaminha o código para o callback, que conclui o login e o cadastro.
   if (request.nextUrl.pathname === '/' && request.nextUrl.searchParams.has('code')) {
