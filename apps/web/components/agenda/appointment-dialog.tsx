@@ -165,6 +165,19 @@ export function AppointmentDialog({ draft, organizationId, timeZone, professiona
       setError(result.error.code === '23P01' ? 'Esse horário acabou de ser ocupado. Escolha outro.' : `Não foi possível salvar: ${result.error.message}`);
       return;
     }
+
+    // Mudança feita pela equipe num agendamento existente: avisa o cliente por WhatsApp (melhor esforço;
+    // sem WhatsApp cadastrado ou conectado, simplesmente não envia, sem travar o salvamento).
+    if (editing && phoneValue) {
+      const becameCancelled = status === 'cancelled' && editing.status !== 'cancelled';
+      const timeChanged = Date.parse(editing.starts_at) !== startsAt.getTime();
+      const action = becameCancelled ? 'cancelled' : (status !== 'cancelled' && timeChanged ? 'rescheduled' : null);
+      if (action) {
+        fetch(`/api/agenda/appointments/${editing.id}/notify`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }),
+        }).catch(() => undefined);
+      }
+    }
     onSaved(day);
   }
 
