@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Check, Copy, Link2, Loader2 } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { Check, Copy, Download, Instagram, Link2, Loader2, Megaphone, QrCode } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { createClient } from '@/lib/supabase/client';
 import { PUBLIC_BOOKING_NOTICE_OPTIONS, PUBLIC_BOOKING_WINDOW_OPTIONS, normalizePublicBookingSettings } from '@/lib/agenda-public';
 import { fieldClass, labelClass, type AgendaOrganization } from '@/components/agenda/types';
@@ -23,6 +24,7 @@ export function PublicBookingSettingsCard({ organization, canManage, customerLab
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const qrRef = useRef<HTMLCanvasElement>(null);
 
   const dirty = enabled !== saved.enabled || windowDays !== saved.windowDays || minNoticeMinutes !== saved.minNoticeMinutes;
   const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/agendar/${organization.slug}`;
@@ -44,6 +46,15 @@ export function PublicBookingSettingsCard({ organization, canManage, customerLab
 
   async function copyLink() {
     try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* o navegador recusou a cópia automática */ }
+  }
+
+  function downloadQr() {
+    const canvas = qrRef.current;
+    if (!canvas) return;
+    const anchor = document.createElement('a');
+    anchor.href = canvas.toDataURL('image/png');
+    anchor.download = `agendamento-${organization.slug}.png`;
+    anchor.click();
   }
 
   return (
@@ -77,12 +88,25 @@ export function PublicBookingSettingsCard({ organization, canManage, customerLab
         </div>
       </div>
 
-      {saved.enabled && (
-        <div className="mt-4 flex items-center gap-2 rounded-xl border border-tendi-line bg-tendi-haze/60 px-3 py-2.5">
-          <code className="min-w-0 flex-1 truncate text-xs text-slate-600">{link}</code>
-          <button type="button" onClick={() => void copyLink()} className="flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 text-[11px] font-semibold text-tendi-navy shadow-card hover:bg-slate-50">{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? 'Copiado' : 'Copiar link'}</button>
+      <div className={`mt-4 rounded-xl border border-tendi-line p-3.5 ${saved.enabled ? 'bg-tendi-haze/60' : 'bg-slate-50'}`}>
+        {!saved.enabled && <p className="mb-2.5 text-xs font-medium text-amber-700">Ligue e salve para este link funcionar. Ele já pode ser copiado para deixar tudo pronto.</p>}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <code className="min-w-0 flex-1 truncate text-xs text-slate-600">{link}</code>
+            <button type="button" onClick={() => void copyLink()} className="flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 text-[11px] font-semibold text-tendi-navy shadow-card hover:bg-slate-50">{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? 'Copiado' : 'Copiar link'}</button>
+          </div>
+          <div className="flex shrink-0 items-center gap-2.5 sm:border-l sm:border-tendi-line sm:pl-3">
+            <div className="rounded-lg bg-white p-1.5 shadow-card"><QRCodeCanvas ref={qrRef} value={link} size={64} level="M" /></div>
+            <button type="button" onClick={downloadQr} className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-white px-2.5 py-1.5 text-[11px] font-semibold text-tendi-navy shadow-card hover:bg-slate-50"><Download size={13} />Baixar QR</button>
+          </div>
         </div>
-      )}
+      </div>
+
+      <ul className="mt-3 space-y-1.5 text-[11px] leading-4 text-slate-500">
+        <li className="flex items-start gap-1.5"><Instagram size={13} className="mt-px shrink-0" />Cole esse link na bio do Instagram ou do WhatsApp Business.</li>
+        <li className="flex items-start gap-1.5"><Megaphone size={13} className="mt-px shrink-0" />Use como destino de anúncios (Meta Ads, Google Ads).</li>
+        <li className="flex items-start gap-1.5"><QrCode size={13} className="mt-px shrink-0" />Imprima o QR code no balcão, num cartão ou numa plaquinha.</li>
+      </ul>
 
       {message && <p role={message.ok ? 'status' : 'alert'} className={`mt-4 rounded-xl px-4 py-3 text-sm ${message.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700'}`}>{message.text}</p>}
       <div className="mt-4 flex items-center gap-3">
