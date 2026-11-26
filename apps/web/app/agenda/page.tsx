@@ -74,7 +74,7 @@ export default function AgendaPage() {
       if (!auth.user) { window.location.assign('/login'); return; }
       // Empresas em que a pessoa trabalha: vínculo ativo ou acesso de suporte liberado pelo cliente.
       const requested = requestedOrganizationId();
-      const { accessible: list } = await resolveCurrentOrganization<AgendaOrganization>(supabase, auth.user.id, 'id,name,timezone,business_segment,agenda_settings', requested);
+      const { accessible: list } = await resolveCurrentOrganization<AgendaOrganization>(supabase, auth.user.id, 'id,name,slug,timezone,business_segment,agenda_settings', requested);
       if (!active) return;
       const selected = list.find(org => org.id === requested) ?? list[0] ?? null;
       if (!selected) { setLoading(false); return; }
@@ -115,7 +115,7 @@ export default function AgendaPage() {
     setRefreshing(true);
     setError('');
     try {
-      const { data: org } = await supabase.from('organizations').select('id,name,timezone,business_segment,agenda_settings').eq('id', organization.id).maybeSingle();
+      const { data: org } = await supabase.from('organizations').select('id,name,slug,timezone,business_segment,agenda_settings').eq('id', organization.id).maybeSingle();
       if (org) setOrganization(org as AgendaOrganization);
       await Promise.all([loadSetup(organization.id), loadDay(organization.id, day, timeZone)]);
     } catch (err) { setError(agendaError(err)); } finally { setRefreshing(false); }
@@ -169,7 +169,7 @@ export default function AgendaPage() {
           {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
           {tab === 'settings' ? (
-            <AgendaSettings organization={organization} professionals={professionals} services={services} hours={hours} canManage={canManage} canManageOrganization={canManageOrganization} professionalLabel={professionalLabel} onChanged={refresh} />
+            <AgendaSettings organization={organization} professionals={professionals} services={services} hours={hours} canManage={canManage} canManageOrganization={canManageOrganization} professionalLabel={professionalLabel} customerLabel={customerLabel} onChanged={refresh} />
           ) : setupMissing ? (
             <div className="td-card min-w-0 border-dashed px-5 py-8 text-center sm:p-8">
               <CalendarDays className="mx-auto text-tendi-magenta" size={30} />

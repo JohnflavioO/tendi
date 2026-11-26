@@ -35,7 +35,7 @@ const errorText = (error: unknown) => (error instanceof Error ? error.message : 
 
 type Connection = { provider_account_id: string | null; status: string };
 
-async function connectedSession(db: Db, organizationId: string): Promise<string | null> {
+export async function connectedSession(db: Db, organizationId: string): Promise<string | null> {
   const { data } = await db.from('channel_connections').select('provider_account_id,status')
     .eq('organization_id', organizationId).eq('channel', 'whatsapp').maybeSingle();
   const connection = data as Connection | null;
