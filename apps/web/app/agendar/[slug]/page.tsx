@@ -117,25 +117,28 @@ export default function PublicAgendaPage() {
   return (
     <div className="min-h-screen bg-tendi-haze/40 pb-16">
       {step === 'intro' ? (
-        <header className="relative border-b-4 border-tendi-teal bg-tendi-navy px-5 pb-12 pt-16 text-center text-white">
-          {agenda.organization.logoUrl
-            ? <img src={agenda.organization.logoUrl} alt={agenda.organization.name} className="mx-auto h-16 w-auto rounded-2xl bg-white object-contain p-2.5 shadow-pop" />
-            : <span className={`mx-auto flex size-16 items-center justify-center rounded-2xl shadow-pop ${SEGMENT_ACCENT[segment]?.bg} ${SEGMENT_ACCENT[segment]?.fg}`}><SegmentIcon size={28} /></span>}
-          <h1 className="mt-6 text-[28px] font-extrabold leading-tight tracking-tight">{agenda.organization.name}</h1>
-          <p className="mt-2 text-sm text-white/55">Agende seu horário em poucos cliques, sem precisar ligar</p>
-          {agenda.organization.address && (
-            <a href={mapsUrl(agenda.organization.address)} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-white/70 underline decoration-white/30 underline-offset-2 hover:text-white">
-              <MapPin size={13} />{agenda.organization.address}
-            </a>
-          )}
-          <button type="button" onClick={() => setStep('service')} className="mt-8 inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-bold text-tendi-navy transition hover:-translate-y-0.5 hover:bg-white/90">
-            Quero agendar<ArrowRight size={16} />
-          </button>
-          <ul className="mx-auto mt-8 flex max-w-sm flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] font-medium text-white/55">
-            <li className="flex items-center gap-1.5"><ShieldCheck size={13} />Sem conta, sem senha</li>
-            <li className="flex items-center gap-1.5"><MessageCircle size={13} />Confirmação no WhatsApp</li>
-            <li className="flex items-center gap-1.5"><Clock size={13} />Leva menos de 1 minuto</li>
-          </ul>
+        <header className="border-b border-tendi-line bg-white px-5 pb-10 pt-16 text-center">
+          <div className="mx-auto max-w-sm">
+            {agenda.organization.logoUrl
+              ? <img src={agenda.organization.logoUrl} alt={agenda.organization.name} className="mx-auto h-14 w-auto object-contain" />
+              : <span className={`mx-auto flex size-14 items-center justify-center rounded-2xl ${SEGMENT_ACCENT[segment]?.bg} ${SEGMENT_ACCENT[segment]?.fg}`}><SegmentIcon size={24} /></span>}
+            <p className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-tendi-line bg-tendi-haze px-3 py-1 text-[10px] font-bold uppercase tracking-[.12em] text-slate-500">Agendamento online</p>
+            <h1 className="mt-3 text-[26px] font-extrabold leading-tight tracking-tight text-tendi-navy">{agenda.organization.name}</h1>
+            <p className="mt-2 text-sm text-slate-500">Agende seu horário em poucos cliques, sem precisar ligar</p>
+            {agenda.organization.address && (
+              <a href={mapsUrl(agenda.organization.address)} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-tendi-teal underline decoration-tendi-teal/30 underline-offset-2 hover:text-tendi-navy">
+                <MapPin size={13} />{agenda.organization.address}
+              </a>
+            )}
+            <button type="button" onClick={() => setStep('service')} className="mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-tendi-navy px-6 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#13153a]">
+              Quero agendar<ArrowRight size={16} />
+            </button>
+            <ul className="mx-auto mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] font-medium text-slate-400">
+              <li className="flex items-center gap-1.5"><ShieldCheck size={13} />Sem conta, sem senha</li>
+              <li className="flex items-center gap-1.5"><MessageCircle size={13} />Confirmação no WhatsApp</li>
+              <li className="flex items-center gap-1.5"><Clock size={13} />Leva menos de 1 minuto</li>
+            </ul>
+          </div>
         </header>
       ) : (
         <header className="border-b border-tendi-line bg-white px-5 py-5 text-center">
