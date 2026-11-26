@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Briefcase, Flower2, Loader2, Lock, Plus, Scissors, Stethoscope, Trash2 } from 'lucide-react';
+import { Briefcase, Flower2, Loader2, Lock, Pencil, Plus, Scissors, Stethoscope, Trash2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
   DEFAULT_WEEK_HOURS, PROFESSIONAL_COLORS, SEGMENTS, SEGMENT_INFO, WEEKDAY_LABELS, formatDuration, formatPrice, isSegment,
@@ -56,6 +56,7 @@ export function AgendaSettings({ organization, professionals, services, hours, c
   const [newProfessional, setNewProfessional] = useState('');
   const [newService, setNewService] = useState({ name: '', duration: '30', price: '' });
   const [editingHours, setEditingHours] = useState<{ professionalId: string; days: DayForm[] } | null>(null);
+  const [editingService, setEditingService] = useState<{ id: string; name: string; duration: string; price: string } | null>(null);
   const segment: Segment | '' = isSegment(organization.business_segment) ? organization.business_segment : '';
 
   async function run(key: string, action: () => Promise<{ error: { message: string } | null } | void>, success?: string) {
@@ -115,6 +116,28 @@ export function AgendaSettings({ organization, professionals, services, hours, c
 
   const toggleService = (service: Service) => run(`s-${service.id}`, () =>
     supabase.from('agenda_services').update({ is_active: !service.is_active }).eq('id', service.id).eq('organization_id', organization.id));
+
+  const openServiceEdit = (service: Service) => {
+    setMessage(null);
+    setEditingService({
+      id: service.id, name: service.name, duration: String(service.duration_minutes),
+      price: service.price_cents === null ? '' : (service.price_cents / 100).toFixed(2).replace('.', ','),
+    });
+  };
+
+  const saveServiceEdit = () => run('service-edit', async () => {
+    if (!editingService) return;
+    const name = editingService.name.trim();
+    const duration = Number(editingService.duration);
+    const price = parsePrice(editingService.price);
+    if (!name) return { error: { message: 'Informe o nome do serviço.' } };
+    if (!Number.isInteger(duration) || duration < 5 || duration > 480) return { error: { message: 'A duração deve ficar entre 5 e 480 minutos.' } };
+    if (Number.isNaN(price)) return { error: { message: 'Valor inválido. Use o formato 49,90.' } };
+    const result = await supabase.from('agenda_services').update({ name, duration_minutes: duration, price_cents: price })
+      .eq('id', editingService.id).eq('organization_id', organization.id);
+    if (!result.error) setEditingService(null);
+    return result;
+  }, 'Serviço atualizado.');
 
   function openHours(professionalId: string) {
     setMessage(null);
@@ -265,11 +288,28 @@ export function AgendaSettings({ organization, professionals, services, hours, c
                 <p className={`truncate text-sm font-semibold ${service.is_active ? 'text-tendi-navy' : 'text-slate-400 line-through'}`}>{service.name}</p>
                 <p className="text-[11px] text-slate-400">{formatDuration(service.duration_minutes)}{service.price_cents !== null ? ` · ${formatPrice(service.price_cents)}` : ''}</p>
               </div>
+              <button type="button" disabled={!canManage} onClick={() => openServiceEdit(service)} className={smallButton}><Pencil size={12} />Editar</button>
               <button type="button" disabled={!canManage || busy === `s-${service.id}`} onClick={() => void toggleService(service)} className={smallButton}>{service.is_active ? <span className="flex items-center gap-1"><Trash2 size={12} />Desativar</span> : 'Reativar'}</button>
             </li>
           ))}
           {!services.length && <li className="py-3 text-sm text-slate-400">Nenhum serviço cadastrado ainda.</li>}
         </ul>
+
+        {editingService && (
+          <div className="mt-3 rounded-xl border border-tendi-line bg-[#FBFCFE] p-4">
+            <div className="flex items-center justify-between">
+              <p className="td-title">Editar serviço</p>
+              <button type="button" onClick={() => setEditingService(null)} className="td-icon-btn"><X size={16} /></button>
+            </div>
+            <form onSubmit={event => { event.preventDefault(); void saveServiceEdit(); }} className="mt-3 grid gap-2 sm:grid-cols-[1fr_130px_130px_auto]">
+              <input value={editingService.name} onChange={event => setEditingService({ ...editingService, name: event.target.value })} maxLength={80} placeholder="Nome do serviço" aria-label="Nome do serviço" className={fieldClass} />
+              <input type="number" min={5} max={480} step={5} value={editingService.duration} onChange={event => setEditingService({ ...editingService, duration: event.target.value })} aria-label="Duração em minutos" title="Duração em minutos" className={fieldClass} />
+              <input value={editingService.price} onChange={event => setEditingService({ ...editingService, price: event.target.value })} inputMode="decimal" placeholder="Valor (R$)" aria-label="Valor em reais" className={fieldClass} />
+              <button disabled={busy === 'service-edit'} className={primaryButton}>{busy === 'service-edit' && <Loader2 size={15} className="animate-spin" />}Salvar</button>
+            </form>
+          </div>
+        )}
+
         <form onSubmit={event => { event.preventDefault(); void addService(); }} className="mt-3 grid gap-2 sm:grid-cols-[1fr_130px_130px_auto]">
           <input value={newService.name} onChange={event => setNewService({ ...newService, name: event.target.value })} disabled={!canManage} maxLength={80} placeholder="Nome do serviço" aria-label="Nome do serviço" className={fieldClass} />
           <input type="number" min={5} max={480} step={5} value={newService.duration} onChange={event => setNewService({ ...newService, duration: event.target.value })} disabled={!canManage} aria-label="Duração em minutos" title="Duração em minutos" className={fieldClass} />
