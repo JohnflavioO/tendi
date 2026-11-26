@@ -4,6 +4,9 @@ import { isPublicMarketingPath } from './lib/marketing-routes';
 import { ACCESS_COLUMNS, isTrialExemptPath, shouldBlockAccess } from './lib/trial';
 
 export async function middleware(request: NextRequest) {
+  // MCP remoto: autenticação Bearer obrigatória e validada dentro da rota /api/mcp.
+  // Não depende de cookie de sessão do navegador.
+  if (request.nextUrl.pathname === '/api/mcp') return NextResponse.next({ request });
   // Pré-carga de telas pelo menu (next/link): o navegador busca a tela antes do clique. Ela não traz
   // dados (as telas do painel buscam tudo no navegador, com o login da pessoa e as regras do banco),
   // então não precisa consultar login nem empresa aqui: evita várias chamadas ao banco por clique.
