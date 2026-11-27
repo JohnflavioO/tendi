@@ -31,6 +31,7 @@ import { SupportBanner } from '@/components/support-banner';
 import { channelSupportsAi } from '@/lib/ai-agent';
 import { mergeMessages, previewText, statusLabel } from '@/lib/inbox-utils';
 import { channelLabel } from '@/lib/channels';
+import { playNotificationSound } from '@/lib/notification-sound';
 import { planBadge, type PlanBadge } from '@/lib/complimentary';
 
 type Org = { id: string; name: string };
@@ -223,11 +224,20 @@ export default function InboxPage() {
   useEffect(() => {
     if (!organizationId) return;
     const channel = supabase.channel(`tendi-inbox-${organizationId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `organization_id=eq.${organizationId}` }, () => { void loadInbox(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `organization_id=eq.${organizationId}` }, (payload: { eventType: string; new: { direction?: string } | null }) => {
+        if (payload.eventType === 'INSERT' && payload.new?.direction === 'inbound') playNotificationSound();
+        void loadInbox();
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `organization_id=eq.${organizationId}` }, () => { void loadInbox(); })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [organizationId, loadInbox, supabase]);
+
+  // Título da aba com o total de não lidas: dá pra notar mensagem nova mesmo com outra aba em foco.
+  useEffect(() => {
+    const unread = conversations.filter(item => item.unread_count > 0).length;
+    document.title = unread > 0 ? `(${unread}) Inbox · TendiDesk` : 'TendiDesk — Atendimento e CRM';
+  }, [conversations]);
 
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
   // Ao abrir uma conversa, carrega o histórico dela.
