@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowRight, CheckCircle2, ChevronDown, ReceiptText, Workflow,
@@ -99,30 +100,49 @@ export default async function MarketingHome() {
   const startPrice = plans.map(plan => plan.annualPrice ? Math.min(plan.monthlyPrice ?? Infinity, plan.annualPrice / 12) : plan.monthlyPrice ?? Infinity).reduce((a, b) => Math.min(a, b), Infinity);
   return (
     <>
-      <section className="bg-[#25275B] text-white" aria-labelledby="landing-title">
-        <div className="mx-auto grid max-w-[1280px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_1fr] lg:gap-16 lg:py-24">
-          <div>
-            <p className="mb-5 text-sm font-semibold text-[#E9B9E0]">Atendimento e CRM para equipes</p>
-            <h1 id="landing-title" className="max-w-[12ch] text-[clamp(2.65rem,6.1vw,5.25rem)] font-bold leading-[1.02] tracking-[-.055em]">
-              Do primeiro oi <span className="text-[#E9B9E0]">à próxima venda.</span>
+      <section className="overflow-hidden bg-[#103C37] text-[#FFF8E9]" aria-labelledby="landing-title">
+        <div className="relative mx-auto max-w-[1600px] lg:grid lg:grid-cols-[.85fr_1.15fr]">
+          <div className="relative z-10 px-5 pb-10 pt-12 sm:px-10 sm:pt-16 lg:-mr-24 lg:pb-16 lg:pl-[max(2.5rem,calc((100vw-75rem)/2))] lg:pt-20">
+            <p className="flex items-center gap-3 text-sm font-semibold text-[#F6D27C]">
+              <span aria-hidden="true" className="h-px w-8 bg-current" /> Atendimento e CRM
+            </p>
+            <h1 id="landing-title" className="mt-6 text-[clamp(2.75rem,7.5vw,6.5rem)] leading-[.96] tracking-[-.065em]">
+              <span className="block font-extrabold">Quem ficou</span>
+              <span className="block font-serif font-normal italic tracking-[-.075em] text-[#F6D27C]">de responder?</span>
             </h1>
-            <p className="mt-7 max-w-md text-base leading-7 text-white/85">{siteContent.heroDescription}</p>
-            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
-              <Link href="/register" className="inline-flex min-h-12 items-center gap-2 rounded-md bg-[#E9B9E0] px-5 text-sm font-bold text-[#25275B] transition hover:bg-white">
-                {siteContent.primaryCta}<ArrowRight size={17} aria-hidden="true" />
+            <p className="mt-7 max-w-[30ch] text-lg leading-relaxed text-[#FFF8E9]/90">
+              Veja quem assumiu cada conversa, o que já foi combinado e quando é hora de retomar.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <Link href="/register" className="inline-flex min-h-12 items-center gap-3 rounded-sm bg-[#F6D27C] px-5 text-sm font-bold text-[#103C37] transition hover:bg-[#FFF8E9]">
+                {siteContent.primaryCta}<ArrowRight size={18} aria-hidden="true" />
               </Link>
-              <a href="#como-funciona" className="py-2 text-sm font-semibold underline decoration-white/45 underline-offset-4 hover:decoration-white">
+              <a href="#como-funciona" className="py-2 text-sm font-semibold underline decoration-[#FFF8E9]/50 underline-offset-4 hover:decoration-[#FFF8E9]">
                 Veja como funciona
               </a>
             </div>
-            <p className="mt-5 text-sm text-white/75">
+            <p className="mt-5 text-sm text-[#FFF8E9]/80">
               {trialLabel} grátis · sem cartão · a partir de {Number.isFinite(startPrice) ? startPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : 'R$ 160'}/mês
             </p>
           </div>
-          <figure className="min-w-0 rounded-xl bg-[#DADBF1] p-3 sm:p-7">
-            <ProductPreview />
-            <figcaption className="mx-auto mt-4 max-w-[570px] text-xs font-medium text-[#3E406A]">
-              Central de atendimento TendiDesk · prévia ilustrativa
+
+          <figure className="relative isolate flex min-h-[23rem] items-end justify-end px-5 pb-5 sm:min-h-[30rem] sm:p-8 lg:min-h-full lg:pr-12">
+            <Image
+              src="/brand/landing-atendimento.webp"
+              alt=""
+              fill
+              priority
+              sizes="(min-width: 1600px) 920px, (min-width: 1024px) 58vw, 100vw"
+              className="-z-20 object-cover object-[62%_center]"
+            />
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-[#103C37] via-transparent to-transparent lg:bg-gradient-to-r lg:from-[#103C37] lg:via-[#103C37]/15 lg:to-transparent" />
+            <figcaption className="w-full max-w-[17rem] border-l-4 border-[#F6D27C] bg-[#FFF8E9] px-4 py-3 text-[#103C37] shadow-lg sm:px-5 sm:py-4">
+              <p className="text-xs font-semibold">Exemplo de atendimento</p>
+              <p className="mt-1.5 text-base font-bold leading-snug">“Pode me mandar a proposta?”</p>
+              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-t border-[#103C37]/20 pt-3 text-xs">
+                <dt>Responsável</dt><dd className="font-semibold">Ana · Comercial</dd>
+                <dt>Próximo passo</dt><dd className="font-semibold">Enviar proposta amanhã</dd>
+              </dl>
             </figcaption>
           </figure>
         </div>
