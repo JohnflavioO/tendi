@@ -35,6 +35,7 @@ export default function AgendaPage() {
   const [day, setDay] = useState('');
   const [tab, setTab] = useState<'day' | 'settings'>(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'settings' ? 'settings' : 'day');
   const [filter, setFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'' | 'confirmed' | 'completed' | 'no_show' | 'reschedule'>('');
   const [draft, setDraft] = useState<AppointmentDraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -134,6 +135,18 @@ export default function AgendaPage() {
   const shownIds = new Set(shown.map(item => item.id));
   const dayAppointments = appointments.filter(item => shownIds.has(item.professional_id));
   const summary = daySummary(dayAppointments);
+  const visibleAppointments = dayAppointments.filter(item => {
+    if (!statusFilter) return true;
+    if (statusFilter === 'reschedule') return item.reminder_reply === 'reschedule' && item.status === 'scheduled';
+    return item.status === statusFilter;
+  });
+
+  async function quickStatus(appointment: Appointment, status: 'completed' | 'no_show') {
+    if (!organization) return;
+    const { error: updateError } = await supabase.from('appointments').update({ status }).eq('id', appointment.id).eq('organization_id', organization.id);
+    if (updateError) { setError(updateError.message); return; }
+    await loadDay(organization.id, day, timeZone).catch(err => setError(agendaError(err)));
+  }
   const hasPrices = dayAppointments.some(item => item.price_cents !== null);
   const rescheduleRequests = dayAppointments.filter(item => item.reminder_reply === 'reschedule' && item.status === 'scheduled').length;
   const setupMissing = !activeProfessionals.length || !services.some(service => service.is_active);
@@ -168,13 +181,6 @@ export default function AgendaPage() {
                     <span className="hidden h-6 w-px shrink-0 bg-tendi-line sm:block" />
                     <button type="button" onClick={() => setDay(today.day)} className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold text-tendi-teal transition hover:bg-tendi-tealsoft">Hoje</button>
                   </>}
-                  {activeProfessionals.length > 1 && <>
-                    <span className="hidden h-6 w-px shrink-0 bg-tendi-line sm:block" />
-                    <select value={filter} onChange={event => setFilter(event.target.value)} aria-label={`Filtrar por ${professionalLabel.toLowerCase()}`} className="td-input min-w-0 flex-1 !border-0 !shadow-none font-semibold text-slate-600 sm:w-auto sm:flex-none">
-                      <option value="">Todos</option>
-                      {activeProfessionals.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-                    </select>
-                  </>}
                   <span className="hidden h-6 w-px shrink-0 bg-tendi-line sm:block" />
                   <button type="button" onClick={() => void refresh()} disabled={refreshing} aria-label="Atualizar" title="Atualizar" className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-tendi-haze hover:text-tendi-indigo disabled:opacity-40 sm:ml-0"><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} /></button>
                 </div>
@@ -201,25 +207,33 @@ export default function AgendaPage() {
                   {formatDayLong(day)}{day === today.day ? ' · hoje' : ''}
                 </p>
                 <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5">
-                  <Stat label="Marcados" value={summary.total} icon={CalendarDays} iconClass="bg-tendi-mist text-tendi-indigo" />
-                  <Stat label="Confirmados" value={summary.confirmed} tone="text-emerald-700" icon={CircleCheck} iconClass="bg-emerald-50 text-emerald-600" />
-                  <Stat label="Atendidos" value={summary.completed} icon={CalendarCheck} iconClass="bg-tendi-tealsoft text-tendi-teal" />
-                  <Stat label="Faltas" value={summary.noShow} tone={summary.noShow ? 'text-rose-700' : undefined} icon={CalendarX2} iconClass="bg-rose-50 text-rose-600" />
-                  {rescheduleRequests > 0 && <Stat label="Pediram para remarcar" value={rescheduleRequests} tone="text-amber-700" icon={CalendarX2} iconClass="bg-amber-50 text-amber-700" />}
+                  <Stat label="Marcados" value={summary.total} icon={CalendarDays} iconClass="bg-tendi-mist text-tendi-indigo" active={statusFilter === ''} onClick={() => setStatusFilter('')} />
+                  <Stat label="Confirmados" value={summary.confirmed} tone="text-emerald-700" icon={CircleCheck} iconClass="bg-emerald-50 text-emerald-600" active={statusFilter === 'confirmed'} onClick={() => setStatusFilter(current => current === 'confirmed' ? '' : 'confirmed')} />
+                  <Stat label="Atendidos" value={summary.completed} icon={CalendarCheck} iconClass="bg-tendi-tealsoft text-tendi-teal" active={statusFilter === 'completed'} onClick={() => setStatusFilter(current => current === 'completed' ? '' : 'completed')} />
+                  <Stat label="Faltas" value={summary.noShow} tone={summary.noShow ? 'text-rose-700' : undefined} icon={CalendarX2} iconClass="bg-rose-50 text-rose-600" active={statusFilter === 'no_show'} onClick={() => setStatusFilter(current => current === 'no_show' ? '' : 'no_show')} />
+                  {rescheduleRequests > 0 && <Stat label="Pediram para remarcar" value={rescheduleRequests} tone="text-amber-700" icon={CalendarX2} iconClass="bg-amber-50 text-amber-700" active={statusFilter === 'reschedule'} onClick={() => setStatusFilter(current => current === 'reschedule' ? '' : 'reschedule')} />}
                   {hasPrices && <Stat label="Previsto no dia" value={formatPrice(summary.expectedCents)} detail={summary.receivedCents ? `${formatPrice(summary.receivedCents)} já atendido` : undefined} icon={Wallet} iconClass="bg-tendi-blush text-tendi-magenta" />}
                 </div>
               </div>
+              {activeProfessionals.length > 1 && (
+                <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+                  <button type="button" onClick={() => setFilter('')} className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${!filter ? 'bg-tendi-navy text-white' : 'border border-tendi-line bg-white text-slate-600 hover:border-tendi-lilac/40'}`}>Todos</button>
+                  {activeProfessionals.map(item => (
+                    <button key={item.id} type="button" onClick={() => setFilter(current => current === item.id ? '' : item.id)} className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${filter === item.id ? 'text-white' : 'border border-tendi-line bg-white text-slate-600 hover:border-tendi-lilac/40'}`} style={filter === item.id ? { backgroundColor: item.color } : undefined}>{item.name}</button>
+                  ))}
+                </div>
+              )}
               <DayGrid
                 day={day}
                 timeZone={timeZone}
                 professionals={shown}
                 hours={hours}
-                appointments={dayAppointments}
-                nowMinutes={day === today.day ? today.minutes : null}
+                appointments={visibleAppointments}
                 onCreate={(professionalId, minutes) => setDraft({ day, professionalId, minutes })}
                 onOpen={appointment => setDraft({ day, appointment })}
+                onQuickStatus={(appointment, status) => void quickStatus(appointment, status)}
               />
-              <p className="text-xs text-slate-400">Clique num horário vazio para marcar. As áreas sombreadas ficam fora do horário de atendimento.</p>
+              <p className="text-xs text-slate-400">Clique em &quot;Livre até&quot; para marcar nesse horário, ou no card de um cliente pra ver mais opções.</p>
             </>
           )}
         </div>
@@ -244,19 +258,25 @@ export default function AgendaPage() {
   );
 }
 
-function Stat({ label, value, tone, detail, icon: Icon, iconClass }: {
+function Stat({ label, value, tone, detail, icon: Icon, iconClass, active, onClick }: {
   label: string; value: number | string; tone?: string; detail?: string; icon: typeof CalendarCheck; iconClass: string;
+  /** Quando clicável, filtra a lista de agendamentos abaixo por esse status (dá destaque quando ativo). */
+  active?: boolean; onClick?: () => void;
 }) {
-  return (
-    <div className="td-card min-w-0 px-3 py-3.5 sm:px-4">
+  const className = `min-w-0 rounded-card px-3 py-3.5 text-left transition sm:px-4 ${active ? 'bg-tendi-navy shadow-pop' : 'td-card hover:-translate-y-0.5'}`;
+  const content = (
+    <>
       <div className="flex items-center gap-2">
-        <span className={`flex size-6 shrink-0 items-center justify-center rounded-lg ${iconClass}`}><Icon size={13} /></span>
-        <p className="td-eyebrow truncate">{label}</p>
+        <span className={`flex size-6 shrink-0 items-center justify-center rounded-lg ${active ? 'bg-white/10 text-white' : iconClass}`}><Icon size={13} /></span>
+        <p className={`td-eyebrow truncate ${active ? '!text-white/60' : ''}`}>{label}</p>
       </div>
-      <p className={`mt-2 break-words text-xl font-semibold tracking-tight tabular-nums sm:text-2xl ${tone ?? 'text-tendi-navy'}`}>{value}</p>
-      {detail && <p className="text-[11px] text-slate-400">{detail}</p>}
-    </div>
+      <p className={`mt-2 break-words text-xl font-semibold tracking-tight tabular-nums sm:text-2xl ${active ? 'text-white' : (tone ?? 'text-tendi-navy')}`}>{value}</p>
+      {detail && <p className={`text-[11px] ${active ? 'text-white/50' : 'text-slate-400'}`}>{detail}</p>}
+    </>
   );
+  return onClick
+    ? <button type="button" onClick={onClick} className={className}>{content}</button>
+    : <div className={className}>{content}</div>;
 }
 
 /** A agenda depende de tabelas novas: explica quando o banco ainda não foi atualizado. */
