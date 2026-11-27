@@ -100,12 +100,13 @@ export default async function MarketingHome() {
   const startPrice = plans.map(plan => plan.annualPrice ? Math.min(plan.monthlyPrice ?? Infinity, plan.annualPrice / 12) : plan.monthlyPrice ?? Infinity).reduce((a, b) => Math.min(a, b), Infinity);
   return (
     <>
-      <section className="bg-[#25275B] text-white" aria-labelledby="landing-title">
-        <div className="mx-auto grid max-w-[1280px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_1fr] lg:gap-16 lg:py-24">
-          <div>
+      <section className="overflow-hidden bg-[#25275B] text-white" aria-labelledby="landing-title">
+        <div className="mx-auto grid max-w-[1280px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:items-stretch lg:gap-14 lg:py-20">
+          <div className="flex flex-col justify-center">
             <p className="mb-5 text-sm font-semibold text-[#E9B9E0]">Atendimento e CRM</p>
-            <h1 id="landing-title" className="max-w-[11ch] text-[clamp(2.65rem,6.1vw,5.25rem)] font-bold leading-[1.02] tracking-[-.055em]">
-              Quem ficou <span className="text-[#E9B9E0]">de responder?</span>
+            <h1 id="landing-title" className="max-w-[12ch] text-[clamp(2.75rem,6.2vw,5.5rem)] font-extrabold leading-[1.05] tracking-[-.05em]">
+              Quem ficou{' '}
+              <span className="inline-block rounded-2xl bg-[#E9B9E0] px-3 text-[#25275B]">de responder?</span>
             </h1>
             <p className="mt-7 max-w-md text-base leading-7 text-white/85">
               Veja quem assumiu cada conversa, o que já foi combinado e quando é hora de retomar.
@@ -123,27 +124,28 @@ export default async function MarketingHome() {
             </p>
           </div>
 
-          <figure className="relative mx-auto w-full max-w-[32rem] pb-8 pr-6 sm:pb-10 sm:pr-8">
-            <div className="overflow-hidden rounded-2xl">
+          <div className="relative -mx-5 sm:mx-0">
+            <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-14 hidden size-64 rounded-full bg-[#004751]/50 blur-3xl lg:block" />
+            <div className="relative min-h-[20rem] overflow-hidden rounded-[2rem] sm:min-h-[26rem] lg:absolute lg:inset-0 lg:min-h-0 lg:rounded-[2.5rem_2.5rem_2.5rem_5rem]">
               <Image
                 src="/brand/landing-atendimento.webp"
                 alt=""
-                width={960}
-                height={720}
+                fill
                 priority
-                sizes="(min-width: 1024px) 32rem, 100vw"
-                className="aspect-[4/3] w-full object-cover object-[62%_center]"
+                sizes="(min-width: 1024px) 42vw, 100vw"
+                className="object-cover object-[62%_center]"
               />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#25275B]/70 via-transparent to-transparent" />
             </div>
-            <figcaption className="absolute -bottom-6 -right-3 w-60 rounded-xl border border-slate-200 bg-white p-4 text-left text-[#25275B] shadow-[0_24px_60px_rgba(16,19,56,.35)] sm:-bottom-8 sm:-right-6 sm:w-64">
+            <figure className="relative z-10 -mt-10 ml-5 w-[calc(100%-2.5rem)] max-w-[20rem] rounded-xl border border-slate-200 bg-white p-4 text-left text-[#25275B] shadow-[0_24px_60px_rgba(16,19,56,.35)] sm:ml-7 lg:absolute lg:bottom-7 lg:left-7 lg:mt-0 lg:w-64">
               <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Exemplo de atendimento</p>
               <p className="mt-1.5 text-sm font-bold leading-snug">&quot;Pode me mandar a proposta?&quot;</p>
               <dl className="mt-3 space-y-1 text-[11px] text-slate-500">
                 <div className="flex gap-1"><dt className="font-semibold text-slate-700">Responsável:</dt><dd>Ana · Comercial</dd></div>
                 <div className="flex gap-1"><dt className="font-semibold text-slate-700">Próximo passo:</dt><dd>Enviar proposta amanhã</dd></div>
               </dl>
-            </figcaption>
-          </figure>
+            </figure>
+          </div>
         </div>
       </section>
 
