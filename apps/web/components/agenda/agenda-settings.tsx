@@ -223,12 +223,12 @@ export function AgendaSettings({ organization, professionals, services, hours, c
             <p className="mt-1 text-sm text-slate-500">Cada pessoa tem a sua coluna na agenda e o seu horário de atendimento.</p>
           </div>
         </div>
-        <ul className="mt-4 divide-y divide-tendi-line/70">
+        <ul className="mt-4 space-y-2">
           {professionals.map(professional => {
             const days = WEEKDAY_LABELS.map((label, weekday) => ({ label, open: hours.some(row => row.professional_id === professional.id && row.weekday === weekday) }));
             return (
-              <li key={professional.id} className="flex flex-wrap items-center gap-3 py-3">
-                <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: professional.color }} />
+              <li key={professional.id} className={`flex flex-wrap items-center gap-3 rounded-xl border p-3 ${professional.is_active ? 'border-tendi-line bg-white' : 'border-tendi-line/60 bg-tendi-haze/40'}`}>
+                <span className={`flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${professional.is_active ? '' : 'opacity-40 grayscale'}`} style={{ backgroundColor: professional.color }}>{professional.name.charAt(0).toUpperCase()}</span>
                 <div className="min-w-0 flex-1">
                   <p className={`truncate text-sm font-semibold ${professional.is_active ? 'text-tendi-navy' : 'text-slate-400 line-through'}`}>{professional.name}</p>
                   <p className="text-[11px] text-slate-400">{days.filter(day => day.open).map(day => day.label.slice(0, 3)).join(' · ') || 'Sem horário de atendimento'}</p>
@@ -301,12 +301,13 @@ export function AgendaSettings({ organization, professionals, services, hours, c
             <p className="mt-1 text-sm text-slate-500">A duração define os horários livres oferecidos ao agendar.</p>
           </div>
         </div>
-        <ul className="mt-4 divide-y divide-tendi-line/70">
+        <ul className="mt-4 space-y-2">
           {services.map(service => (
-            <li key={service.id} className="flex flex-wrap items-center gap-3 py-3">
+            <li key={service.id} className={`flex flex-wrap items-center gap-3 rounded-xl border p-3 ${service.is_active ? 'border-tendi-line bg-white' : 'border-tendi-line/60 bg-tendi-haze/40'}`}>
+              <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${service.is_active ? segmentIconCls : 'bg-slate-100 text-slate-400'}`}><SegmentIcon size={16} /></span>
               <div className="min-w-0 flex-1">
                 <p className={`truncate text-sm font-semibold ${service.is_active ? 'text-tendi-navy' : 'text-slate-400 line-through'}`}>{service.name}</p>
-                <p className="text-[11px] text-slate-400">{formatDuration(service.duration_minutes)}{service.price_cents !== null ? ` · ${formatPrice(service.price_cents)}` : ''}</p>
+                <p className="text-[11px] text-slate-400">{formatDuration(service.duration_minutes)} · {service.price_cents !== null ? formatPrice(service.price_cents) : <span className="italic">Sob consulta</span>}</p>
               </div>
               <button type="button" disabled={!canManage} onClick={() => openServiceEdit(service)} className={smallButton}><Pencil size={12} />Editar</button>
               <button type="button" disabled={!canManage || busy === `s-${service.id}`} onClick={() => void toggleService(service)} className={smallButton}>{service.is_active ? <span className="flex items-center gap-1"><Trash2 size={12} />Desativar</span> : 'Reativar'}</button>
