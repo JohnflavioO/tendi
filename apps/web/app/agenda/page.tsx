@@ -157,23 +157,27 @@ export default function AgendaPage() {
               <button type="button" onClick={() => setTab('settings')} aria-pressed={tab === 'settings'} className={`td-tab min-h-11 flex-1 justify-center sm:flex-none ${tab === 'settings' ? 'td-tab-active' : ''}`}><Settings2 size={14} />Configurar</button>
             </div>
             {tab === 'day' && (
-              <div className="flex min-w-0 flex-wrap items-center gap-1.5 rounded-xl border border-tendi-line bg-white p-1.5 shadow-card">
-                <button type="button" onClick={() => setDay(shiftDay(day, -1))} aria-label="Dia anterior" className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-tendi-haze hover:text-tendi-indigo"><ChevronLeft size={16} /></button>
-                <input type="date" value={day} onChange={event => { if (event.target.value) setDay(event.target.value); }} aria-label="Dia" className="td-input min-w-0 flex-1 !border-0 !shadow-none font-semibold text-tendi-navy sm:w-auto sm:flex-none" />
-                <button type="button" onClick={() => setDay(shiftDay(day, 1))} aria-label="Próximo dia" className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-tendi-haze hover:text-tendi-indigo"><ChevronRight size={16} /></button>
-                {day !== today.day && <>
+              <div className="flex min-w-0 flex-col gap-1.5 rounded-xl border border-tendi-line bg-white p-1.5 shadow-card sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <button type="button" onClick={() => setDay(shiftDay(day, -1))} aria-label="Dia anterior" className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-tendi-haze hover:text-tendi-indigo"><ChevronLeft size={16} /></button>
+                  <input type="date" value={day} onChange={event => { if (event.target.value) setDay(event.target.value); }} aria-label="Dia" className="td-input min-w-0 flex-1 !border-0 !shadow-none font-semibold text-tendi-navy sm:w-auto sm:flex-none" />
+                  <button type="button" onClick={() => setDay(shiftDay(day, 1))} aria-label="Próximo dia" className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-tendi-haze hover:text-tendi-indigo"><ChevronRight size={16} /></button>
+                </div>
+                <div className="flex min-w-0 items-center gap-1.5">
+                  {day !== today.day && <>
+                    <span className="hidden h-6 w-px shrink-0 bg-tendi-line sm:block" />
+                    <button type="button" onClick={() => setDay(today.day)} className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold text-tendi-teal transition hover:bg-tendi-tealsoft">Hoje</button>
+                  </>}
+                  {activeProfessionals.length > 1 && <>
+                    <span className="hidden h-6 w-px shrink-0 bg-tendi-line sm:block" />
+                    <select value={filter} onChange={event => setFilter(event.target.value)} aria-label={`Filtrar por ${professionalLabel.toLowerCase()}`} className="td-input min-w-0 flex-1 !border-0 !shadow-none font-semibold text-slate-600 sm:w-auto sm:flex-none">
+                      <option value="">Todos</option>
+                      {activeProfessionals.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                    </select>
+                  </>}
                   <span className="hidden h-6 w-px shrink-0 bg-tendi-line sm:block" />
-                  <button type="button" onClick={() => setDay(today.day)} className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold text-tendi-teal transition hover:bg-tendi-tealsoft">Hoje</button>
-                </>}
-                {activeProfessionals.length > 1 && <>
-                  <span className="hidden h-6 w-px shrink-0 bg-tendi-line sm:block" />
-                  <select value={filter} onChange={event => setFilter(event.target.value)} aria-label={`Filtrar por ${professionalLabel.toLowerCase()}`} className="td-input min-w-0 max-w-full !border-0 !shadow-none font-semibold text-slate-600 sm:w-auto">
-                    <option value="">Todos</option>
-                    {activeProfessionals.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
-                </>}
-                <span className="hidden h-6 w-px shrink-0 bg-tendi-line sm:block" />
-                <button type="button" onClick={() => void refresh()} disabled={refreshing} aria-label="Atualizar" title="Atualizar" className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-tendi-haze hover:text-tendi-indigo disabled:opacity-40"><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} /></button>
+                  <button type="button" onClick={() => void refresh()} disabled={refreshing} aria-label="Atualizar" title="Atualizar" className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-tendi-haze hover:text-tendi-indigo disabled:opacity-40 sm:ml-0"><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} /></button>
+                </div>
               </div>
             )}
           </div>

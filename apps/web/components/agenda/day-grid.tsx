@@ -42,8 +42,37 @@ export function DayGrid({ day, timeZone, professionals, hours, appointments, now
 
   if (!professionals.length) return null;
 
+  const professionalById = new Map(professionals.map(professional => [professional.id, professional]));
+  const sorted = [...placed].sort((a, b) => a.start - b.start);
+
   return (
-    <div className="overflow-x-auto td-card">
+    <>
+      {/* Celular: lista vertical por horário — colunas lado a lado não cabem numa tela estreita. */}
+      <div className="divide-y divide-tendi-line/70 td-card md:hidden">
+        {!sorted.length && <p className="px-5 py-8 text-center text-sm text-slate-400">Nenhum agendamento neste dia.</p>}
+        {sorted.map(({ appointment, start, end }) => {
+          const professional = professionalById.get(appointment.professional_id);
+          const info = STATUS_INFO[appointment.status] ?? STATUS_INFO.scheduled;
+          const wantsReschedule = appointment.reminder_reply === 'reschedule' && appointment.status === 'scheduled';
+          return (
+            <button key={appointment.id} type="button" onClick={() => onOpen(appointment)} className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition active:bg-tendi-haze">
+              <span className="flex w-12 shrink-0 flex-col items-center leading-tight">
+                <span className="text-sm font-bold text-tendi-navy">{formatMinutes(start)}</span>
+                <span className="text-[10px] text-slate-400">{formatMinutes(end)}</span>
+              </span>
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: professional?.color }}>{professional?.name.charAt(0).toUpperCase()}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-tendi-navy">{appointment.customer_name}</span>
+                <span className="block truncate text-xs text-slate-500">{appointment.service_name ?? 'Atendimento'} · {professional?.name}</span>
+              </span>
+              <span className={`td-badge shrink-0 ${wantsReschedule ? 'td-badge-warning' : info.tone.includes('emerald') ? 'td-badge-success' : info.tone.includes('rose') ? 'td-badge-danger' : info.tone.includes('sky') ? 'td-badge-teal' : 'td-badge-neutral'}`}>{wantsReschedule ? 'Remarcar' : info.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Desktop: grade com uma coluna por profissional. */}
+      <div className="hidden overflow-x-auto td-card md:block">
       <div className="flex min-w-max">
         <div className="sticky left-0 z-20 w-14 shrink-0 border-r border-tendi-line/70 bg-white">
           <div className="h-12 border-b border-tendi-line/70" />
@@ -53,6 +82,11 @@ export function DayGrid({ day, timeZone, professionals, hours, appointments, now
                 {minute === from ? '' : formatMinutes(minute)}
               </span>
             ))}
+            {nowMinutes !== null && nowMinutes >= from && nowMinutes <= to && (
+              <span className="absolute right-0 z-10 -translate-y-1/2 rounded-l-full bg-tendi-magenta px-1.5 py-0.5 text-[9px] font-bold text-white" style={{ top: (nowMinutes - from) * PX_PER_MINUTE }}>
+                {formatMinutes(nowMinutes)}
+              </span>
+            )}
           </div>
         </div>
 
@@ -88,9 +122,7 @@ export function DayGrid({ day, timeZone, professionals, hours, appointments, now
                   <div key={minute} className="pointer-events-none absolute inset-x-0 border-t border-tendi-line/70" style={{ top: (minute - from) * PX_PER_MINUTE }} />
                 ))}
                 {nowMinutes !== null && nowMinutes >= from && nowMinutes <= to && (
-                  <div className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-tendi-magenta" style={{ top: (nowMinutes - from) * PX_PER_MINUTE }}>
-                    <span className="absolute -left-1 -top-[7px] size-2.5 rounded-full bg-tendi-magenta" />
-                  </div>
+                  <div className="pointer-events-none absolute inset-x-0 z-10 border-t border-tendi-magenta" style={{ top: (nowMinutes - from) * PX_PER_MINUTE }} />
                 )}
                 {mine.map(({ appointment, start, end }) => {
                   const info = STATUS_INFO[appointment.status] ?? STATUS_INFO.scheduled;
@@ -115,6 +147,7 @@ export function DayGrid({ day, timeZone, professionals, hours, appointments, now
           );
         })}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
