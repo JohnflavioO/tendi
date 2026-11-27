@@ -47,9 +47,9 @@ export async function connectedSession(db: Db, organizationId: string): Promise<
  * Não mexe no modo da IA nem em quem está com a conversa.
  */
 export async function sendSystemMessage(db: Db, input: {
-  organizationId: string; sessionId: string; conversationId: string; phone: string; text: string; kind: string; appointmentId: string;
+  organizationId: string; sessionId: string; conversationId: string; phone: string; text: string; kind: string; appointmentId?: string; senderName?: string;
 }, send: SendFn): Promise<{ ok: true } | { ok: false; error: string }> {
-  const payload = { source: 'agenda', kind: input.kind, appointment_id: input.appointmentId, sender: { type: 'system', name: SYSTEM_SENDER_NAME } };
+  const payload = { source: 'agenda', kind: input.kind, appointment_id: input.appointmentId ?? null, sender: { type: 'system', name: input.senderName ?? SYSTEM_SENDER_NAME } };
   const inserted = await db.from('messages').insert({
     organization_id: input.organizationId,
     conversation_id: input.conversationId,
