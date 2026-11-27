@@ -96,6 +96,14 @@ export async function listPublicSlots(admin: Db, organization: PublicAgendaOrgan
   return freeSlots({ hours, busy, duration: input.durationMinutes, step: SLOT_STEP_MINUTES, earliest });
 }
 
+/** Marca o contato como vindo do Agendar, pra aparecer no segmento de marketing de Contatos. */
+async function tagContactAsAgendar(admin: Db, contactId: string): Promise<void> {
+  const { data } = await admin.from('contacts').select('tags').eq('id', contactId).maybeSingle();
+  const tags = Array.isArray((data as { tags?: unknown } | null)?.tags) ? (data as { tags: string[] }).tags : [];
+  if (tags.includes('agendar')) return;
+  await admin.from('contacts').update({ tags: [...tags, 'agendar'] }).eq('id', contactId);
+}
+
 export type PublicBookingInput = {
   professionalId: string; serviceId: string; day: string; startMinutes: number; customerName: string; customerPhone: string;
 };
@@ -137,6 +145,7 @@ export async function createPublicBooking(admin: Db, agenda: PublicAgenda, input
 
   const contact = await ensureContact(admin, organization.id, phone, name);
   const conversation = await ensureConversation(admin, organization.id, contact.id, now.toISOString());
+  await tagContactAsAgendar(admin, contact.id);
 
   const inserted = await admin.from('appointments').insert({
     organization_id: organization.id, professional_id: professional.id, service_id: service.id,
