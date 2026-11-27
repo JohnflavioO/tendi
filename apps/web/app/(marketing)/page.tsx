@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowRight, CheckCircle2, ChevronDown, ReceiptText, Workflow,
@@ -89,34 +90,21 @@ function BoletoAutomationPreview() {
   );
 }
 
-/** Prévia do hero: a troca de responsável em uma conversa real, sem foto de banco de imagens. */
-function HandoffPreview() {
+/** Selo circular decorativo do hero: texto girando em loop via SVG + CSS, sem JS. */
+function HeroBadge() {
   return (
-    <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(32,39,91,.10)] sm:p-7">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#25275B] text-sm font-bold text-white">MC</span>
-          <div>
-            <p className="text-sm font-bold text-[#25275B]">Marcos Castro</p>
-            <p className="text-xs text-slate-400">Pelo WhatsApp</p>
-          </div>
-        </div>
-        <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">Aguardando há 2h</span>
-      </div>
-
-      <div className="mt-4 space-y-2">
-        <p className="w-fit max-w-[82%] rounded-2xl rounded-bl-sm bg-[#F5F6FB] px-3.5 py-2.5 text-xs leading-5 text-slate-600">Oi! Pode me mandar a proposta?</p>
-        <p className="ml-auto w-fit max-w-[82%] rounded-2xl rounded-br-sm bg-[#25275B] px-3.5 py-2.5 text-xs leading-5 text-white">Claro, te chamo em instantes :)</p>
-      </div>
-
-      <div className="mt-5 flex items-center justify-between rounded-xl bg-[#F7F8FC] px-4 py-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Responsável agora</p>
-          <p className="mt-0.5 text-sm font-bold text-[#25275B]">Ana · Comercial</p>
-        </div>
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#E9B9E0] text-xs font-bold text-[#25275B]">A</span>
-      </div>
-      <p className="mt-4 text-[10px] text-slate-400">Exemplo visual ilustrativo, sem dados de clientes.</p>
+    <div className="pointer-events-none relative hidden size-28 shrink-0 items-center justify-center lg:flex">
+      <svg viewBox="0 0 100 100" className="absolute inset-0 size-full animate-[spin_16s_linear_infinite] text-[#E9B9E0]">
+        <defs>
+          <path id="heroBadgePath" fill="none" d="M 50,50 m -38,0 a 38,38 0 1,1 76,0 a 38,38 0 1,1 -76,0" />
+        </defs>
+        <text fontSize="7.3" letterSpacing="2" fill="currentColor">
+          <textPath href="#heroBadgePath">TENDIDESK · ATENDIMENTO E CRM · </textPath>
+        </text>
+      </svg>
+      <span className="flex size-11 items-center justify-center rounded-full bg-[#E9B9E0] text-[#25275B]">
+        <ArrowRight size={18} aria-hidden="true" />
+      </span>
     </div>
   );
 }
@@ -131,32 +119,49 @@ export default async function MarketingHome() {
   const startPrice = plans.map(plan => plan.annualPrice ? Math.min(plan.monthlyPrice ?? Infinity, plan.annualPrice / 12) : plan.monthlyPrice ?? Infinity).reduce((a, b) => Math.min(a, b), Infinity);
   return (
     <>
-      <section className="overflow-hidden bg-[#25275B] text-white" aria-labelledby="landing-title">
-        <div className="mx-auto grid max-w-[1280px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:items-stretch lg:gap-14 lg:py-20">
-          <div className="flex flex-col justify-center">
-            <p className="mb-5 text-sm font-semibold text-[#E9B9E0]">Atendimento e CRM</p>
-            <h1 id="landing-title" className="max-w-[12ch] text-[clamp(2.75rem,6.2vw,5.5rem)] font-extrabold leading-[1.05] tracking-[-.05em]">
-              Quem ficou{' '}
-              <span className="inline-block rounded-2xl bg-[#E9B9E0] px-3 text-[#25275B]">de responder?</span>
-            </h1>
-            <p className="mt-7 max-w-md text-base leading-7 text-white/85">
-              Veja quem assumiu cada conversa, o que já foi combinado e quando é hora de retomar.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
-              <Link href="/register" className="inline-flex min-h-12 items-center gap-2 rounded-md bg-[#E9B9E0] px-5 text-sm font-bold text-[#25275B] transition hover:bg-white">
-                {siteContent.primaryCta}<ArrowRight size={17} aria-hidden="true" />
-              </Link>
-              <a href="#como-funciona" className="py-2 text-sm font-semibold underline decoration-white/50 underline-offset-4 hover:decoration-white">
-                Veja como funciona
-              </a>
+      <section className="bg-[#1B1D42] text-white" aria-labelledby="landing-title">
+        <div className="relative mx-auto max-w-[1600px] px-5 pb-14 pt-6 sm:px-8 sm:pb-20 sm:pt-8">
+          <div className="relative overflow-hidden rounded-[0_2.5rem_2.5rem_2.5rem] sm:rounded-[0_4rem_4rem_4rem]">
+            <div className="relative min-h-[34rem] w-full sm:min-h-[38rem] lg:min-h-[44rem]">
+              <Image
+                src="/brand/landing-atendimento.webp"
+                alt=""
+                fill
+                priority
+                sizes="100vw"
+                className="object-cover object-[64%_30%]"
+              />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#14152F]/90 via-[#14152F]/25 to-transparent" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#14152F]/75 via-transparent to-transparent lg:to-[#14152F]/10" />
+
+              <div className="relative z-10 flex h-full flex-col justify-end gap-6 p-6 sm:p-10 lg:p-14">
+                <p className="flex items-center gap-3 text-sm font-semibold text-[#E9B9E0]">
+                  <span aria-hidden="true" className="h-px w-8 bg-current" /> Atendimento e CRM
+                </p>
+                <h1 id="landing-title" className="max-w-[16ch] text-[clamp(2.5rem,5.4vw,4.75rem)] font-extrabold leading-[1.05] tracking-[-.045em]">
+                  Quem ficou{' '}
+                  <span className="inline-block rounded-xl bg-[#E9B9E0] px-3 py-1 text-[#25275B]">de responder?</span>
+                </h1>
+                <p className="max-w-lg text-base leading-7 text-white/85 sm:text-lg">
+                  Veja quem assumiu cada conversa, o que já foi combinado e quando é hora de retomar.
+                </p>
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+                  <Link href="/register" className="inline-flex min-h-12 items-center gap-2 rounded-md bg-[#E9B9E0] px-5 text-sm font-bold text-[#25275B] transition hover:bg-white">
+                    {siteContent.primaryCta}<ArrowRight size={17} aria-hidden="true" />
+                  </Link>
+                  <a href="#como-funciona" className="py-2 text-sm font-semibold underline decoration-white/50 underline-offset-4 hover:decoration-white">
+                    Veja como funciona
+                  </a>
+                </div>
+                <p className="text-sm text-white/70">
+                  {trialLabel} grátis · sem cartão · a partir de {Number.isFinite(startPrice) ? startPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : 'R$ 160'}/mês
+                </p>
+              </div>
             </div>
-            <p className="mt-5 text-sm text-white/70">
-              {trialLabel} grátis · sem cartão · a partir de {Number.isFinite(startPrice) ? startPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : 'R$ 160'}/mês
-            </p>
           </div>
 
-          <div className="flex items-center justify-center lg:py-20">
-            <div className="w-full max-w-[420px]"><HandoffPreview /></div>
+          <div className="absolute right-2 top-2 sm:-right-2 sm:top-6">
+            <HeroBadge />
           </div>
         </div>
       </section>
