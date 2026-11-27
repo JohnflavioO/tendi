@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowRight, CheckCircle2, ChevronDown, ReceiptText, Workflow,
@@ -90,6 +89,38 @@ function BoletoAutomationPreview() {
   );
 }
 
+/** Prévia do hero: a troca de responsável em uma conversa real, sem foto de banco de imagens. */
+function HandoffPreview() {
+  return (
+    <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(32,39,91,.10)] sm:p-7">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#25275B] text-sm font-bold text-white">MC</span>
+          <div>
+            <p className="text-sm font-bold text-[#25275B]">Marcos Castro</p>
+            <p className="text-xs text-slate-400">Pelo WhatsApp</p>
+          </div>
+        </div>
+        <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">Aguardando há 2h</span>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        <p className="w-fit max-w-[82%] rounded-2xl rounded-bl-sm bg-[#F5F6FB] px-3.5 py-2.5 text-xs leading-5 text-slate-600">Oi! Pode me mandar a proposta?</p>
+        <p className="ml-auto w-fit max-w-[82%] rounded-2xl rounded-br-sm bg-[#25275B] px-3.5 py-2.5 text-xs leading-5 text-white">Claro, te chamo em instantes :)</p>
+      </div>
+
+      <div className="mt-5 flex items-center justify-between rounded-xl bg-[#F7F8FC] px-4 py-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Responsável agora</p>
+          <p className="mt-0.5 text-sm font-bold text-[#25275B]">Ana · Comercial</p>
+        </div>
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#E9B9E0] text-xs font-bold text-[#25275B]">A</span>
+      </div>
+      <p className="mt-4 text-[10px] text-slate-400">Exemplo visual ilustrativo, sem dados de clientes.</p>
+    </div>
+  );
+}
+
 // O prazo do teste vem do banco; revalida a página para refletir mudanças feitas no console admin.
 export const revalidate = 300;
 
@@ -124,27 +155,8 @@ export default async function MarketingHome() {
             </p>
           </div>
 
-          <div className="relative -mx-5 sm:mx-0">
-            <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-14 hidden size-64 rounded-full bg-[#004751]/50 blur-3xl lg:block" />
-            <div className="relative min-h-[20rem] overflow-hidden rounded-[2rem] sm:min-h-[26rem] lg:absolute lg:inset-0 lg:min-h-0 lg:rounded-[2.5rem_2.5rem_2.5rem_5rem]">
-              <Image
-                src="/brand/landing-atendimento.webp"
-                alt=""
-                fill
-                priority
-                sizes="(min-width: 1024px) 42vw, 100vw"
-                className="object-cover object-[62%_center]"
-              />
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#25275B]/70 via-transparent to-transparent" />
-            </div>
-            <figure className="relative z-10 -mt-10 ml-5 w-[calc(100%-2.5rem)] max-w-[20rem] rounded-xl border border-slate-200 bg-white p-4 text-left text-[#25275B] shadow-[0_24px_60px_rgba(16,19,56,.35)] sm:ml-7 lg:absolute lg:bottom-7 lg:left-7 lg:mt-0 lg:w-64">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Exemplo de atendimento</p>
-              <p className="mt-1.5 text-sm font-bold leading-snug">&quot;Pode me mandar a proposta?&quot;</p>
-              <dl className="mt-3 space-y-1 text-[11px] text-slate-500">
-                <div className="flex gap-1"><dt className="font-semibold text-slate-700">Responsável:</dt><dd>Ana · Comercial</dd></div>
-                <div className="flex gap-1"><dt className="font-semibold text-slate-700">Próximo passo:</dt><dd>Enviar proposta amanhã</dd></div>
-              </dl>
-            </figure>
+          <div className="flex items-center justify-center lg:py-20">
+            <div className="w-full max-w-[420px]"><HandoffPreview /></div>
           </div>
         </div>
       </section>
