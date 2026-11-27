@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
-import { Bell, CheckCheck, X } from 'lucide-react';
+import { Bell, CheckCheck, Volume2, VolumeX, X } from 'lucide-react';
 import { EnablePushButton } from '@/components/enable-push-button';
 import { createClient } from '@/lib/supabase/client';
 import { withOrganization } from '@/lib/current-organization';
+import { isSoundEnabled, playNotificationSound, setSoundEnabled } from '@/lib/notification-sound';
 
 type Notice = {
   id: string;
@@ -28,6 +29,9 @@ export function NotificationBell({ organizationId }: { organizationId: string })
   const [unread, setUnread] = useState(0);
   const [available, setAvailable] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
+  const previousUnread = useRef<number | null>(null);
+  useEffect(() => { setSoundOn(isSoundEnabled()); }, []);
   const load = useCallback(async () => {
     const supabase = createClient();
     const { data: auth } = await supabase.auth.getUser();
@@ -43,16 +47,27 @@ export function NotificationBell({ organizationId }: { organizationId: string })
     setAvailable(true);
     const notices = (data ?? []) as Notice[];
     setItems(notices);
-    setUnread(notices.filter(item => !item.read_at).length);
+    const nextUnread = notices.filter(item => !item.read_at).length;
+    // Toca só quando o total de não lidas sobe (chegou algo novo), nunca na primeira carga da página.
+    if (previousUnread.current !== null && nextUnread > previousUnread.current) playNotificationSound();
+    previousUnread.current = nextUnread;
+    setUnread(nextUnread);
   }, [organizationId]);
 
   useEffect(() => {
     setItems([]);
     setUnread(0);
+    previousUnread.current = null;
     void load();
     const interval = window.setInterval(() => { if (document.visibilityState === 'visible') void load(); }, 30000);
     return () => window.clearInterval(interval);
   }, [load]);
+
+  function toggleSound() {
+    const next = !soundOn;
+    setSoundOn(next);
+    setSoundEnabled(next);
+  }
 
   async function markRead(ids: string[]) {
     if (!ids.length) return;
@@ -79,6 +94,7 @@ export function NotificationBell({ organizationId }: { organizationId: string })
           <h2 className="text-lg font-bold text-tendi-navy">Notificações</h2>
           <div className="flex items-center gap-2">
             {unread > 0 && <button type="button" disabled={busy} onClick={() => void markRead(items.filter(item => !item.read_at).map(item => item.id))} className="text-sm font-semibold text-tendi-indigo hover:underline"><CheckCheck size={14} className="mr-1 inline" />Marcar lidas</button>}
+            <button type="button" aria-label={soundOn ? 'Desligar som de notificação' : 'Ligar som de notificação'} title={soundOn ? 'Som ligado' : 'Som desligado'} onClick={toggleSound} className="td-icon-btn !size-8">{soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
             <button type="button" aria-label="Fechar" onClick={() => setOpen(false)}><X size={17} /></button>
           </div>
         </div>
