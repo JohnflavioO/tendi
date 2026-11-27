@@ -51,8 +51,7 @@ function BoletoAutomationPreview() {
   const providers = ['Asaas', 'Pagar.me', 'Vindi'];
   return (
     <div className="relative mx-auto w-full max-w-[480px]">
-      <div className="pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] bg-gradient-to-br from-[#004751]/[.08] via-transparent to-[#2F316B]/[.06] blur-2xl" />
-      <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(32,39,91,.12)] sm:p-7">
+      <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-[0_24px_70px_rgba(32,39,91,.12)] sm:p-7">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">Cobrança automática</p><h3 className="mt-1 text-lg font-bold text-[#25275B]">2ª via de boleto</h3></div>
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#004751]/[.08] text-[#004751]"><ReceiptText size={18} /></span>
@@ -69,7 +68,7 @@ function BoletoAutomationPreview() {
         <div className="animate-fade-up mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-[#FAFBFD]" style={{ animationDelay: '1.7s' }}>
           <div className="h-1 w-full bg-gradient-to-r from-[#004751] to-[#2F316B]" />
           <div className="p-4">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div><p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Valor</p><p className="mt-1 text-2xl font-extrabold text-[#25275B]">R$ 189,00</p></div>
               <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">Vence em 20/11</span>
             </div>
@@ -181,8 +180,8 @@ export default async function MarketingHome() {
 
       <section className="bg-white py-16 md:py-24">
         <div className="mx-auto max-w-[1280px] px-5 sm:px-8">
-          <div className="grid items-center gap-12 md:grid-cols-2">
-            <Reveal delayMs={150} className="order-2 rounded-[2rem] bg-[#F7F8FC] p-4 sm:p-7 md:order-1"><PipelinePreview /></Reveal>
+          <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
+            <Reveal delayMs={150} className="order-2 min-w-0 rounded-xl bg-[#F7F8FC] p-3 sm:p-7 md:order-1"><PipelinePreview /></Reveal>
             <Reveal className="order-1 md:order-2"><p className="text-sm font-semibold text-[#8B1A73]">Gestão comercial</p><h2 className="mt-4 text-3xl font-bold leading-tight text-[#25275B] md:text-4xl">O relacionamento continua depois da primeira resposta.</h2><p className="mt-5 text-base leading-7 text-slate-600">Acompanhe oportunidades por etapa, organize prioridades e ajude o time a saber qual é o próximo passo de cada negociação.</p><div className="mt-6 flex items-start gap-3 rounded-xl border border-[#004751]/15 bg-[#F2F8F7] p-4"><Workflow size={20} className="mt-0.5 shrink-0 text-[#004751]" /><p className="text-sm leading-6 text-slate-600">Atendimento e CRM conectados para dar continuidade ao relacionamento com seus contatos.</p></div></Reveal>
           </div>
         </div>
@@ -190,7 +189,7 @@ export default async function MarketingHome() {
 
       <section className="bg-white py-20 md:py-24">
         <div className="mx-auto max-w-[1200px] px-5 md:px-6">
-          <div className="grid items-center gap-12 md:grid-cols-2">
+          <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
             <Reveal>
               <p className="text-sm font-semibold text-[#8B1A73]">Exclusivo do TendiDesk Pro</p>
               <h2 className="mt-4 text-3xl font-bold leading-tight text-[#25275B] md:text-4xl">Menos pedido de boleto para a equipe. Mais pagamento em dia.</h2>
@@ -202,7 +201,7 @@ export default async function MarketingHome() {
               </ul>
               <Link href="/register?plano=tendi_pro" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#004751]">Conhecer o plano Pro<ArrowRight size={16} /></Link>
             </Reveal>
-            <Reveal delayMs={150} className="rounded-[2rem] bg-[#F7F8FC] p-4 sm:p-7"><BoletoAutomationPreview /></Reveal>
+            <Reveal delayMs={150} className="min-w-0 rounded-xl bg-[#F7F8FC] p-3 sm:p-7"><BoletoAutomationPreview /></Reveal>
           </div>
         </div>
       </section>
