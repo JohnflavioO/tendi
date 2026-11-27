@@ -25,11 +25,12 @@ type AgentForm = {
   model: string | null;
   monthly_reply_limit: number | null;
   ai_channels: AiChannel[];
+  whatsapp_buttons_enabled: boolean;
 };
 const DEFAULT_AGENT: AgentForm = {
   name: 'Assistente', is_enabled: false, niche: '', tone: 'cordial', system_instructions: '',
   auto_enable_new_conversations: false, provider: null, model: null, monthly_reply_limit: null,
-  ai_channels: [...AI_REPLY_CHANNELS],
+  ai_channels: [...AI_REPLY_CHANNELS], whatsapp_buttons_enabled: true,
 };
 
 const inputClass = 'td-input mt-1';
@@ -46,6 +47,7 @@ export default function WorkspaceAiPage() {
   const [loading, setLoading] = useState(true);
   const [org, setOrg] = useState<Org | null>(null);
   const [planIncludesAi, setPlanIncludesAi] = useState(true);
+  const [planAllowsWhatsappButtons, setPlanAllowsWhatsappButtons] = useState(false);
   const [agent, setAgent] = useState<AgentForm>(DEFAULT_AGENT);
   const [agentExists, setAgentExists] = useState(false);
   const [business, setBusiness] = useState<BusinessData>({ profile: EMPTY_PROFILE, knowledge: [] });
@@ -67,10 +69,11 @@ export default function WorkspaceAiPage() {
       setOrg(organization);
 
       const [planResult, agentResult] = await Promise.all([
-        supabase.from('subscription_plans').select('ai_enabled').eq('code', organization.plan_code).maybeSingle(),
+        supabase.from('subscription_plans').select('ai_enabled,whatsapp_buttons_enabled').eq('code', organization.plan_code).maybeSingle(),
         supabase.from('ai_agents').select('*').eq('organization_id', organization.id).maybeSingle(),
       ]);
       setPlanIncludesAi(planResult.data?.ai_enabled !== false);
+      setPlanAllowsWhatsappButtons(planResult.data?.whatsapp_buttons_enabled === true);
       if (agentResult.data) {
         const data = agentResult.data as Record<string, unknown>;
         setAgentExists(true);
@@ -85,6 +88,7 @@ export default function WorkspaceAiPage() {
           model: typeof data.model === 'string' ? data.model : null,
           monthly_reply_limit: typeof data.monthly_reply_limit === 'number' ? data.monthly_reply_limit : null,
           ai_channels: agentAiChannels(data.ai_channels),
+          whatsapp_buttons_enabled: data.whatsapp_buttons_enabled !== false,
         });
         setSavedChannels(agentAiChannels(data.ai_channels));
       }
@@ -127,6 +131,7 @@ export default function WorkspaceAiPage() {
       system_instructions: agent.system_instructions.trim(),
       auto_enable_new_conversations: agent.auto_enable_new_conversations,
       ai_channels: agent.ai_channels,
+      whatsapp_buttons_enabled: agent.whatsapp_buttons_enabled,
     }, { onConflict: 'organization_id' });
     if (saveError) { setSaving(false); setError(saveError.message); return; }
     // Canal desmarcado agora: a IA sai das conversas abertas dele (a equipe ainda pode ligar em uma conversa).
@@ -176,6 +181,13 @@ export default function WorkspaceAiPage() {
         <div className="mt-3 space-y-2">
           <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.is_enabled} onChange={e => setField('is_enabled', e.target.checked)} />Agente ativo (os atendentes poderão ligar a IA nas conversas)</label>
           <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={agent.auto_enable_new_conversations} onChange={e => setField('auto_enable_new_conversations', e.target.checked)} />Ligar a IA automaticamente em conversas novas</label>
+          <div>
+            <label className={`flex items-center gap-2 text-xs font-semibold ${planAllowsWhatsappButtons ? 'text-slate-700' : 'text-slate-400'}`}>
+              <input type="checkbox" checked={agent.whatsapp_buttons_enabled} disabled={!planAllowsWhatsappButtons} onChange={e => setField('whatsapp_buttons_enabled', e.target.checked)} />
+              Enviar opções rápidas como botões no WhatsApp
+            </label>
+            {!planAllowsWhatsappButtons && <p className="ml-6 mt-0.5 text-[11px] text-amber-700">Disponível a partir do plano Pro. <a href={`/assinatura?organization=${org.id}`} className="font-semibold underline">Ver planos</a>.</p>}
+          </div>
         </div>
         <fieldset className="mt-4 td-subtle p-3">
           <legend className="sr-only">Canais com IA</legend>
