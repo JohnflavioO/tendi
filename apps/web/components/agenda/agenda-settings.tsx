@@ -9,6 +9,7 @@ import {
 } from '@/lib/agenda';
 import { ReminderSettingsCard } from '@/components/agenda/reminder-settings';
 import { PublicBookingSettingsCard } from '@/components/agenda/public-booking-settings';
+import { LoyaltySettingsCard } from '@/components/agenda/loyalty-settings';
 import { ScheduledRemindersCard } from '@/components/agenda/scheduled-reminders';
 import { fieldClass, labelClass, type AgendaOrganization, type HoursRow, type Professional, type Service } from '@/components/agenda/types';
 
@@ -341,6 +342,7 @@ export function AgendaSettings({ organization, professionals, services, hours, c
 
       <PublicBookingSettingsCard key={`public-${JSON.stringify(organization.agenda_settings ?? null)}`} organization={organization} canManage={canManageOrganization} customerLabel={customerLabel} onChanged={onChanged} />
       <ReminderSettingsCard key={JSON.stringify(organization.agenda_settings ?? null)} organization={organization} canManage={canManageOrganization} professionalLabel={professionalLabel} onChanged={onChanged} />
+      <LoyaltySettingsCard key={`loyalty-${JSON.stringify(organization.agenda_settings ?? null)}`} organization={organization} canManage={canManageOrganization} customerLabel={customerLabel} onChanged={onChanged} />
       <ScheduledRemindersCard organizationId={organization.id} />
       </>}
     </div>
