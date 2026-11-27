@@ -213,19 +213,36 @@ describe('resposta do cliente ao lembrete', () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it('não trata "1" quando não há lembrete pendente', async () => {
+  it('trata "1" mesmo sem lembrete automático enviado (resposta à confirmação do agendamento público, por exemplo)', async () => {
+    const db = reminded();
+    db.t.appointments[0]!.reminder_status = null;
+    db.t.appointments[0]!.reminder_sent_at = null;
+    const send = vi.fn().mockResolvedValue({});
+    const outcome = await handleReminderReply(db as any, input('1'), { send, now: () => NOW });
+    expect(outcome).toEqual({ handled: true, action: 'confirmed', appointmentId: 'appt-1' });
+  });
+
+  it('trata "cancelar" como pedido de remarcação/cancelamento, não deixando a IA responder', async () => {
+    const db = reminded();
+    const send = vi.fn().mockResolvedValue({});
+    const outcome = await handleReminderReply(db as any, input('cancelar'), { send, now: () => NOW });
+    expect(outcome).toMatchObject({ handled: true, action: 'reschedule' });
+    expect(db.t.conversations[0]).toMatchObject({ ai_mode: 'handoff' });
+  });
+
+  it('não trata "1" sem agendamento ativo e futuro', async () => {
     const send = vi.fn();
-    const noReminder = reminded();
-    noReminder.t.appointments[0]!.reminder_status = null;
-    expect((await handleReminderReply(noReminder as any, input('1'), { send, now: () => NOW })).handled).toBe(false);
-
-    const old = reminded();
-    old.t.appointments[0]!.reminder_sent_at = '2026-11-09T14:00:00Z';
-    expect((await handleReminderReply(old as any, input('1'), { send, now: () => NOW })).handled).toBe(false);
-
     const past = reminded();
     past.t.appointments[0]!.starts_at = '2026-11-13T12:00:00Z';
     expect((await handleReminderReply(past as any, input('1'), { send, now: () => NOW })).handled).toBe(false);
+
+    const cancelled = reminded();
+    cancelled.t.appointments[0]!.status = 'cancelled';
+    expect((await handleReminderReply(cancelled as any, input('1'), { send, now: () => NOW })).handled).toBe(false);
+
+    const none = reminded();
+    none.t.appointments = [];
+    expect((await handleReminderReply(none as any, input('1'), { send, now: () => NOW })).handled).toBe(false);
     expect(send).not.toHaveBeenCalled();
   });
 

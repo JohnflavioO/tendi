@@ -24,8 +24,6 @@ export const MIN_LEAD_MINUTES = 45;
 /** Horário em que o WhatsApp do cliente pode tocar (fuso da empresa). */
 export const QUIET_START_MINUTES = 21 * 60;
 export const QUIET_END_MINUTES = 8 * 60;
-/** Depois do lembrete, por quanto tempo um "1" ou "2" ainda vale como resposta a ele. */
-export const REPLY_WINDOW_HOURS = 72;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

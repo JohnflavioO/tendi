@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_TIME_ZONE, formatMinutes, localParts } from './agenda';
 import {
-  CONFIRMED_REPLY, REPLY_WINDOW_HOURS, RESCHEDULE_REPLY, normalizeReminderSettings, parseReminderReply, reminderDayLabel,
+  CONFIRMED_REPLY, RESCHEDULE_REPLY, normalizeReminderSettings, parseReminderReply, reminderDayLabel,
   reminderTiming, reminderVars, renderReminder,
 } from './agenda-reminders';
 import { DAPI_PROVIDER, ensureContact, ensureConversation } from './dapi-webhook';
@@ -165,20 +165,23 @@ export async function runAgendaReminders(db: Db, deps: { send: SendFn; now?: () 
 export type ReplyOutcome = { handled: boolean; action?: 'confirmed' | 'reschedule'; appointmentId?: string };
 
 /**
- * Mensagem nova do cliente: se for uma resposta curta ("1", "confirmo", "2", "preciso remarcar") a um
- * lembrete recente, atualiza a agenda e responde. Retorna handled=false para o atendimento seguir normal.
+ * Mensagem nova do cliente: se for uma resposta curta ("1", "confirmo", "2", "preciso remarcar",
+ * "cancelar"...), trata como resposta sobre o próximo agendamento ativo dele — seja ela uma
+ * resposta ao lembrete automático, à confirmação do agendamento público ou ao aviso de
+ * cancelamento/remarcação feito pela equipe. Qualquer uma dessas mensagens convida o cliente a
+ * responder, então todas precisam cair aqui, nunca na IA. Retorna handled=false para o
+ * atendimento seguir normal (IA ou equipe).
  */
 export async function handleReminderReply(db: Db, input: { organizationId: string; contactId: string; conversationId: string; text: string | null }, deps: { send: SendFn; now?: () => Date }): Promise<ReplyOutcome> {
   const reply = parseReminderReply(input.text);
   if (!reply) return { handled: false };
   const now = deps.now ?? (() => new Date());
-  const since = new Date(now().getTime() - REPLY_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
 
   const found = await db.from('appointments')
     .select('id,customer_phone,starts_at')
     .eq('organization_id', input.organizationId).eq('contact_id', input.contactId)
-    .eq('status', 'scheduled').eq('reminder_status', 'sent').is('reminder_reply', null)
-    .gte('reminder_sent_at', since).gt('starts_at', now().toISOString())
+    .in('status', ['scheduled', 'confirmed']).is('reminder_reply', null)
+    .gt('starts_at', now().toISOString())
     .order('starts_at').limit(1).maybeSingle();
   const appointment = found.data as { id: string; customer_phone: string | null; starts_at: string } | null;
   if (found.error || !appointment) return { handled: false };
@@ -190,7 +193,7 @@ export async function handleReminderReply(db: Db, input: { organizationId: strin
   const patch = reply === 'confirm'
     ? { status: 'confirmed', confirmed_at: now().toISOString(), reminder_reply: 'confirmed' }
     : { reminder_reply: 'reschedule', reschedule_requested_at: now().toISOString() };
-  const updated = await db.from('appointments').update(patch).eq('id', appointment.id).eq('status', 'scheduled').is('reminder_reply', null).select('id');
+  const updated = await db.from('appointments').update(patch).eq('id', appointment.id).in('status', ['scheduled', 'confirmed']).is('reminder_reply', null).select('id');
   if (updated.error || !Array.isArray(updated.data) || updated.data.length === 0) return { handled: false };
 
   const day = reminderDayLabel(appointment.starts_at, now(), timeZone);
