@@ -194,6 +194,11 @@ export default function OrganizationAdminPage() {
     if (await call('sync-webhook', 'PATCH', { action: 'sync_whatsapp_webhook' }, 'Webhook sincronizado. O status deve atualizar em alguns segundos.')) await load();
   }
 
+  async function resetWhatsappConnection() {
+    if (!window.confirm('Remover o registro de WhatsApp deste workspace no TendiDesk? Isto NÃO exclui a sessão no On Connect — exclua-a por lá antes (ou depois) de confirmar aqui.')) return;
+    if (await call('reset-whatsapp', 'PATCH', { action: 'reset_whatsapp_connection' }, 'Conexão removida do TendiDesk. Reserve uma sessão nova quando a sessão antiga for excluída no On Connect.')) await load();
+  }
+
   async function copySession(value: string) {
     try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { setCopied(false); }
   }
@@ -358,8 +363,10 @@ export default function OrganizationAdminPage() {
                 <button type="button" onClick={() => void copySession(sessionIdFor(organization.id, whatsappRow?.provider_account_id))} className={secondary}><Copy size={14} />{copied ? 'Copiado' : 'Copiar código'}</button>
                 {whatsappRow?.provider_account_id !== stableSessionId(organization.id) && <button type="button" disabled={busy === 'official'} onClick={() => void prepareOfficial()} className={primary}>{busy === 'official' && <Loader2 size={14} className="animate-spin" />}{whatsappRow ? 'Usar este código para o oficial' : 'Reservar sessão'}</button>}
                 {whatsappRow?.provider_account_id === stableSessionId(organization.id) && <button type="button" disabled={busy === 'sync-webhook'} onClick={() => void syncWebhook()} className={secondary}>{busy === 'sync-webhook' && <Loader2 size={14} className="animate-spin" />}Sincronizar webhook</button>}
+                {whatsappRow && <button type="button" disabled={busy === 'reset-whatsapp'} onClick={() => void resetWhatsappConnection()} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50">{busy === 'reset-whatsapp' && <Loader2 size={14} className="animate-spin" />}Excluir conexão no TendiDesk</button>}
               </div>
               {whatsappRow?.provider_account_id !== stableSessionId(organization.id) && <p className="mt-2 text-[11px] text-amber-700">{whatsappRow ? 'Este workspace já tem uma conexão (provavelmente QR Code) com outro código. Clique no botão para alinhar a sessão ao código acima antes de ligar o número no On Connect.' : 'Reserve a sessão antes de ligar o número no On Connect: sem ela, o TendiDesk não recebe as mensagens deste workspace.'}</p>}
+              <p className="mt-2 text-[11px] text-slate-400">&quot;Excluir conexão no TendiDesk&quot; só apaga o registro local — exclua a sessão correspondente no On Connect separadamente.</p>
             </div>
           </section>
         </div>

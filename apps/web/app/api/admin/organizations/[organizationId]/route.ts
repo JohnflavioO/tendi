@@ -180,6 +180,16 @@ export async function PATCH(request: Request, { params }: Context) {
     return NextResponse.json({ synced: true });
   }
 
+  if (action === 'reset_whatsapp_connection') {
+    // Apaga só o registro local (channel_connections) deste workspace. Não mexe no provedor: a
+    // sessão em si (On Connect/D-API) precisa ser excluída por lá, manualmente, antes ou depois
+    // disso — isto aqui só limpa o TendiDesk para reservar e ligar uma sessão nova do zero.
+    const { error } = await auth.admin.from('channel_connections').delete()
+      .eq('organization_id', organization.id).eq('channel', 'whatsapp');
+    if (error) return fail(500, `Não foi possível remover a conexão: ${error.message}`);
+    return NextResponse.json({ removed: true });
+  }
+
   if (action === 'prepare_official_whatsapp') {
     // Reserva a conexão do WhatsApp do workspace com o código de sessão estável, para o
     // TendiDesk aceitar as mensagens dessa sessão assim que o número oficial for ligado no
