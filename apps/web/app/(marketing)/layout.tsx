@@ -8,7 +8,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
   return <>
     <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
     <MarketingHeader/>
-    <main id="conteudo" className="pt-14 md:pt-16">{children}</main>
+    <main id="conteudo" className="pt-14 peer-data-[home=true]:pt-0 md:pt-16 md:peer-data-[home=true]:pt-0">{children}</main>
     <MarketingFooter/>
     {/* Chat do site: o mesmo widget que os clientes usam. Só aparece quando está ligado em Conexões › Webchat. */}
     {SITE_WEBCHAT_KEY && <Script src="/webchat.js" data-tendi-key={SITE_WEBCHAT_KEY} strategy="lazyOnload" />}
