@@ -22,7 +22,7 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: 'Inbox', url: '/inbox', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
-      { name: 'Agenda', url: '/agenda', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
+      { name: 'Agendar', url: '/agenda', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
       { name: 'CRM', url: '/crm', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
     ],
   };

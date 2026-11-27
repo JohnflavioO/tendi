@@ -144,7 +144,7 @@ export default function AgendaPage() {
     : undefined;
 
   return (
-    <WorkspaceShell title="Agenda" description="Horários marcados, confirmações e o movimento do dia" actions={actions}>
+    <WorkspaceShell title="Agendar" description="Horários marcados, confirmações e o movimento do dia" actions={actions}>
       {loading ? (
         <p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />Carregando agenda…</p>
       ) : !organization ? (
@@ -180,7 +180,7 @@ export default function AgendaPage() {
           ) : setupMissing ? (
             <div className="td-card min-w-0 border-dashed px-5 py-8 text-center sm:p-8">
               <CalendarDays className="mx-auto text-tendi-magenta" size={30} />
-              <h2 className="mt-3 td-title text-base">Configure a agenda para começar</h2>
+              <h2 className="mt-3 td-title text-base">Configure o Agendar para começar</h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Cadastre quem atende, os horários de atendimento e os serviços com a duração de cada um. Depois é só marcar os horários.</p>
               <button type="button" onClick={() => setTab('settings')} className="td-btn td-btn-teal mt-5">Configurar agora</button>
             </div>

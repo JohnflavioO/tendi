@@ -26,7 +26,7 @@ import {
 
 export const WORKSPACE_NAV: Array<{ label: string; href: string; icon: typeof Inbox; area: Area }> = [
   { label: 'Inbox', href: '/inbox', icon: Inbox, area: 'inbox' },
-  { label: 'Agenda', href: '/agenda', icon: CalendarDays, area: 'agenda' },
+  { label: 'Agendar', href: '/agenda', icon: CalendarDays, area: 'agenda' },
   { label: 'CRM', href: '/crm', icon: KanbanSquare, area: 'crm' },
   { label: 'Contatos', href: '/contatos', icon: Users, area: 'contatos' },
   { label: 'Conexões', href: '/chatbots', icon: Plug, area: 'chatbots' },
