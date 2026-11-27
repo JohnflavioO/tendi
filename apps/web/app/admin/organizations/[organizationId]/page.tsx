@@ -10,7 +10,7 @@ import { ROLE_INFO, isRole } from '@/lib/team';
 import { ORGANIZATION_STATUS_LABEL, confirmsDeletion, isInternalOrganization } from '@/lib/company-control';
 import { PlanControls } from '@/components/admin/plan-controls';
 import { COMPLIMENTARY_COLUMNS, complimentaryLabel, isComplimentaryActive } from '@/lib/complimentary';
-import { isOfficial, sessionIdFor } from '@/lib/whatsapp-session';
+import { isOfficial, sessionIdFor, stableSessionId } from '@/lib/whatsapp-session';
 import { SUPPORT_GRANT_COLUMNS, SUPPORT_STATE_LABEL, cleanSupportCode, formatSupportCode, hoursLabel, supportGrantState, type SupportGrant } from '@/lib/support-access';
 
 type Organization = {
@@ -352,9 +352,9 @@ export default function OrganizationAdminPage() {
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <code className="rounded-lg bg-tendi-haze px-3 py-2 font-mono text-xs text-tendi-navy">{sessionIdFor(organization.id, whatsappRow?.provider_account_id)}</code>
                 <button type="button" onClick={() => void copySession(sessionIdFor(organization.id, whatsappRow?.provider_account_id))} className={secondary}><Copy size={14} />{copied ? 'Copiado' : 'Copiar código'}</button>
-                {!whatsappRow && <button type="button" disabled={busy === 'official'} onClick={() => void prepareOfficial()} className={primary}>{busy === 'official' && <Loader2 size={14} className="animate-spin" />}Reservar sessão</button>}
+                {whatsappRow?.provider_account_id !== stableSessionId(organization.id) && <button type="button" disabled={busy === 'official'} onClick={() => void prepareOfficial()} className={primary}>{busy === 'official' && <Loader2 size={14} className="animate-spin" />}{whatsappRow ? 'Usar este código para o oficial' : 'Reservar sessão'}</button>}
               </div>
-              {!whatsappRow && <p className="mt-2 text-[11px] text-amber-700">Reserve a sessão antes de ligar o número no On Connect: sem ela, o TendiDesk não recebe as mensagens deste workspace.</p>}
+              {whatsappRow?.provider_account_id !== stableSessionId(organization.id) && <p className="mt-2 text-[11px] text-amber-700">{whatsappRow ? 'Este workspace já tem uma conexão (provavelmente QR Code) com outro código. Clique no botão para alinhar a sessão ao código acima antes de ligar o número no On Connect.' : 'Reserve a sessão antes de ligar o número no On Connect: sem ela, o TendiDesk não recebe as mensagens deste workspace.'}</p>}
             </div>
           </section>
         </div>
