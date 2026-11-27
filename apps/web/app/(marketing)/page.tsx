@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import {
-  ArrowRight, ArrowUpRight, Bot, CheckCircle2, CircleHelp,
-  MessageSquareText, Users, Workflow, ReceiptText, Building2, CalendarClock,
-  Clock3, MessagesSquare, ChartNoAxesCombined, ShieldCheck,
+  ArrowRight, CheckCircle2, ChevronDown, ReceiptText, Workflow,
 } from 'lucide-react';
 import { siteContent, features, steps, getFaqs } from '@/content/marketing/site';
 import { getTrialDays } from '@/lib/trial-days';
@@ -13,20 +11,6 @@ import { ProductPreview } from '@/components/marketing/product-preview';
 import { Reveal } from '@/components/marketing/reveal';
 import { ChannelBadge } from '@/components/inbox/channel-badge';
 import { CHANNEL_ORDER, CHANNEL_INFO } from '@/lib/channels';
-
-const featureIcons = [MessageSquareText, Workflow, CalendarClock, Bot, Users, ReceiptText, Building2];
-// Cada recurso com uma cor da marca, em rodízio — menos "tudo igual", mais hierarquia visual.
-const featureTones = [
-  { bg: 'bg-[#004751]/[.08]', fg: 'text-[#004751]', hoverBg: 'group-hover:bg-[#004751]' },
-  { bg: 'bg-[#CB0A9F]/[.08]', fg: 'text-[#CB0A9F]', hoverBg: 'group-hover:bg-[#CB0A9F]' },
-  { bg: 'bg-[#2F316B]/[.08]', fg: 'text-[#2F316B]', hoverBg: 'group-hover:bg-[#2F316B]' },
-  { bg: 'bg-[#7C7EC0]/[.14]', fg: 'text-[#7C7EC0]', hoverBg: 'group-hover:bg-[#7C7EC0]' },
-];
-const outcomes = [
-  { icon: MessagesSquare, title: 'Conversas no lugar certo', description: 'Dê contexto ao atendimento e evite que informações importantes fiquem espalhadas.' },
-  { icon: Clock3, title: 'Próximos passos mais claros', description: 'Saiba o que está aguardando resposta e quem precisa continuar cada conversa.' },
-  { icon: ChartNoAxesCombined, title: 'Oportunidades acompanhadas', description: 'Conecte o relacionamento com a rotina comercial e acompanhe cada etapa.' },
-];
 
 function PipelinePreview() {
   const stages = [
@@ -57,33 +41,6 @@ function PipelinePreview() {
   );
 }
 
-function ConversationIllustration() {
-  return (
-    <div className="relative mx-auto w-full max-w-[570px]">
-      <div className="absolute -inset-8 rounded-full bg-[#CB0A9F]/20 blur-3xl" />
-      <div className="absolute -right-3 top-4 size-24 rounded-[2rem] bg-[#CB0A9F] opacity-90 rotate-12 sm:-right-8" />
-      <div className="absolute -bottom-5 -left-5 size-28 rounded-full bg-[#00A59A] opacity-80" />
-      <div className="relative rounded-[2rem] border border-white/30 bg-white/95 p-3 shadow-[0_30px_90px_rgba(20,25,70,.25)] backdrop-blur sm:p-4">
-        <div className="flex items-center justify-between rounded-2xl bg-[#2F316B] px-4 py-3 text-white">
-          <div className="flex items-center gap-3"><span className="flex size-9 items-center justify-center rounded-xl bg-white/15"><MessagesSquare size={18}/></span><div><p className="text-xs font-bold">Inbox TendiDesk</p><p className="text-[10px] text-white/65">Equipe comercial</p></div></div>
-          <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-[10px] font-semibold text-emerald-100">● Online</span>
-        </div>
-        <div className="grid gap-3 p-3 sm:grid-cols-[.8fr_1.2fr] sm:p-4">
-          <div className="space-y-2">
-            {['Mariana Costa','Rafael Mendes','Camila Oliveira'].map((name,i)=><div key={name} className={`rounded-xl p-3 ${i===0?'bg-[#FCEAF7] ring-1 ring-[#CB0A9F]/20':'bg-[#F5F6FB]'}`}><div className="flex items-center gap-2"><span className={`flex size-7 items-center justify-center rounded-full text-[10px] font-bold text-white ${i===1?'bg-[#004751]':'bg-[#CB0A9F]'}`}>{name.split(' ').map(n=>n[0]).join('')}</span><span className="truncate text-[10px] font-bold text-[#2F316B]">{name}</span></div><p className="mt-2 truncate text-[9px] text-slate-500">{['Preciso de uma proposta','Obrigado pelo retorno','Quero conhecer os planos'][i]}</p></div>)}
-          </div>
-          <div className="rounded-2xl bg-[#F7F8FC] p-3">
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-3"><span className="flex size-8 items-center justify-center rounded-full bg-[#CB0A9F] text-[10px] font-bold text-white">MC</span><div><p className="text-[11px] font-bold text-[#2F316B]">Mariana Costa</p><p className="text-[9px] text-emerald-600">Atendimento em andamento</p></div></div>
-            <div className="space-y-3 py-4"><div className="max-w-[90%] rounded-2xl rounded-tl-sm bg-white p-3 text-[10px] leading-4 text-slate-600 shadow-sm">Olá! Gostaria de saber como funciona para minha equipe.</div><div className="ml-auto max-w-[90%] rounded-2xl rounded-tr-sm bg-[#004751] p-3 text-[10px] leading-4 text-white">Claro! Vou te mostrar como podemos organizar tudo.</div><div className="rounded-xl border border-[#CB0A9F]/20 bg-white p-3"><div className="flex items-center gap-2 text-[9px] font-bold text-[#CB0A9F]"><Bot size={13}/> Agente de IA respondeu</div><p className="mt-1 text-[9px] leading-4 text-slate-500">Fora do horário, a IA atende e passa para a equipe quando precisa.</p></div></div>
-            <div className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[9px] text-slate-400">Escreva uma mensagem...</div>
-          </div>
-        </div>
-      </div>
-      <div className="absolute -bottom-7 right-4 rounded-2xl border border-white/60 bg-white px-4 py-3 shadow-xl sm:-right-7"><div className="flex items-center gap-2 text-[10px] font-bold text-[#2F316B]"><span className="flex size-7 items-center justify-center rounded-lg bg-[#00A59A]/15 text-[#004751]"><CheckCircle2 size={15}/></span> Oportunidade acompanhada</div><p className="mt-1 pl-9 text-[9px] text-slate-500">Próximo passo definido</p></div>
-    </div>
-  );
-}
-
 /**
  * Vitrine da 2ª via de boleto (plano Pro): a conversa acontece (pedido do cliente, "digitando…"
  * e a confirmação) e o boleto chega como resultado — tudo com uma entrada encadeada em CSS
@@ -94,8 +51,7 @@ function BoletoAutomationPreview() {
   const providers = ['Asaas', 'Pagar.me', 'Vindi'];
   return (
     <div className="relative mx-auto w-full max-w-[480px]">
-      <div className="pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] bg-gradient-to-br from-[#004751]/[.08] via-transparent to-[#2F316B]/[.06] blur-2xl" />
-      <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(32,39,91,.12)] sm:p-7">
+      <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-[0_24px_70px_rgba(32,39,91,.12)] sm:p-7">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">Cobrança automática</p><h3 className="mt-1 text-lg font-bold text-[#25275B]">2ª via de boleto</h3></div>
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#004751]/[.08] text-[#004751]"><ReceiptText size={18} /></span>
@@ -112,7 +68,7 @@ function BoletoAutomationPreview() {
         <div className="animate-fade-up mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-[#FAFBFD]" style={{ animationDelay: '1.7s' }}>
           <div className="h-1 w-full bg-gradient-to-r from-[#004751] to-[#2F316B]" />
           <div className="p-4">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div><p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Valor</p><p className="mt-1 text-2xl font-extrabold text-[#25275B]">R$ 189,00</p></div>
               <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">Vence em 20/11</span>
             </div>
@@ -143,101 +99,99 @@ export default async function MarketingHome() {
   const startPrice = plans.map(plan => plan.annualPrice ? Math.min(plan.monthlyPrice ?? Infinity, plan.annualPrice / 12) : plan.monthlyPrice ?? Infinity).reduce((a, b) => Math.min(a, b), Infinity);
   return (
     <>
-      <section className="bg-white">
-        <div className="mx-auto max-w-[880px] px-5 pb-14 pt-28 text-center md:px-6 md:pb-20 md:pt-36">
-          <Reveal>
-            <p className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">Atendimento e gestão conectados</p>
-            <h1 className="mx-auto mt-7 max-w-3xl text-[clamp(2.6rem,6.8vw,5rem)] font-extrabold leading-[1.04] tracking-[-.04em] text-[#1B1D4A]">
-              Tudo conectado.<br /><span className="text-slate-400">Sua equipe atende melhor.</span>
+      <section className="bg-[#25275B] text-white" aria-labelledby="landing-title">
+        <div className="mx-auto grid max-w-[1280px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_1fr] lg:gap-16 lg:py-24">
+          <div>
+            <p className="mb-5 text-sm font-semibold text-[#E9B9E0]">Atendimento e CRM para equipes</p>
+            <h1 id="landing-title" className="max-w-[12ch] text-[clamp(2.65rem,6.1vw,5.25rem)] font-bold leading-[1.02] tracking-[-.055em]">
+              Do primeiro oi <span className="text-[#E9B9E0]">à próxima venda.</span>
             </h1>
-            <p className="mx-auto mt-6 max-w-md text-base leading-7 text-slate-500">{siteContent.heroDescription}</p>
-            <div className="mt-9 flex flex-col items-center gap-4">
-              <Link href="/register" className="inline-flex h-14 items-center gap-2 rounded-full bg-[#1B1D4A] px-8 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#13153a]">{siteContent.primaryCta}<ArrowRight size={17} /></Link>
-              <a href="#como-funciona" className="text-sm font-semibold text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-[#1B1D4A] hover:decoration-[#1B1D4A]">Veja como funciona</a>
+            <p className="mt-7 max-w-md text-base leading-7 text-white/85">{siteContent.heroDescription}</p>
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+              <Link href="/register" className="inline-flex min-h-12 items-center gap-2 rounded-md bg-[#E9B9E0] px-5 text-sm font-bold text-[#25275B] transition hover:bg-white">
+                {siteContent.primaryCta}<ArrowRight size={17} aria-hidden="true" />
+              </Link>
+              <a href="#como-funciona" className="py-2 text-sm font-semibold underline decoration-white/45 underline-offset-4 hover:decoration-white">
+                Veja como funciona
+              </a>
             </div>
-            <p className="mt-6 text-xs text-slate-400">{trialLabel} grátis · sem cartão · a partir de {Number.isFinite(startPrice) ? startPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : 'R$ 160'}/mês</p>
-          </Reveal>
-        </div>
-        <div className="border-y border-slate-100 bg-slate-50/60 py-6">
-          <Reveal delayMs={120} className="mx-auto flex max-w-[1000px] flex-wrap items-center justify-center gap-x-8 gap-y-3 px-5">
-            <span className="text-[11px] font-bold uppercase tracking-[.14em] text-slate-400">Funciona com</span>
-            {CHANNEL_ORDER.map(key => <span key={key} className="flex items-center gap-2 text-sm font-semibold text-slate-600"><ChannelBadge channel={key} className="size-6" />{CHANNEL_INFO[key].label}</span>)}
-          </Reveal>
-        </div>
-      </section>
-
-      <section aria-label="Benefícios do TendiDesk" className="border-y border-slate-200 bg-white">
-        <div className="mx-auto grid max-w-[1200px] gap-6 px-5 py-8 md:grid-cols-3 md:px-6">
-          {outcomes.map(({ icon: Icon, title, description }, index) => {
-            const tone = featureTones[index % featureTones.length]!;
-            return <Reveal key={title} delayMs={index * 90} className="flex items-start gap-4">
-              <span className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${tone.bg} ${tone.fg}`}><Icon size={20} /></span>
-              <div><h2 className="text-sm font-bold text-[#25275B]">{title}</h2><p className="mt-1 text-xs leading-5 text-slate-500">{description}</p></div>
-            </Reveal>;
-          })}
-        </div>
-      </section>
-
-      <section className="relative isolate overflow-hidden bg-[#2F316B] py-20 text-white md:py-28">
-        <div className="pointer-events-none absolute -left-32 top-0 -z-10 size-[420px] rounded-full bg-[#CB0A9F]/35 blur-3xl"/>
-        <div className="pointer-events-none absolute -bottom-40 right-0 -z-10 size-[480px] rounded-full bg-[#00A59A]/25 blur-3xl"/>
-        <div className="mx-auto grid max-w-[1200px] items-center gap-16 px-5 md:grid-cols-2 md:px-6">
-          <div><p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[.18em] text-[#F4A8DF]">Atendimento que flui</p><h2 className="mt-6 text-3xl font-extrabold leading-tight tracking-tight md:text-5xl">Sua equipe conectada. Cada conversa com um próximo passo.</h2><p className="mt-5 max-w-lg text-base leading-7 text-white/75">Mais do que reunir mensagens: dê contexto para as pessoas, organize responsabilidades e transforme atendimento em relacionamento contínuo.</p><div className="mt-8 flex flex-wrap gap-3"><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">Inbox compartilhado</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">CRM integrado</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">IA que responde no WhatsApp</span><span className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white">Equipe com papéis</span></div></div>
-          <ConversationIllustration/>
-        </div>
-      </section>
-
-      <section id="recursos" className="scroll-mt-24 bg-white py-20 md:py-24">
-        <div className="mx-auto max-w-[1200px] px-5 md:px-6">
-          <div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Uma operação mais conectada</p><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#25275B] md:text-4xl">Tudo começa com uma conversa. O TendiDesk ajuda sua equipe a dar continuidade.</h2><p className="mt-4 text-base leading-7 text-slate-600">Atendimento, relacionamento e gestão comercial trabalhando juntos para sua empresa não perder o fio de cada oportunidade.</p></div>
-          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature, index) => {
-              const Icon = featureIcons[index];
-              const tone = featureTones[index % featureTones.length]!;
-              return <Reveal key={feature.id} delayMs={(index % 3) * 80} className={index === 0 ? 'md:col-span-2 lg:col-span-2' : ''}>
-                <article className={`group h-full rounded-2xl border p-6 transition duration-200 hover:-translate-y-1 hover:shadow-xl ${index === 0 ? 'border-[#004751]/25 bg-[#F2F8F7]' : 'border-slate-200 bg-white hover:border-[#004751]/25'}`}>
-                  <span className={`flex size-11 items-center justify-center rounded-xl transition ${tone.bg} ${tone.fg} ${tone.hoverBg} group-hover:text-white`}><Icon size={21} /></span>
-                  <p className={`mt-5 text-[10px] font-bold tracking-[.18em] ${tone.fg}`}>{feature.eyebrow}</p><h3 className="mt-2 text-xl font-bold text-[#25275B]">{feature.title}</h3><p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">{feature.description}</p><p className="mt-4 border-t border-slate-200/80 pt-4 text-xs font-medium text-slate-500">{feature.detail}</p>
-                </article>
-              </Reveal>;
-            })}
+            <p className="mt-5 text-sm text-white/75">
+              {trialLabel} grátis · sem cartão · a partir de {Number.isFinite(startPrice) ? startPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : 'R$ 160'}/mês
+            </p>
           </div>
-          <div className="mt-9 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#F7F8FC] p-6"><p className="font-semibold text-[#25275B]">Veja como o TendiDesk pode se encaixar na sua operação.</p><Link href="/register" className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#004751] px-5 text-sm font-bold text-white transition hover:bg-[#003943]">Experimentar por {trialLabel}<ArrowRight size={16} /></Link></div>
+          <figure className="min-w-0 rounded-xl bg-[#DADBF1] p-3 sm:p-7">
+            <ProductPreview />
+            <figcaption className="mx-auto mt-4 max-w-[570px] text-xs font-medium text-[#3E406A]">
+              Central de atendimento TendiDesk · prévia ilustrativa
+            </figcaption>
+          </figure>
         </div>
       </section>
 
-      <section id="como-funciona" className="scroll-mt-24 bg-[#F7F8FC] py-20 md:py-24">
-        <div className="mx-auto max-w-[1200px] px-5 md:px-6">
-          <div className="mx-auto max-w-2xl text-center"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Simples de começar</p><h2 className="mt-4 text-3xl font-bold text-[#25275B] md:text-4xl">Organize primeiro. Evolua com sua equipe.</h2><p className="mt-4 text-base leading-7 text-slate-600">Um caminho claro para estruturar o atendimento e acompanhar o relacionamento com seus clientes.</p></div>
-          <div className="mt-12 grid gap-8 md:grid-cols-3">{steps.map((step, index) => <Reveal key={step.number} delayMs={index * 120}>
-            <article className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
-              <span aria-hidden className="pointer-events-none absolute -right-3 -top-5 text-7xl font-extrabold text-[#CB0A9F]/[.07]">{step.number}</span>
-              <span className="relative text-sm font-extrabold tracking-wider text-[#CB0A9F]">{step.number}</span>
-              <h3 className="relative mt-5 text-xl font-bold text-[#25275B]">{step.title}</h3>
-              <p className="relative mt-3 text-sm leading-6 text-slate-600">{step.description}</p>
-            </article>
-          </Reveal>)}</div>
+      <div className="border-b border-[#DADBCF] bg-[#F8F7F1]">
+        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-8 gap-y-3 px-5 py-5 sm:px-8">
+          <span className="w-full text-sm font-semibold text-[#25275B] sm:w-auto">Canais de atendimento</span>
+          {CHANNEL_ORDER.map(key => (
+            <span key={key} className="flex items-center gap-2 text-sm text-slate-700">
+              <ChannelBadge channel={key} className="size-6" />{CHANNEL_INFO[key].label}
+            </span>
+          ))}
         </div>
-      </section>
+      </div>
 
-      <section className="bg-white py-20 md:py-24">
-        <div className="mx-auto max-w-[1200px] space-y-20 px-5 md:px-6">
-          <div className="grid items-center gap-12 md:grid-cols-2">
-            <Reveal><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Atendimento com contexto</p><h2 className="mt-4 text-3xl font-bold leading-tight text-[#25275B] md:text-4xl">Uma conversa não deveria depender da memória de alguém.</h2><p className="mt-5 text-base leading-7 text-slate-600">Com uma visão compartilhada, sua equipe consegue entender o histórico, identificar responsáveis e seguir com o atendimento com mais consistência.</p><ul className="mt-6 space-y-3 text-sm text-slate-600"><li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Conversas centralizadas e contextualizadas</li><li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Distribuição e acompanhamento por equipe</li><li className="flex gap-2"><CheckCircle2 size={17} className="shrink-0 text-emerald-600" />Agente de IA que responde e chama um atendente quando precisa</li></ul><Link href="/register" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#004751]">Começar teste grátis<ArrowRight size={16} /></Link></Reveal>
-            <Reveal delayMs={150} className="rounded-[2rem] bg-[#F7F8FC] p-4 sm:p-7"><ProductPreview /></Reveal>
+      <section id="recursos" className="scroll-mt-24 bg-[#F8F7F1] py-16 md:py-24">
+        <div className="mx-auto grid max-w-[1280px] items-start gap-8 px-5 sm:px-8 lg:grid-cols-[.75fr_1.25fr] lg:gap-20">
+          <div>
+            <h2 className="max-w-[14ch] text-4xl font-bold leading-[1.08] tracking-[-.045em] text-[#25275B] md:text-5xl">
+              O que sua equipe pode fazer no TendiDesk
+            </h2>
+            <a href="#planos" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#004751] underline underline-offset-4">
+              Comparar planos<ArrowRight size={16} aria-hidden="true" />
+            </a>
           </div>
-          <div className="grid items-center gap-12 md:grid-cols-2">
-            <Reveal delayMs={150} className="order-2 rounded-[2rem] bg-[#F7F8FC] p-4 sm:p-7 md:order-1"><PipelinePreview /></Reveal>
-            <Reveal className="order-1 md:order-2"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Gestão comercial</p><h2 className="mt-4 text-3xl font-bold leading-tight text-[#25275B] md:text-4xl">O relacionamento continua depois da primeira resposta.</h2><p className="mt-5 text-base leading-7 text-slate-600">Acompanhe oportunidades por etapa, organize prioridades e ajude o time a saber qual é o próximo passo de cada negociação.</p><div className="mt-6 flex items-start gap-3 rounded-xl border border-[#004751]/15 bg-[#F2F8F7] p-4"><Workflow size={20} className="mt-0.5 shrink-0 text-[#004751]" /><p className="text-sm leading-6 text-slate-600">Atendimento e CRM conectados para dar continuidade ao relacionamento com seus contatos.</p></div></Reveal>
+          <dl className="border-t border-[#DADBCF]">
+            {features.map(feature => (
+              <div key={feature.id} className="grid gap-2 border-b border-[#DADBCF] py-5 sm:grid-cols-[.85fr_1.15fr] sm:gap-6 sm:py-6">
+                <dt className="text-lg font-bold leading-snug text-[#25275B]">{feature.title}</dt>
+                <dd>
+                  <p className="text-sm leading-6 text-slate-700">{feature.description}</p>
+                  <p className="mt-2 text-xs leading-5 text-slate-600">{feature.detail}</p>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <section id="como-funciona" className="scroll-mt-24 bg-[#004751] py-16 text-white md:py-20">
+        <div className="mx-auto max-w-[1280px] px-5 sm:px-8">
+          <h2 className="text-4xl font-bold tracking-tight md:text-5xl">Como começar</h2>
+          <ol className="mt-9 grid gap-6 md:grid-cols-3 md:gap-10">
+            {steps.map(step => (
+              <li key={step.number} className="border-t border-white/35 pt-5">
+                <span aria-hidden="true" className="text-sm font-semibold text-[#ADE1D7]">{step.number}</span>
+                <h3 className="mt-3 text-xl font-bold">{step.title}</h3>
+                <p className="mt-2 max-w-sm text-sm leading-6 text-white/85">{step.description}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="bg-white py-16 md:py-24">
+        <div className="mx-auto max-w-[1280px] px-5 sm:px-8">
+          <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
+            <Reveal delayMs={150} className="order-2 min-w-0 rounded-xl bg-[#F7F8FC] p-3 sm:p-7 md:order-1"><PipelinePreview /></Reveal>
+            <Reveal className="order-1 md:order-2"><p className="text-sm font-semibold text-[#8B1A73]">Gestão comercial</p><h2 className="mt-4 text-3xl font-bold leading-tight text-[#25275B] md:text-4xl">O relacionamento continua depois da primeira resposta.</h2><p className="mt-5 text-base leading-7 text-slate-600">Acompanhe oportunidades por etapa, organize prioridades e ajude o time a saber qual é o próximo passo de cada negociação.</p><div className="mt-6 flex items-start gap-3 rounded-xl border border-[#004751]/15 bg-[#F2F8F7] p-4"><Workflow size={20} className="mt-0.5 shrink-0 text-[#004751]" /><p className="text-sm leading-6 text-slate-600">Atendimento e CRM conectados para dar continuidade ao relacionamento com seus contatos.</p></div></Reveal>
           </div>
         </div>
       </section>
 
       <section className="bg-white py-20 md:py-24">
         <div className="mx-auto max-w-[1200px] px-5 md:px-6">
-          <div className="grid items-center gap-12 md:grid-cols-2">
+          <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
             <Reveal>
-              <p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Exclusivo do TendiDesk Pro</p>
+              <p className="text-sm font-semibold text-[#8B1A73]">Exclusivo do TendiDesk Pro</p>
               <h2 className="mt-4 text-3xl font-bold leading-tight text-[#25275B] md:text-4xl">Menos pedido de boleto para a equipe. Mais pagamento em dia.</h2>
               <p className="mt-5 text-base leading-7 text-slate-600">Quando o cliente pede a 2ª via pelo WhatsApp, Instagram ou chat do site, a Duda já pede o CPF ou CNPJ e envia a linha digitável e o PDF na hora — sem abrir chamado para a equipe.</p>
               <ul className="mt-6 space-y-3 text-sm text-slate-600">
@@ -247,25 +201,24 @@ export default async function MarketingHome() {
               </ul>
               <Link href="/register?plano=tendi_pro" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-[#004751]">Conhecer o plano Pro<ArrowRight size={16} /></Link>
             </Reveal>
-            <Reveal delayMs={150} className="rounded-[2rem] bg-[#F7F8FC] p-4 sm:p-7"><BoletoAutomationPreview /></Reveal>
+            <Reveal delayMs={150} className="min-w-0 rounded-xl bg-[#F7F8FC] p-3 sm:p-7"><BoletoAutomationPreview /></Reveal>
           </div>
         </div>
       </section>
 
-      <section id="planos" className="scroll-mt-24 bg-[#F7F8FC] py-20 md:py-24">
+      <section id="planos" className="scroll-mt-24 bg-[#F8F7F1] py-16 md:py-24">
         <div className="mx-auto max-w-[1200px] px-5 md:px-6">
-          <div className="mx-auto max-w-2xl text-center"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Planos TendiDesk</p><h2 className="mt-4 text-3xl font-bold text-[#25275B] md:text-4xl">O espaço certo para sua equipe crescer.</h2><p className="mt-4 text-base leading-7 text-slate-600">Comece com {trialLabel} de teste grátis, sem cartão. Depois, escolha o plano mensal ou anual que acompanha o tamanho da sua equipe.</p></div>
+          <div className="mx-auto max-w-2xl text-center"><h2 className="text-4xl font-bold tracking-tight text-[#25275B] md:text-5xl">Planos TendiDesk</h2><p className="mt-4 text-base leading-7 text-slate-600">Comece com {trialLabel} de teste grátis, sem cartão. Depois, escolha o plano mensal ou anual que acompanha o tamanho da sua equipe.</p></div>
           <Pricing plans={plans} trialLabel={trialLabel} />
         </div>
       </section>
 
       <section id="faq" className="scroll-mt-24 bg-white py-20 md:py-24">
-        <div className="mx-auto max-w-[850px] px-5 md:px-6"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#CB0A9F]">Dúvidas frequentes</p><h2 className="mt-4 text-3xl font-bold text-[#25275B] md:text-4xl">Tudo claro antes de começar.</h2><div className="mt-8 divide-y divide-slate-200">{faqs.map((faq) => <details key={faq.question} className="group py-5"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-[#25275B]">{faq.question}<CircleHelp size={18} className="shrink-0 text-[#CB0A9F]" /></summary><p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{faq.answer}</p></details>)}</div></div>
+        <div className="mx-auto max-w-[850px] px-5 md:px-6"><h2 className="text-4xl font-bold tracking-tight text-[#25275B]">Dúvidas frequentes</h2><div className="mt-8 divide-y divide-slate-200">{faqs.map((faq) => <details key={faq.question} className="group py-5"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-[#25275B]">{faq.question}<ChevronDown aria-hidden="true" size={18} className="shrink-0 text-[#25275B] group-open:rotate-180" /></summary><p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{faq.answer}</p></details>)}</div></div>
       </section>
 
-      <section className="relative isolate overflow-hidden bg-[#2F316B] py-16 text-white md:py-20">
-        <div className="pointer-events-none absolute -right-24 -top-32 -z-10 size-96 rounded-full bg-[#CB0A9F]/20 blur-3xl" />
-        <div className="mx-auto flex max-w-[1200px] flex-col items-start justify-between gap-8 px-5 md:flex-row md:items-center md:px-6"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#F4A8DF]">Seu próximo passo</p><h2 className="mt-4 max-w-2xl text-3xl font-bold md:text-4xl">Menos informação espalhada. Mais clareza para sua equipe avançar.</h2><p className="mt-4 text-sm text-white/70">Experimente o TendiDesk por {trialLabel}, sem cadastrar cartão.</p></div><Link href="/register" className="inline-flex h-12 shrink-0 items-center gap-2 rounded-xl bg-white px-6 text-sm font-bold text-[#2F316B] transition hover:-translate-y-0.5 hover:bg-slate-100">Começar teste grátis<ArrowRight size={17} /></Link></div>
+      <section className="bg-[#25275B] py-16 text-white md:py-20">
+        <div className="mx-auto flex max-w-[1200px] flex-col items-start justify-between gap-8 px-5 md:flex-row md:items-center md:px-6"><div><h2 className="max-w-2xl text-3xl font-bold tracking-tight md:text-4xl">Experimente com sua equipe.</h2><p className="mt-4 text-sm text-white/70">Experimente o TendiDesk por {trialLabel}, sem cadastrar cartão.</p></div><Link href="/register" className="inline-flex h-12 shrink-0 items-center gap-2 rounded-xl bg-white px-6 text-sm font-bold text-[#2F316B] transition hover:-translate-y-0.5 hover:bg-slate-100">Começar teste grátis<ArrowRight size={17} /></Link></div>
       </section>
     </>
   );
