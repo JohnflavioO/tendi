@@ -157,18 +157,23 @@ export default function AgendaPage() {
               <button type="button" onClick={() => setTab('settings')} aria-pressed={tab === 'settings'} className={`td-tab min-h-11 flex-1 justify-center sm:flex-none ${tab === 'settings' ? 'td-tab-active' : ''}`}><Settings2 size={14} />Configurar</button>
             </div>
             {tab === 'day' && (
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setDay(shiftDay(day, -1))} aria-label="Dia anterior" className="inline-flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:border-tendi-lilac/40 hover:text-tendi-indigo"><ChevronLeft size={16} /></button>
-                <input type="date" value={day} onChange={event => { if (event.target.value) setDay(event.target.value); }} aria-label="Dia" className="td-input min-w-0 flex-1 font-semibold text-tendi-navy sm:w-auto sm:flex-none" />
-                <button type="button" onClick={() => setDay(shiftDay(day, 1))} aria-label="Próximo dia" className="inline-flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:border-tendi-lilac/40 hover:text-tendi-indigo"><ChevronRight size={16} /></button>
-                {day !== today.day && <button type="button" onClick={() => setDay(today.day)} className="td-btn td-btn-secondary !text-tendi-teal">Hoje</button>}
-                {activeProfessionals.length > 1 && (
-                  <select value={filter} onChange={event => setFilter(event.target.value)} aria-label={`Filtrar por ${professionalLabel.toLowerCase()}`} className="td-input min-w-0 max-w-full font-semibold text-slate-600 sm:w-auto">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5 rounded-xl border border-tendi-line bg-white p-1.5 shadow-card">
+                <button type="button" onClick={() => setDay(shiftDay(day, -1))} aria-label="Dia anterior" className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-tendi-haze hover:text-tendi-indigo"><ChevronLeft size={16} /></button>
+                <input type="date" value={day} onChange={event => { if (event.target.value) setDay(event.target.value); }} aria-label="Dia" className="td-input min-w-0 flex-1 !border-0 !shadow-none font-semibold text-tendi-navy sm:w-auto sm:flex-none" />
+                <button type="button" onClick={() => setDay(shiftDay(day, 1))} aria-label="Próximo dia" className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-tendi-haze hover:text-tendi-indigo"><ChevronRight size={16} /></button>
+                {day !== today.day && <>
+                  <span className="hidden h-6 w-px shrink-0 bg-tendi-line sm:block" />
+                  <button type="button" onClick={() => setDay(today.day)} className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold text-tendi-teal transition hover:bg-tendi-tealsoft">Hoje</button>
+                </>}
+                {activeProfessionals.length > 1 && <>
+                  <span className="hidden h-6 w-px shrink-0 bg-tendi-line sm:block" />
+                  <select value={filter} onChange={event => setFilter(event.target.value)} aria-label={`Filtrar por ${professionalLabel.toLowerCase()}`} className="td-input min-w-0 max-w-full !border-0 !shadow-none font-semibold text-slate-600 sm:w-auto">
                     <option value="">Todos</option>
                     {activeProfessionals.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
-                )}
-                <button type="button" onClick={() => void refresh()} disabled={refreshing} aria-label="Atualizar" title="Atualizar" className="inline-flex size-10 items-center justify-center rounded-xl border border-tendi-line bg-white text-slate-500 transition hover:border-tendi-lilac/40 hover:text-tendi-indigo disabled:opacity-40"><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} /></button>
+                </>}
+                <span className="hidden h-6 w-px shrink-0 bg-tendi-line sm:block" />
+                <button type="button" onClick={() => void refresh()} disabled={refreshing} aria-label="Atualizar" title="Atualizar" className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-tendi-haze hover:text-tendi-indigo disabled:opacity-40"><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} /></button>
               </div>
             )}
           </div>
