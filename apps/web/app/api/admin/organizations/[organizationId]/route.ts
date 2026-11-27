@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/admin-auth';
-import { dapiRequest } from '@/lib/dapi';
+import { DapiError, dapiRequest, repointDapiSessionWebhook } from '@/lib/dapi';
 import { sessionIdFor, settingsForType } from '@/lib/whatsapp-session';
 import { MEDIA_BUCKET } from '@/lib/inbox-attachments';
 import { confirmsDeletion, isInternalOrganization, statusAfterReactivation } from '@/lib/company-control';
@@ -158,6 +158,26 @@ export async function PATCH(request: Request, { params }: Context) {
     }, { onConflict: 'organization_id' });
     if (error) return fail(500, 'Não foi possível atualizar a aprovação. Confira se a migration Business foi aplicada.');
     return NextResponse.json({ approved, billingVerified });
+  }
+
+  if (action === 'sync_whatsapp_webhook') {
+    // Reservar a sessão (ação acima) só grava o código localmente; quem cria a conexão de verdade
+    // no provedor é o suporte, pelo painel do On Connect. Depois disso o provedor ainda não sabe
+    // para onde mandar os eventos dessa sessão — é isso que esta ação corrige.
+    const { data: row, error: readError } = await auth.admin.from('channel_connections')
+      .select('provider_account_id').eq('organization_id', organization.id).eq('channel', 'whatsapp').maybeSingle();
+    if (readError) return fail(500, `Não foi possível consultar a conexão: ${readError.message}`);
+    const sessionId = (row as { provider_account_id: string | null } | null)?.provider_account_id;
+    if (!sessionId) return fail(409, 'Reserve a sessão antes de sincronizar o webhook.');
+    try {
+      await repointDapiSessionWebhook(sessionId);
+    } catch (error) {
+      const message = error instanceof DapiError && error.status === 404
+        ? 'Sessão não encontrada no provedor. Confirme que ela já foi criada no painel do On Connect com este código.'
+        : error instanceof Error ? error.message.slice(0, 200) : 'Falha ao sincronizar o webhook.';
+      return fail(502, message);
+    }
+    return NextResponse.json({ synced: true });
   }
 
   if (action === 'prepare_official_whatsapp') {

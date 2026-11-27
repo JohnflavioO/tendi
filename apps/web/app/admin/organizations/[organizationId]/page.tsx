@@ -190,6 +190,10 @@ export default function OrganizationAdminPage() {
     if (await call('official', 'PATCH', { action: 'prepare_official_whatsapp' }, 'Sessão reservada. Agora ligue o número oficial no painel do On Connect com o código abaixo.')) await load();
   }
 
+  async function syncWebhook() {
+    if (await call('sync-webhook', 'PATCH', { action: 'sync_whatsapp_webhook' }, 'Webhook sincronizado. O status deve atualizar em alguns segundos.')) await load();
+  }
+
   async function copySession(value: string) {
     try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { setCopied(false); }
   }
@@ -348,11 +352,12 @@ export default function OrganizationAdminPage() {
             </div>
             <div className="mt-5 border-t border-tendi-line/70 pt-4">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-tendi-navy"><BadgeCheck size={15} className="text-tendi-teal" />Número oficial (API da Meta)</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">Para este cliente usar um número da API oficial: reserve a sessão, copie o código e, no painel do On Connect, use <strong>Conexões › Nova conexão Meta › Workspace do Tendi</strong>. Se ele já usa QR Code, marque <strong>Substituir a conexão atual</strong>.</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">Para este cliente usar um número da API oficial: 1) reserve a sessão e copie o código; 2) no painel do On Connect, use <strong>Conexões › Nova conexão Meta › Workspace do Tendi</strong> (se ele já usa QR Code, marque <strong>Substituir a conexão atual</strong>); 3) volte aqui e clique em <strong>Sincronizar webhook</strong> — sem isso, o provedor não sabe avisar o TendiDesk quando a conexão mudar de status.</p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <code className="rounded-lg bg-tendi-haze px-3 py-2 font-mono text-xs text-tendi-navy">{sessionIdFor(organization.id, whatsappRow?.provider_account_id)}</code>
                 <button type="button" onClick={() => void copySession(sessionIdFor(organization.id, whatsappRow?.provider_account_id))} className={secondary}><Copy size={14} />{copied ? 'Copiado' : 'Copiar código'}</button>
                 {whatsappRow?.provider_account_id !== stableSessionId(organization.id) && <button type="button" disabled={busy === 'official'} onClick={() => void prepareOfficial()} className={primary}>{busy === 'official' && <Loader2 size={14} className="animate-spin" />}{whatsappRow ? 'Usar este código para o oficial' : 'Reservar sessão'}</button>}
+                {whatsappRow?.provider_account_id === stableSessionId(organization.id) && <button type="button" disabled={busy === 'sync-webhook'} onClick={() => void syncWebhook()} className={secondary}>{busy === 'sync-webhook' && <Loader2 size={14} className="animate-spin" />}Sincronizar webhook</button>}
               </div>
               {whatsappRow?.provider_account_id !== stableSessionId(organization.id) && <p className="mt-2 text-[11px] text-amber-700">{whatsappRow ? 'Este workspace já tem uma conexão (provavelmente QR Code) com outro código. Clique no botão para alinhar a sessão ao código acima antes de ligar o número no On Connect.' : 'Reserve a sessão antes de ligar o número no On Connect: sem ela, o TendiDesk não recebe as mensagens deste workspace.'}</p>}
             </div>
