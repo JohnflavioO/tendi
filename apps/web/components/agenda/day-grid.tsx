@@ -1,153 +1,130 @@
 'use client';
 
-import { CalendarOff } from 'lucide-react';
-import { STATUS_INFO, formatMinutes, localParts, weekdayOf, SLOT_STEP_MINUTES } from '@/lib/agenda';
+import { CalendarOff, MoreHorizontal } from 'lucide-react';
+import { STATUS_INFO, formatDuration, formatMinutes, formatPrice, localParts, weekdayOf } from '@/lib/agenda';
 import { shiftsFor, type Appointment, type HoursRow, type Professional } from '@/components/agenda/types';
 
-const PX_PER_MINUTE = 1.2;
+/** Menor intervalo livre que vale a pena mostrar como "Livre até"; abaixo disso só teria ruído. */
+const MIN_GAP_MINUTES = 10;
+
+type Placed = { appointment: Appointment; start: number; end: number };
+type Entry = { kind: 'appointment'; start: number; placed: Placed } | { kind: 'gap'; start: number; end: number };
 
 /**
- * Grade do dia: uma coluna por profissional, com os horários de atendimento em branco,
- * o restante sombreado e os agendamentos posicionados pela hora.
- * Clicar num espaço vazio abre um novo agendamento naquele horário.
+ * Agenda do dia: uma coluna por profissional, cada uma como uma lista de horários (não uma
+ * grade proporcional ao tempo) — o intervalo livre vira uma linha só ("Livre até X"), em vez de
+ * um espaço em branco do tamanho do intervalo. Funciona igual em qualquer largura de tela.
  */
-export function DayGrid({ day, timeZone, professionals, hours, appointments, nowMinutes, onCreate, onOpen }: {
+export function DayGrid({ day, timeZone, professionals, hours, appointments, onCreate, onOpen, onQuickStatus }: {
   day: string;
   timeZone: string;
   professionals: Professional[];
   hours: HoursRow[];
   appointments: Appointment[];
-  /** Minutos do dia agora, quando `day` é hoje (desenha a linha do horário atual). */
-  nowMinutes: number | null;
   onCreate: (professionalId: string, minutes: number) => void;
   onOpen: (appointment: Appointment) => void;
+  /** Ação rápida do card, sem abrir o diálogo inteiro. */
+  onQuickStatus: (appointment: Appointment, status: 'completed' | 'no_show') => void;
 }) {
   const weekday = weekdayOf(day);
-  const placed = appointments.map(appointment => {
-    const start = localParts(appointment.starts_at, timeZone);
-    const end = localParts(appointment.ends_at, timeZone);
-    // Agendamento que termina depois da meia-noite: corta no fim do dia.
-    return { appointment, start: start.minutes, end: end.day === start.day ? end.minutes : 24 * 60 };
-  });
-
-  // Janela exibida: do primeiro ao último horário de atendimento ou agendamento, com folga de 30 min.
-  const allShifts = professionals.flatMap(professional => shiftsFor(hours, professional.id, weekday));
-  const starts = [...allShifts.map(shift => shift.start), ...placed.map(item => item.start)];
-  const ends = [...allShifts.map(shift => shift.end), ...placed.map(item => item.end)];
-  const from = Math.max(0, Math.floor(((starts.length ? Math.min(...starts) : 8 * 60) - 30) / 60) * 60);
-  const to = Math.min(24 * 60, Math.ceil(((ends.length ? Math.max(...ends) : 18 * 60) + 30) / 60) * 60);
-  const height = (to - from) * PX_PER_MINUTE;
-  const hourMarks: number[] = [];
-  for (let minute = from; minute <= to; minute += 60) hourMarks.push(minute);
 
   if (!professionals.length) return null;
 
-  const professionalById = new Map(professionals.map(professional => [professional.id, professional]));
-  const sorted = [...placed].sort((a, b) => a.start - b.start);
+  return (
+    <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {professionals.map(professional => {
+        const shifts = shiftsFor(hours, professional.id, weekday);
+        const mine = appointments
+          .filter(item => item.professional_id === professional.id)
+          .map(appointment => {
+            const start = localParts(appointment.starts_at, timeZone);
+            const end = localParts(appointment.ends_at, timeZone);
+            return { appointment, start: start.minutes, end: end.day === start.day ? end.minutes : 24 * 60 };
+          });
+        const blocking = mine.filter(item => item.appointment.status === 'scheduled' || item.appointment.status === 'confirmed' || item.appointment.status === 'completed');
+
+        // Dentro de cada turno, preenche com agendamentos ativos e marca o que sobra como "livre".
+        const gaps: Array<{ start: number; end: number }> = [];
+        for (const shift of [...shifts].sort((a, b) => a.start - b.start)) {
+          let cursor = shift.start;
+          const within = blocking.filter(item => item.start < shift.end && item.end > shift.start).sort((a, b) => a.start - b.start);
+          for (const item of within) {
+            if (item.start - cursor >= MIN_GAP_MINUTES) gaps.push({ start: cursor, end: item.start });
+            cursor = Math.max(cursor, item.end);
+          }
+          if (shift.end - cursor >= MIN_GAP_MINUTES) gaps.push({ start: cursor, end: shift.end });
+        }
+
+        const entries: Entry[] = [
+          ...mine.map((placed): Entry => ({ kind: 'appointment', start: placed.start, placed })),
+          ...gaps.map((gap): Entry => ({ kind: 'gap', start: gap.start, end: gap.end })),
+        ].sort((a, b) => a.start - b.start);
+
+        const hoursLabel = shifts.length
+          ? `${formatMinutes(Math.min(...shifts.map(s => s.start)))} às ${formatMinutes(Math.max(...shifts.map(s => s.end)))}`
+          : null;
+
+        return (
+          <div key={professional.id} className="td-card min-w-0 overflow-hidden">
+            <div className="flex items-center gap-2.5 border-b border-tendi-line/70 bg-tendi-haze/40 px-4 py-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: professional.color }}>{professional.name.charAt(0).toUpperCase()}</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-tendi-navy">{professional.name}</p>
+                <p className="truncate text-[11px] text-slate-400">{hoursLabel ? `${hoursLabel} · ${mine.length} atendimento${mine.length === 1 ? '' : 's'}` : 'Sem horário hoje'}</p>
+              </div>
+              {!shifts.length && <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold text-slate-400"><CalendarOff size={12} />Folga</span>}
+            </div>
+
+            <div className="divide-y divide-tendi-line/60">
+              {!entries.length && <p className="px-4 py-6 text-center text-xs text-slate-400">Nada marcado hoje.</p>}
+              {entries.map(entry => entry.kind === 'gap' ? (
+                <button key={`gap-${entry.start}`} type="button" onClick={() => onCreate(professional.id, entry.start)} className="flex w-full items-center gap-2 px-4 py-2 text-left text-[11px] text-slate-400 transition hover:bg-tendi-haze">
+                  <span className="shrink-0 font-semibold tabular-nums">{formatMinutes(entry.start)}</span>
+                  <span className="h-px flex-1 border-t border-dashed border-tendi-line" />
+                  <span className="shrink-0">Livre até {formatMinutes(entry.end)}</span>
+                </button>
+              ) : (
+                <AppointmentCard key={entry.placed.appointment.id} placed={entry.placed} onOpen={onOpen} onQuickStatus={onQuickStatus} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AppointmentCard({ placed, onOpen, onQuickStatus }: {
+  placed: Placed;
+  onOpen: (appointment: Appointment) => void;
+  onQuickStatus: (appointment: Appointment, status: 'completed' | 'no_show') => void;
+}) {
+  const { appointment, start, end } = placed;
+  const info = STATUS_INFO[appointment.status] ?? STATUS_INFO.scheduled;
+  const wantsReschedule = appointment.reminder_reply === 'reschedule' && appointment.status === 'scheduled';
+  const pending = appointment.status === 'scheduled' || appointment.status === 'confirmed';
+  const detail = [appointment.service_name ?? 'Atendimento', `até ${formatMinutes(end)}`, appointment.price_cents !== null ? formatPrice(appointment.price_cents) : null]
+    .filter(Boolean).join(' · ');
 
   return (
-    <>
-      {/* Celular: lista vertical por horário — colunas lado a lado não cabem numa tela estreita. */}
-      <div className="divide-y divide-tendi-line/70 td-card md:hidden">
-        {!sorted.length && <p className="px-5 py-8 text-center text-sm text-slate-400">Nenhum agendamento neste dia.</p>}
-        {sorted.map(({ appointment, start, end }) => {
-          const professional = professionalById.get(appointment.professional_id);
-          const info = STATUS_INFO[appointment.status] ?? STATUS_INFO.scheduled;
-          const wantsReschedule = appointment.reminder_reply === 'reschedule' && appointment.status === 'scheduled';
-          return (
-            <button key={appointment.id} type="button" onClick={() => onOpen(appointment)} className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition active:bg-tendi-haze">
-              <span className="flex w-12 shrink-0 flex-col items-center leading-tight">
-                <span className="text-sm font-bold text-tendi-navy">{formatMinutes(start)}</span>
-                <span className="text-[10px] text-slate-400">{formatMinutes(end)}</span>
-              </span>
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: professional?.color }}>{professional?.name.charAt(0).toUpperCase()}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-tendi-navy">{appointment.customer_name}</span>
-                <span className="block truncate text-xs text-slate-500">{appointment.service_name ?? 'Atendimento'} · {professional?.name}</span>
-              </span>
-              <span className={`td-badge shrink-0 ${wantsReschedule ? 'td-badge-warning' : info.tone.includes('emerald') ? 'td-badge-success' : info.tone.includes('rose') ? 'td-badge-danger' : info.tone.includes('sky') ? 'td-badge-teal' : 'td-badge-neutral'}`}>{wantsReschedule ? 'Remarcar' : info.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Desktop: grade com uma coluna por profissional. */}
-      <div className="hidden overflow-x-auto td-card md:block">
-      <div className="flex min-w-max">
-        <div className="sticky left-0 z-20 w-14 shrink-0 border-r border-tendi-line/70 bg-white">
-          <div className="h-12 border-b border-tendi-line/70" />
-          <div className="relative" style={{ height }}>
-            {hourMarks.map(minute => (
-              <span key={minute} className="absolute right-2 -translate-y-1/2 text-[10px] font-medium text-slate-400" style={{ top: (minute - from) * PX_PER_MINUTE }}>
-                {minute === from ? '' : formatMinutes(minute)}
-              </span>
-            ))}
-            {nowMinutes !== null && nowMinutes >= from && nowMinutes <= to && (
-              <span className="absolute right-0 z-10 -translate-y-1/2 rounded-l-full bg-tendi-magenta px-1.5 py-0.5 text-[9px] font-bold text-white" style={{ top: (nowMinutes - from) * PX_PER_MINUTE }}>
-                {formatMinutes(nowMinutes)}
-              </span>
-            )}
-          </div>
+    <div className={`px-4 py-3 ${appointment.status === 'cancelled' ? 'opacity-50' : ''}`}>
+      <button type="button" onClick={() => onOpen(appointment)} className="block w-full text-left">
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-sm font-bold tabular-nums text-tendi-navy">{formatMinutes(start)}</span>
+          {wantsReschedule && <span className="td-badge td-badge-warning shrink-0 !text-[10px]">Pediu p/ remarcar</span>}
         </div>
-
-        {professionals.map(professional => {
-          const shifts = shiftsFor(hours, professional.id, weekday);
-          const mine = placed.filter(item => item.appointment.professional_id === professional.id);
-          return (
-            <div key={professional.id} className="min-w-[190px] flex-1 border-r border-tendi-line/70 last:border-r-0">
-              <div className="flex h-12 items-center gap-2 border-b border-tendi-line/70 bg-tendi-haze/40 px-3">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: professional.color }}>{professional.name.charAt(0).toUpperCase()}</span>
-                <span className="truncate text-sm font-semibold text-tendi-navy">{professional.name}</span>
-                {!shifts.length && <span className="ml-auto flex shrink-0 items-center gap-1 text-[10px] text-slate-400"><CalendarOff size={12} />Folga</span>}
-              </div>
-              <div
-                className="relative cursor-pointer bg-slate-100"
-                style={{ height }}
-                role="button"
-                tabIndex={0}
-                aria-label={`Novo agendamento com ${professional.name}`}
-                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onCreate(professional.id, shifts[0]?.start ?? 9 * 60); } }}
-                onClick={event => {
-                  if (event.target !== event.currentTarget && !(event.target as HTMLElement).dataset.free) return;
-                  const offset = event.clientY - event.currentTarget.getBoundingClientRect().top;
-                  const minute = from + Math.floor(offset / PX_PER_MINUTE / SLOT_STEP_MINUTES) * SLOT_STEP_MINUTES;
-                  onCreate(professional.id, Math.max(0, Math.min(24 * 60 - SLOT_STEP_MINUTES, minute)));
-                }}
-              >
-                {/* Horário de atendimento em branco; o resto fica sombreado. */}
-                {shifts.map(shift => (
-                  <div key={`${shift.start}-${shift.end}`} data-free="1" className="absolute inset-x-0 bg-white" style={{ top: (shift.start - from) * PX_PER_MINUTE, height: (shift.end - shift.start) * PX_PER_MINUTE }} />
-                ))}
-                {hourMarks.map(minute => (
-                  <div key={minute} className="pointer-events-none absolute inset-x-0 border-t border-tendi-line/70" style={{ top: (minute - from) * PX_PER_MINUTE }} />
-                ))}
-                {nowMinutes !== null && nowMinutes >= from && nowMinutes <= to && (
-                  <div className="pointer-events-none absolute inset-x-0 z-10 border-t border-tendi-magenta" style={{ top: (nowMinutes - from) * PX_PER_MINUTE }} />
-                )}
-                {mine.map(({ appointment, start, end }) => {
-                  const info = STATUS_INFO[appointment.status] ?? STATUS_INFO.scheduled;
-                  const blockHeight = Math.max(24, (end - start) * PX_PER_MINUTE - 2);
-                  const wantsReschedule = appointment.reminder_reply === 'reschedule' && appointment.status === 'scheduled';
-                  return (
-                    <button
-                      key={appointment.id}
-                      type="button"
-                      onClick={() => onOpen(appointment)}
-                      title={`${formatMinutes(start)}–${formatMinutes(end)} · ${appointment.customer_name} · ${wantsReschedule ? 'Pediu para remarcar' : info.label}`}
-                      className={`absolute inset-x-1 overflow-hidden rounded-lg border px-2 py-1 text-left shadow-card transition hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#CB0A9F] ${wantsReschedule ? 'border-amber-300 bg-amber-50 text-amber-900' : info.tone}`}
-                      style={{ top: (start - from) * PX_PER_MINUTE + 1, height: blockHeight, borderLeftWidth: 4, borderLeftColor: professional.color }}
-                    >
-                      <span className="block truncate text-[11px] font-bold leading-4">{formatMinutes(start)} {appointment.customer_name}</span>
-                      {blockHeight >= 40 && <span className="block truncate text-[10px] leading-4 opacity-80">{appointment.service_name ?? 'Atendimento'} · {wantsReschedule ? 'Pediu para remarcar' : info.label}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+        <p className={`mt-0.5 truncate text-sm font-semibold ${appointment.status === 'cancelled' ? 'text-slate-400 line-through' : 'text-tendi-navy'}`}>{appointment.customer_name}</p>
+        <p className="truncate text-xs text-slate-500">{detail} · {formatDuration(end - start)}</p>
+      </button>
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        {pending ? <>
+          <button type="button" onClick={() => onQuickStatus(appointment, 'completed')} className="td-btn td-btn-teal td-btn-sm">Atendido</button>
+          <button type="button" onClick={() => onQuickStatus(appointment, 'no_show')} className="td-btn td-btn-secondary td-btn-sm">Não veio</button>
+        </> : (
+          <span className={`td-badge !text-[10px] ${appointment.status === 'completed' ? 'td-badge-teal' : appointment.status === 'no_show' ? 'td-badge-danger' : 'td-badge-neutral'}`}>{info.label}</span>
+        )}
+        <button type="button" onClick={() => onOpen(appointment)} aria-label="Mais ações" className="td-icon-btn ml-auto size-8"><MoreHorizontal size={15} /></button>
       </div>
-      </div>
-    </>
+    </div>
   );
 }
