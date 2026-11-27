@@ -12,7 +12,7 @@ import { PublicBookingSettingsCard } from '@/components/agenda/public-booking-se
 import { ScheduledRemindersCard } from '@/components/agenda/scheduled-reminders';
 import { fieldClass, labelClass, type AgendaOrganization, type HoursRow, type Professional, type Service } from '@/components/agenda/types';
 
-const timeClass = 'td-input !w-[104px] px-2.5';
+const fieldHint = 'mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400';
 
 /** Ícone e cor por segmento: reforça visualmente qual tipo de negócio está configurado em cada seção. */
 const SEGMENT_ICON: Record<Segment, { Icon: typeof Scissors; cls: string }> = {
@@ -249,19 +249,39 @@ export function AgendaSettings({ organization, professionals, services, hours, c
           <div className="mt-5 rounded-xl border border-tendi-line bg-[#FBFCFE] p-4">
             <p className="td-title">Horário de {professionals.find(item => item.id === editingHours.professionalId)?.name}</p>
             <p className="mt-0.5 text-xs text-slate-500">Marque os dias de atendimento. O intervalo (almoço) é opcional.</p>
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-2.5">
               {editingHours.days.map((form, weekday) => (
-                <div key={weekday} className="flex flex-wrap items-center gap-2">
-                  <label className="flex w-28 items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={form.open} onChange={event => setDay(weekday, { open: event.target.checked })} className="size-4 accent-tendi-teal" />{WEEKDAY_LABELS[weekday]}</label>
-                  {form.open ? <>
-                    <input type="time" value={form.starts} onChange={event => setDay(weekday, { starts: event.target.value })} aria-label={`${WEEKDAY_LABELS[weekday]}: início`} className={timeClass} />
-                    <span className="text-xs text-slate-400">às</span>
-                    <input type="time" value={form.ends} onChange={event => setDay(weekday, { ends: event.target.value })} aria-label={`${WEEKDAY_LABELS[weekday]}: fim`} className={timeClass} />
-                    <span className="ml-2 text-xs text-slate-400">intervalo</span>
-                    <input type="time" value={form.breakStarts} onChange={event => setDay(weekday, { breakStarts: event.target.value })} aria-label={`${WEEKDAY_LABELS[weekday]}: início do intervalo`} className={timeClass} />
-                    <span className="text-xs text-slate-400">às</span>
-                    <input type="time" value={form.breakEnds} onChange={event => setDay(weekday, { breakEnds: event.target.value })} aria-label={`${WEEKDAY_LABELS[weekday]}: fim do intervalo`} className={timeClass} />
-                  </> : <span className="text-xs text-slate-400">Não atende</span>}
+                <div key={weekday} className={`rounded-xl border p-3 transition ${form.open ? 'border-tendi-line bg-white' : 'border-tendi-line/60 bg-tendi-haze/40'}`}>
+                  <label className="flex cursor-pointer items-center justify-between gap-2">
+                    <span className={`text-sm font-semibold ${form.open ? 'text-tendi-navy' : 'text-slate-400'}`}>{WEEKDAY_LABELS[weekday]}</span>
+                    <span className="flex items-center gap-2">
+                      <span className={`text-xs font-medium ${form.open ? 'text-tendi-teal' : 'text-slate-400'}`}>{form.open ? 'Atende' : 'Não atende'}</span>
+                      <input type="checkbox" role="switch" aria-checked={form.open} aria-label={`${WEEKDAY_LABELS[weekday]}: atende`} checked={form.open} onChange={event => setDay(weekday, { open: event.target.checked })} className="size-4 accent-tendi-teal" />
+                    </span>
+                  </label>
+                  {form.open && (
+                    <div className="mt-3 grid grid-cols-2 gap-x-2 gap-y-3">
+                      <div>
+                        <label htmlFor={`hour-start-${weekday}`} className={fieldHint}>Início</label>
+                        <input id={`hour-start-${weekday}`} type="time" value={form.starts} onChange={event => setDay(weekday, { starts: event.target.value })} className="td-input" />
+                      </div>
+                      <div>
+                        <label htmlFor={`hour-end-${weekday}`} className={fieldHint}>Fim</label>
+                        <input id={`hour-end-${weekday}`} type="time" value={form.ends} onChange={event => setDay(weekday, { ends: event.target.value })} className="td-input" />
+                      </div>
+                      <div className="col-span-2 grid grid-cols-2 gap-x-2 gap-y-3 border-t border-dashed border-tendi-line pt-3">
+                        <div className="col-span-2 -mb-1 text-[10px] font-semibold text-slate-400">Intervalo (opcional)</div>
+                        <div>
+                          <label htmlFor={`break-start-${weekday}`} className={fieldHint}>Início</label>
+                          <input id={`break-start-${weekday}`} type="time" value={form.breakStarts} onChange={event => setDay(weekday, { breakStarts: event.target.value })} className="td-input" />
+                        </div>
+                        <div>
+                          <label htmlFor={`break-end-${weekday}`} className={fieldHint}>Fim</label>
+                          <input id={`break-end-${weekday}`} type="time" value={form.breakEnds} onChange={event => setDay(weekday, { breakEnds: event.target.value })} className="td-input" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
