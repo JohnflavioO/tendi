@@ -147,11 +147,23 @@ describe('createPublicBooking', () => {
     expect(result.ok).toBe(true);
     const appt = db.t.appointments[0]!;
     expect(appt).toMatchObject({ organization_id: ORG, professional_id: 'prof-1', service_id: 'serv-1', customer_name: 'Maria Souza', customer_phone: '+5585999990000', status: 'scheduled', source: 'customer', price_cents: 4000 });
-    expect(db.t.contacts[0]).toMatchObject({ organization_id: ORG, full_name: 'Maria Souza', phone_e164: '+5585999990000' });
+    expect(db.t.contacts[0]).toMatchObject({ organization_id: ORG, full_name: 'Maria Souza', phone_e164: '+5585999990000', tags: ['agendar'] });
     expect(sendFn).toHaveBeenCalledTimes(1);
     expect(sendFn.mock.calls[0]![1].text).toContain('Rafael');
     expect(sendFn.mock.calls[0]![1].text).toContain('Rua das Palmeiras, 123 - Centro');
     expect(sendFn.mock.calls[0]![1].text).toContain('Precisa remarcar ou cancelar?');
+  });
+
+  it('não duplica a etiqueta "agendar" se o contato já tiver (ex.: já veio do WhatsApp)', async () => {
+    const db = seed();
+    db.t.contacts.push({ id: 'contact-existing', organization_id: ORG, phone_e164: '+5585999990000', full_name: 'Maria Souza', tags: ['vip', 'agendar'] });
+    const agenda = await loadPublicAgenda(db as any, SLUG);
+    await createPublicBooking(db as any, agenda!, {
+      professionalId: 'prof-1', serviceId: 'serv-1', day: '2026-11-13', startMinutes: 13 * 60,
+      customerName: 'Maria Souza', customerPhone: '85999990000',
+    }, { send: send(), now: NOW });
+    expect(db.t.contacts).toHaveLength(1);
+    expect(db.t.contacts[0]!.tags).toEqual(['vip', 'agendar']);
   });
 
   it('rejeita horário que já não está mais livre', async () => {
