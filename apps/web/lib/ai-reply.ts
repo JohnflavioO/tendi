@@ -106,6 +106,13 @@ export function withQuickOptions(text: string, options: string[]): string {
   return `${text}\n\n${options.map((option, index) => `${index + 1}. ${option}`).join('\n')}`;
 }
 
+export type NativeflowButton = { type: 'quick_reply'; title: string; id: string };
+
+/** Botões nativos do WhatsApp (D-API `/interactive/send/nativeflow`) para as opções rápidas da IA. */
+export function buildNativeflowButtons(options: string[]): NativeflowButton[] {
+  return options.map((option, index) => ({ type: 'quick_reply', title: option, id: `opt-${index + 1}` }));
+}
+
 const MEDIA_NOTES: Record<string, string> = {
   audio: '[O cliente enviou um áudio. Você não consegue ouvir áudios: peça com gentileza que ele escreva a mensagem.]',
   image: '[O cliente enviou uma imagem que você não consegue ver.]',
@@ -397,14 +404,18 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     signer = signature.enabled ? aiSigner(agent.name, signature.aiSuffix) : '';
   }
 
-  const basePayload = { source: 'ai', sender: { type: 'ai', name: agent.name }, ...(signer ? { signature: signer } : {}), ai: { provider, model, handoff: parsed.handoff, ...(quick.options.length ? { options: quick.options } : {}) }, ...(boletoMeta ? { boleto: boletoMeta } : {}) };
+  // No WhatsApp (não Instagram/Webchat), 2 ou 3 opções rápidas viram botões nativos em vez de lista
+  // numerada — só quando a resposta não foi substituída pela mensagem fixa de transferência.
+  const useButtons = !isWebchat && !isInstagram && quick.options.length >= 2 && reply === parsed.text;
+  const nativeButtons = useButtons ? buildNativeflowButtons(quick.options) : null;
+  const basePayload = { source: 'ai', sender: { type: 'ai', name: agent.name }, ...(signer ? { signature: signer } : {}), ai: { provider, model, handoff: parsed.handoff, ...(quick.options.length ? { options: quick.options } : {}) }, ...(boletoMeta ? { boleto: boletoMeta } : {}), ...(nativeButtons ? { interactive: { type: 'nativeflow', buttons: nativeButtons } } : {}) };
   const inserted = await db
     .from('messages')
     .insert({
       organization_id: organizationId,
       conversation_id: conversationId,
       direction: 'outbound',
-      message_type: 'text',
+      message_type: nativeButtons ? 'interactive' : 'text',
       body: reply,
       delivery_status: 'queued',
       provider: isWebchat ? 'webchat' : isInstagram ? 'instagram' : 'd-api',
@@ -422,7 +433,9 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     try {
       const response = instagram && deps.sendInstagram
         ? await deps.sendInstagram({ ...instagram, text: signText(reply, signer, 'plain') })
-        : await deps.send('/messages/send/text', { sessionId, to: phone, text: signText(reply, signer) });
+        : nativeButtons
+          ? await deps.send('/interactive/send/nativeflow', { sessionId, to: phone, body: signText(quick.text, signer), buttons: nativeButtons })
+          : await deps.send('/messages/send/text', { sessionId, to: phone, text: signText(reply, signer) });
       const providerMessageId = pickProviderMessageId(response);
       const patch = { delivery_status: 'sent', sent_at: now().toISOString() };
       const update = await db.from('messages').update(providerMessageId ? { ...patch, provider_message_id: providerMessageId } : patch).eq('id', rowId);

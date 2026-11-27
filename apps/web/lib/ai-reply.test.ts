@@ -82,6 +82,26 @@ describe('runAiAutoReply', () => {
     expect(db.t.conversations[0].ai_mode).toBe('on');
   });
 
+  it('opções rápidas viram botões nativos no WhatsApp (não lista numerada)', async () => {
+    const { db, run, send } = setup({ reply: 'Qual horário prefere? [[OPCOES: Manhã | Tarde]]' });
+    expect(await run()).toEqual({ status: 'replied' });
+    expect(send).toHaveBeenCalledWith('/interactive/send/nativeflow', {
+      sessionId: 'sess-1',
+      to: '5585999990000',
+      body: '*Bia:*\nQual horário prefere?',
+      buttons: [
+        { type: 'quick_reply', title: 'Manhã', id: 'opt-1' },
+        { type: 'quick_reply', title: 'Tarde', id: 'opt-2' },
+      ],
+    });
+    const sent = db.t.messages.find(m => m.direction === 'outbound')!;
+    expect(sent).toMatchObject({ message_type: 'interactive', body: 'Qual horário prefere?\n\n1. Manhã\n2. Tarde' });
+    expect(sent.payload.interactive).toEqual({ type: 'nativeflow', buttons: [
+      { type: 'quick_reply', title: 'Manhã', id: 'opt-1' },
+      { type: 'quick_reply', title: 'Tarde', id: 'opt-2' },
+    ] });
+  });
+
   it('nunca responde duas vezes à mesma mensagem (webhook reentregue)', async () => {
     const { run, send } = setup();
     await run();
