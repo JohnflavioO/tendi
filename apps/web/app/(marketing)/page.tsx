@@ -90,22 +90,25 @@ function BoletoAutomationPreview() {
   );
 }
 
-/** Selo circular decorativo do hero: texto girando em loop via SVG + CSS, sem JS. */
 function HeroBadge() {
   return (
-    <div className="pointer-events-none relative hidden size-28 shrink-0 items-center justify-center lg:flex">
-      <svg viewBox="0 0 100 100" className="absolute inset-0 size-full animate-[spin_16s_linear_infinite] text-[#E9B9E0]">
+    <a
+      href="#recursos"
+      aria-label="Conheça os recursos do TendiDesk"
+      className="group absolute right-4 top-4 z-10 flex size-28 items-center justify-center rounded-full bg-[#1B1D42] text-[#F3C9E9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:size-32 lg:right-6 lg:top-6 lg:size-40 xl:size-44"
+    >
+      <svg aria-hidden="true" viewBox="0 0 100 100" className="absolute inset-0 size-full motion-safe:animate-[spin_12s_linear_infinite] group-hover:[animation-play-state:paused] group-focus-visible:[animation-play-state:paused]">
         <defs>
           <path id="heroBadgePath" fill="none" d="M 50,50 m -38,0 a 38,38 0 1,1 76,0 a 38,38 0 1,1 -76,0" />
         </defs>
-        <text fontSize="7.3" letterSpacing="2" fill="currentColor">
-          <textPath href="#heroBadgePath">TENDIDESK · ATENDIMENTO E CRM · </textPath>
+        <text fontSize="7.6" fontWeight="700" fill="currentColor">
+          <textPath href="#heroBadgePath" textLength="232" lengthAdjust="spacing">TENDIDESK · OMNICHANNEL · IA · AGENDAR · </textPath>
         </text>
       </svg>
-      <span className="flex size-11 items-center justify-center rounded-full bg-[#E9B9E0] text-[#25275B]">
-        <ArrowRight size={18} aria-hidden="true" />
+      <span className="flex size-11 items-center justify-center rounded-full bg-[#E9B9E0] text-[#25275B] transition-colors group-hover:bg-white lg:size-16">
+        <ArrowRight size={23} aria-hidden="true" />
       </span>
-    </div>
+    </a>
   );
 }
 
@@ -120,48 +123,46 @@ export default async function MarketingHome() {
   return (
     <>
       <section className="bg-[#1B1D42] text-white" aria-labelledby="landing-title">
-        <div className="relative mx-auto max-w-[1600px] px-5 pb-14 pt-6 sm:px-8 sm:pb-20 sm:pt-8">
-          <div className="relative overflow-hidden rounded-[0_2.5rem_2.5rem_2.5rem] sm:rounded-[0_4rem_4rem_4rem]">
-            <div className="relative min-h-[34rem] w-full sm:min-h-[38rem] lg:min-h-[44rem]">
+        <div className="mx-auto max-w-[1600px] px-4 pb-8 pt-4 sm:px-8 sm:pb-12 sm:pt-6">
+          <div className="relative isolate grid overflow-hidden rounded-[1.75rem] bg-[#14152F] lg:min-h-[clamp(35rem,43vw,43rem)] lg:grid-cols-[1fr_.85fr] lg:rounded-[3rem]">
+            <div className="relative z-10 flex flex-col items-start justify-center px-5 pb-8 pt-9 sm:px-10 sm:pt-12 lg:py-14 xl:px-14">
+              <p className="flex items-center gap-3 text-sm font-semibold text-[#E9B9E0]">
+                <span aria-hidden="true" className="h-px w-8 bg-current" /> Atendimento omnichannel
+              </p>
+              <h1 id="landing-title" className="mt-4 text-[clamp(2.25rem,5.6vw,5.1rem)] font-extrabold leading-[1.02] tracking-[-.055em]">
+                Da primeira mensagem <span className="block text-[#F3C9E9]">à hora marcada.</span>
+              </h1>
+              <p className="mt-5 max-w-[47ch] text-base leading-7 text-white/90 sm:text-lg">
+                Reúna WhatsApp, Instagram e outros canais numa só caixa de entrada. Seu agente de IA responde dúvidas e, com o Agendar, sua equipe organiza horários e envia lembretes.
+              </p>
+              <p className="mt-3 text-sm font-medium leading-6 text-[#F3C9E9]">
+                Para barbearias, clínicas, salões e outros negócios de serviços.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+                <Link href="/register" className="inline-flex min-h-12 items-center gap-2 rounded-md bg-[#E9B9E0] px-5 text-sm font-bold text-[#25275B] transition hover:bg-white">
+                  {siteContent.primaryCta}<ArrowRight size={17} aria-hidden="true" />
+                </Link>
+                <a href="#como-funciona" className="py-2 text-sm font-semibold underline decoration-white/50 underline-offset-4 hover:decoration-white">
+                  Veja como funciona
+                </a>
+              </div>
+              <p className="mt-4 text-sm text-white/75">
+                {trialLabel} grátis · sem cartão · a partir de {Number.isFinite(startPrice) ? startPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : 'R$ 160'}/mês
+              </p>
+            </div>
+
+            <div className="relative min-h-[clamp(16rem,57vw,26rem)] lg:absolute lg:inset-y-0 lg:left-[36%] lg:right-0">
               <Image
                 src="/brand/landing-atendimento.webp"
                 alt=""
                 fill
                 priority
-                sizes="100vw"
-                className="object-cover object-[64%_30%]"
+                sizes="(min-width: 1600px) 983px, (min-width: 1024px) 64vw, 100vw"
+                className="object-cover object-[64%_37%] lg:object-[70%_center]"
               />
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#14152F]/90 via-[#14152F]/25 to-transparent" />
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#14152F]/75 via-transparent to-transparent lg:to-[#14152F]/10" />
-
-              <div className="relative z-10 flex h-full flex-col justify-end gap-6 p-6 sm:p-10 lg:p-14">
-                <p className="flex items-center gap-3 text-sm font-semibold text-[#E9B9E0]">
-                  <span aria-hidden="true" className="h-px w-8 bg-current" /> Atendimento e CRM
-                </p>
-                <h1 id="landing-title" className="max-w-[16ch] text-[clamp(2.5rem,5.4vw,4.75rem)] font-extrabold leading-[1.05] tracking-[-.045em]">
-                  Quem ficou{' '}
-                  <span className="inline-block rounded-xl bg-[#E9B9E0] px-3 py-1 text-[#25275B]">de responder?</span>
-                </h1>
-                <p className="max-w-lg text-base leading-7 text-white/85 sm:text-lg">
-                  Veja quem assumiu cada conversa, o que já foi combinado e quando é hora de retomar.
-                </p>
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-                  <Link href="/register" className="inline-flex min-h-12 items-center gap-2 rounded-md bg-[#E9B9E0] px-5 text-sm font-bold text-[#25275B] transition hover:bg-white">
-                    {siteContent.primaryCta}<ArrowRight size={17} aria-hidden="true" />
-                  </Link>
-                  <a href="#como-funciona" className="py-2 text-sm font-semibold underline decoration-white/50 underline-offset-4 hover:decoration-white">
-                    Veja como funciona
-                  </a>
-                </div>
-                <p className="text-sm text-white/70">
-                  {trialLabel} grátis · sem cartão · a partir de {Number.isFinite(startPrice) ? startPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : 'R$ 160'}/mês
-                </p>
-              </div>
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#14152F] via-transparent to-transparent lg:bg-gradient-to-r lg:from-[#14152F] lg:from-[3%] lg:via-[#14152F]/15 lg:via-[40%] lg:to-transparent" />
+              <HeroBadge />
             </div>
-          </div>
-
-          <div className="absolute right-2 top-2 sm:-right-2 sm:top-6">
-            <HeroBadge />
           </div>
         </div>
       </section>
