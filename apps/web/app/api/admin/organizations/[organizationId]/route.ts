@@ -133,7 +133,10 @@ export async function PATCH(request: Request, { params }: Context) {
   }
 
   if (action === 'set_official_whatsapp_approval') {
-    if (body?.approved === true) {
+    // O workspace interno da plataforma (slug 'tendi') nunca passa pelo fluxo comercial de
+    // implantação Business (proposta, taxa de setup, validação Meta) — não tem por que ter: não é
+    // um cliente pagante. Exigir isso dele deixaria a aprovação permanentemente impossível.
+    if (body?.approved === true && !isInternalOrganization(organization)) {
       const onboarding = await auth.admin.from('business_onboardings').select('status,payment_verified_at').eq('organization_id', organization.id).maybeSingle();
       if (onboarding.error || !onboarding.data?.payment_verified_at || !['awaiting_meta_validation','active'].includes(onboarding.data.status)) {
         return fail(409, 'Conclua o pagamento e avance a implantação Business até a validação Meta antes de aprovar.');
