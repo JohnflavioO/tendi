@@ -75,5 +75,18 @@ export function MessageMedia({ message, onOpenImage }: { message: MediaMessage; 
   }
 
   const text = caption ?? (kind ? null : `[${message.message_type}]`);
-  return <>{media}{text && <p className={textClass}>{text}</p>}</>;
+  const buttons = message.message_type === 'interactive' ? interactiveButtonTitles(message.payload) : null;
+  return <>
+    {media}
+    {text && <p className={textClass}>{text}</p>}
+    {buttons && <div className="mt-2 flex flex-wrap gap-1.5">{buttons.map((title, index) => <span key={index} className="rounded-full border border-current/20 bg-black/5 px-2.5 py-1 text-[11px] font-semibold">{title}</span>)}</div>}
+  </>;
+}
+
+/** Títulos dos botões nativos enviados (payload.interactive.buttons), só para exibir o que o cliente viu. */
+function interactiveButtonTitles(payload: Record<string, unknown> | null): string[] | null {
+  const interactive = payload?.interactive as { buttons?: Array<{ title?: unknown }> } | undefined;
+  if (!interactive || !Array.isArray(interactive.buttons)) return null;
+  const titles = interactive.buttons.map(button => (typeof button?.title === 'string' ? button.title : '')).filter(Boolean);
+  return titles.length ? titles : null;
 }
