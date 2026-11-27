@@ -203,10 +203,10 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
 
   // 3) Agente liberado, plano com IA e empresa em dia.
   const [agentResult, orgResult] = await Promise.all([
-    db.from('ai_agents').select('name,is_enabled,niche,tone,system_instructions,provider,model,monthly_reply_limit').eq('organization_id', organizationId).maybeSingle(),
+    db.from('ai_agents').select('name,is_enabled,niche,tone,system_instructions,provider,model,monthly_reply_limit,whatsapp_buttons_enabled').eq('organization_id', organizationId).maybeSingle(),
     db.from('organizations').select('name,status,plan_code,trial_ends_at,complimentary_since,complimentary_until').eq('id', organizationId).maybeSingle(),
   ]);
-  const agent = agentResult.data as { name: string; is_enabled: boolean; niche: string; tone: string; system_instructions: string; provider: string | null; model: string | null; monthly_reply_limit?: number | null } | null;
+  const agent = agentResult.data as { name: string; is_enabled: boolean; niche: string; tone: string; system_instructions: string; provider: string | null; model: string | null; monthly_reply_limit?: number | null; whatsapp_buttons_enabled?: boolean } | null;
   const org = orgResult.data as { name: string; status: string; plan_code: string | null; trial_ends_at: string | null; complimentary_since?: string | null; complimentary_until?: string | null } | null;
   if (!agent?.is_enabled) return { status: 'skipped', reason: 'agent_disabled' };
   if (!org) return { status: 'skipped', reason: 'organization_not_found' };
@@ -214,11 +214,15 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
     return { status: 'skipped', reason: 'organization_inactive' };
   }
   let planLimit: number | null = null;
+  // Botões nativos do WhatsApp são um recurso do plano Pro para cima (coluna no plano); Start fica
+  // com a lista numerada de sempre, mesmo com o agente marcado para usar botões.
+  let planAllowsWhatsappButtons = false;
   if (org.plan_code) {
-    const plan = await db.from('subscription_plans').select('ai_enabled,ai_monthly_replies').eq('code', org.plan_code).maybeSingle();
-    const planRow = plan.data as { ai_enabled: boolean; ai_monthly_replies?: number | null } | null;
+    const plan = await db.from('subscription_plans').select('ai_enabled,ai_monthly_replies,whatsapp_buttons_enabled').eq('code', org.plan_code).maybeSingle();
+    const planRow = plan.data as { ai_enabled: boolean; ai_monthly_replies?: number | null; whatsapp_buttons_enabled?: boolean } | null;
     if (planRow?.ai_enabled === false) return { status: 'skipped', reason: 'plan_without_ai' };
     planLimit = planRow?.ai_monthly_replies ?? null;
+    planAllowsWhatsappButtons = planRow?.whatsapp_buttons_enabled === true;
   }
 
   // 4) Trava: só um processamento por mensagem.
@@ -405,8 +409,10 @@ export async function runAiAutoReply(db: Db, trigger: AiTrigger, deps: AiReplyDe
   }
 
   // No WhatsApp (não Instagram/Webchat), 2 ou 3 opções rápidas viram botões nativos em vez de lista
-  // numerada — só quando a resposta não foi substituída pela mensagem fixa de transferência.
-  const useButtons = !isWebchat && !isInstagram && quick.options.length >= 2 && reply === parsed.text;
+  // numerada — só quando a resposta não foi substituída pela mensagem fixa de transferência, o plano
+  // permite (Pro para cima) e o agente não desligou o recurso.
+  const useButtons = !isWebchat && !isInstagram && quick.options.length >= 2 && reply === parsed.text
+    && planAllowsWhatsappButtons && agent.whatsapp_buttons_enabled !== false;
   const nativeButtons = useButtons ? buildNativeflowButtons(quick.options) : null;
   const basePayload = { source: 'ai', sender: { type: 'ai', name: agent.name }, ...(signer ? { signature: signer } : {}), ai: { provider, model, handoff: parsed.handoff, ...(quick.options.length ? { options: quick.options } : {}) }, ...(boletoMeta ? { boleto: boletoMeta } : {}), ...(nativeButtons ? { interactive: { type: 'nativeflow', buttons: nativeButtons } } : {}) };
   const inserted = await db

@@ -45,11 +45,11 @@ class Query {
   then(resolve: any, reject: any) { return Promise.resolve(this.run()).then(resolve, reject); }
 }
 
-function setup(options: { aiMode?: string; agentEnabled?: boolean; reply?: string; refused?: boolean } = {}) {
+function setup(options: { aiMode?: string; agentEnabled?: boolean; reply?: string; refused?: boolean; whatsappButtonsPlan?: boolean; whatsappButtonsAgent?: boolean } = {}) {
   const db = new FakeDb();
   db.t.organizations.push({ id: 'org1', name: 'Clínica Sorriso', status: 'active', plan_code: 'tendi_start', trial_ends_at: null });
-  db.t.subscription_plans.push({ code: 'tendi_start', ai_enabled: true });
-  db.t.ai_agents.push({ organization_id: 'org1', name: 'Bia', is_enabled: options.agentEnabled ?? true, niche: 'odontologia', tone: 'cordial', system_instructions: '', provider: null, model: null });
+  db.t.subscription_plans.push({ code: 'tendi_start', ai_enabled: true, whatsapp_buttons_enabled: options.whatsappButtonsPlan ?? false });
+  db.t.ai_agents.push({ organization_id: 'org1', name: 'Bia', is_enabled: options.agentEnabled ?? true, niche: 'odontologia', tone: 'cordial', system_instructions: '', provider: null, model: null, whatsapp_buttons_enabled: options.whatsappButtonsAgent ?? true });
   db.t.platform_settings.push({ key: 'ai', value: { provider: 'anthropic', models: { anthropic: 'claude-haiku-5-5', openai: '' } } });
   db.t.ai_business_profiles.push({ organization_id: 'org1', handoff_message: 'Já chamo alguém da equipe!', timezone: 'America/Fortaleza', business_hours: {} });
   db.t.channel_connections.push({ organization_id: 'org1', channel: 'whatsapp', provider_account_id: 'sess-1', status: 'connected' });
@@ -82,8 +82,8 @@ describe('runAiAutoReply', () => {
     expect(db.t.conversations[0].ai_mode).toBe('on');
   });
 
-  it('opções rápidas viram botões nativos no WhatsApp (não lista numerada)', async () => {
-    const { db, run, send } = setup({ reply: 'Qual horário prefere? [[OPCOES: Manhã | Tarde]]' });
+  it('opções rápidas viram botões nativos no WhatsApp quando o plano permite (Pro+)', async () => {
+    const { db, run, send } = setup({ reply: 'Qual horário prefere? [[OPCOES: Manhã | Tarde]]', whatsappButtonsPlan: true });
     expect(await run()).toEqual({ status: 'replied' });
     expect(send).toHaveBeenCalledWith('/interactive/send/nativeflow', {
       sessionId: 'sess-1',
@@ -100,6 +100,19 @@ describe('runAiAutoReply', () => {
       { type: 'quick_reply', title: 'Manhã', id: 'opt-1' },
       { type: 'quick_reply', title: 'Tarde', id: 'opt-2' },
     ] });
+  });
+
+  it('plano sem o recurso (ex.: Start): continua como lista numerada, sem botões', async () => {
+    const { db, run, send } = setup({ reply: 'Qual horário prefere? [[OPCOES: Manhã | Tarde]]' });
+    expect(await run()).toEqual({ status: 'replied' });
+    expect(send).toHaveBeenCalledWith('/messages/send/text', { sessionId: 'sess-1', to: '5585999990000', text: '*Bia:*\nQual horário prefere?\n\n1. Manhã\n2. Tarde' });
+    expect(db.t.messages.find(m => m.direction === 'outbound')!.message_type).toBe('text');
+  });
+
+  it('agente pode desligar os botões mesmo com o plano permitindo', async () => {
+    const { send, run } = setup({ reply: 'Qual horário prefere? [[OPCOES: Manhã | Tarde]]', whatsappButtonsPlan: true, whatsappButtonsAgent: false });
+    expect(await run()).toEqual({ status: 'replied' });
+    expect(send).toHaveBeenCalledWith('/messages/send/text', { sessionId: 'sess-1', to: '5585999990000', text: '*Bia:*\nQual horário prefere?\n\n1. Manhã\n2. Tarde' });
   });
 
   it('nunca responde duas vezes à mesma mensagem (webhook reentregue)', async () => {
